@@ -16,7 +16,7 @@ An MCP (Model Context Protocol) server that connects Claude/Cursor to your Yazio
 - 🏃‍♂️ **Fitness Data** - Track exercises and water intake
 - ⚖️ **Weight Monitoring** - View weight history and trends
 - 🎯 **Goal Management** - Access and manage nutrition goals
-- 🔍 **Product Search** - Search Yazio's extensive food database
+- 🔍 **Product Search** - Search Yazio's extensive [food database](https://www.yazio.com/en/foods)
 
 ## 🚀 Quick Start
 
