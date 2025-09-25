@@ -80,3 +80,5 @@ jspm_packages/
 
 # AI files
 .claude/
+.mcpregistry_github_token
+.mcpregistry_registry_token
