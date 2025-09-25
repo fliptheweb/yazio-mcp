@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { zodToJsonSchema } from 'zod-to-json-schema';
 
 // Simple schemas for TypeScript types and MCP schemas only
 export const DaytimeSchema = z.enum(['breakfast', 'lunch', 'dinner', 'snack']);
@@ -86,16 +85,3 @@ export type AddConsumedItemInput = z.infer<typeof AddConsumedItemInputSchema>;
 export type RemoveConsumedItemInput = z.infer<typeof RemoveConsumedItemInputSchema>;
 export type GetDietaryPreferencesInput = z.infer<typeof GetDietaryPreferencesInputSchema>;
 export type GetUserGoalsInput = z.infer<typeof GetUserGoalsInputSchema>;
-
-// Convert Zod schema to MCP-compatible JSON Schema
-export function zodToMcpSchema(zodSchema: z.ZodType): any {
-  const schema = zodToJsonSchema(zodSchema, {
-    target: 'jsonSchema7',
-    $refStrategy: 'none'
-  });
-
-  // Remove MCP-unnecessary fields for cleaner schemas
-  const { $schema, additionalProperties, ...cleanSchema } = schema as any;
-
-  return cleanSchema;
-}

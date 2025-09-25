@@ -7,8 +7,8 @@ import {
   McpError,
 } from '@modelcontextprotocol/sdk/types.js';
 import { Yazio } from 'yazio';
+import { zodToJsonSchema } from 'zod-to-json-schema';
 import {
-  GetDietDataInputSchema,
   GetFoodEntriesInputSchema,
   GetDailySummaryInputSchema,
   GetUserInfoInputSchema,
@@ -23,8 +23,6 @@ import {
   RemoveConsumedItemInputSchema,
   GetDietaryPreferencesInputSchema,
   GetUserGoalsInputSchema,
-  zodToMcpSchema,
-  type GetDietDataInput,
   type GetFoodEntriesInput,
   type GetDailySummaryInput,
   type GetUserWeightInput,
@@ -98,9 +96,9 @@ class YazioMcpServer {
     this.server.setRequestHandler(ListToolsRequestSchema, async () => ({
       tools: [
         {
-          name: 'getProduct',
+          name: 'get_product',
           description: 'Get detailed information about a specific product by ID',
-          inputSchema: zodToMcpSchema(GetProductInputSchema),
+          inputSchema: zodToJsonSchema(GetProductInputSchema),
           annotations: {
             readOnlyHint: true,
             idempotentHint: true,
@@ -108,63 +106,63 @@ class YazioMcpServer {
           }
         },
         {
-          name: 'getUser',
+          name: 'get_user',
           description: 'Get Yazio user profile information',
-          inputSchema: zodToMcpSchema(GetUserInfoInputSchema),
+          inputSchema: zodToJsonSchema(GetUserInfoInputSchema),
           annotations: {
             readOnlyHint: true,
             idempotentHint: true
           }
         },
         {
-          name: 'getUserConsumedItems',
+          name: 'get_user_consumed_items',
           description: 'Get food entries for a specific date',
-          inputSchema: zodToMcpSchema(GetFoodEntriesInputSchema),
+          inputSchema: zodToJsonSchema(GetFoodEntriesInputSchema),
           annotations: {
             readOnlyHint: true,
             idempotentHint: true
           }
         },
         {
-          name: 'getUserDietaryPreferences',
+          name: 'get_user_dietary_preferences',
           description: 'Get user dietary preferences and restrictions',
-          inputSchema: zodToMcpSchema(GetDietaryPreferencesInputSchema),
+          inputSchema: zodToJsonSchema(GetDietaryPreferencesInputSchema),
           annotations: {
             readOnlyHint: true,
             idempotentHint: true
           }
         },
         {
-          name: 'getUserExercises',
+          name: 'get_user_exercises',
           description: 'Get user exercise data for a date or date range',
-          inputSchema: zodToMcpSchema(GetUserExercisesInputSchema),
+          inputSchema: zodToJsonSchema(GetUserExercisesInputSchema),
           annotations: {
             readOnlyHint: true,
             idempotentHint: true
           }
         },
         {
-          name: 'getUserGoals',
+          name: 'get_user_goals',
           description: 'Get user nutrition and fitness goals',
-          inputSchema: zodToMcpSchema(GetUserGoalsInputSchema),
+          inputSchema: zodToJsonSchema(GetUserGoalsInputSchema),
           annotations: {
             readOnlyHint: true,
             idempotentHint: true
           }
         },
         {
-          name: 'getUserSettings',
+          name: 'get_user_settings',
           description: 'Get user settings and preferences',
-          inputSchema: zodToMcpSchema(GetUserSettingsInputSchema),
+          inputSchema: zodToJsonSchema(GetUserSettingsInputSchema),
           annotations: {
             readOnlyHint: true,
             idempotentHint: true
           }
         },
         {
-          name: 'getUserSuggestedProducts',
+          name: 'get_user_suggested_products',
           description: 'Get product suggestions for the user',
-          inputSchema: zodToMcpSchema(GetUserSuggestedProductsInputSchema),
+          inputSchema: zodToJsonSchema(GetUserSuggestedProductsInputSchema),
           annotations: {
             readOnlyHint: true,
             idempotentHint: true,
@@ -172,27 +170,27 @@ class YazioMcpServer {
           }
         },
         {
-          name: 'getUserWaterIntake',
+          name: 'get_user_water_intake',
           description: 'Get water intake data for a specific date',
-          inputSchema: zodToMcpSchema(GetWaterIntakeInputSchema),
+          inputSchema: zodToJsonSchema(GetWaterIntakeInputSchema),
           annotations: {
             readOnlyHint: true,
             idempotentHint: true
           }
         },
         {
-          name: 'getUserWeight',
+          name: 'get_user_weight',
           description: 'Get user weight data',
-          inputSchema: zodToMcpSchema(GetUserWeightInputSchema),
+          inputSchema: zodToJsonSchema(GetUserWeightInputSchema),
           annotations: {
             readOnlyHint: true,
             idempotentHint: true
           }
         },
         {
-          name: 'searchProducts',
+          name: 'search_products',
           description: 'Search for food products in Yazio database',
-          inputSchema: zodToMcpSchema(SearchProductsInputSchema),
+          inputSchema: zodToJsonSchema(SearchProductsInputSchema),
           annotations: {
             readOnlyHint: true,
             idempotentHint: true,
@@ -200,27 +198,27 @@ class YazioMcpServer {
           }
         },
         {
-          name: 'getUserDailySummary',
+          name: 'get_user_daily_summary',
           description: 'Get daily nutrition summary for a specific date',
-          inputSchema: zodToMcpSchema(GetDailySummaryInputSchema),
+          inputSchema: zodToJsonSchema(GetDailySummaryInputSchema),
           annotations: {
             readOnlyHint: true,
             idempotentHint: true
           }
         },
         {
-          name: 'addUserConsumedItem',
+          name: 'add_user_consumed_item',
           description: 'Add a food item to user consumption log',
-          inputSchema: zodToMcpSchema(AddConsumedItemInputSchema),
+          inputSchema: zodToJsonSchema(AddConsumedItemInputSchema),
           annotations: {
             readOnlyHint: false,
             idempotentHint: false
           }
         },
         {
-          name: 'removeUserConsumedItem',
+          name: 'remove_user_consumed_item',
           description: 'Remove a food item from user consumption log',
-          inputSchema: zodToMcpSchema(RemoveConsumedItemInputSchema),
+          inputSchema: zodToJsonSchema(RemoveConsumedItemInputSchema),
           annotations: {
             readOnlyHint: false,
             destructiveHint: true,
@@ -235,32 +233,23 @@ class YazioMcpServer {
 
       try {
         switch (name) {
-          case 'get_diet_data':
-            return await this.getDietData(GetDietDataInputSchema.parse(args));
-
-          case 'get_food_entries':
-            return await this.getFoodEntries(GetFoodEntriesInputSchema.parse(args));
-
-          case 'get_user_info':
-            return await this.getUserInfo();
-
-          case 'get_daily_summary':
-            return await this.getDailySummary(GetDailySummaryInputSchema.parse(args));
-
-          case 'get_user_weight':
-            return await this.getUserWeight(GetUserWeightInputSchema.parse(args));
-
-          case 'get_water_intake':
-            return await this.getWaterIntake(GetWaterIntakeInputSchema.parse(args));
-
-          case 'search_products':
-            return await this.searchProducts(SearchProductsInputSchema.parse(args));
-
           case 'get_product':
             return await this.getProduct(GetProductInputSchema.parse(args));
 
+          case 'get_user':
+            return await this.getUser();
+
+          case 'get_user_consumed_items':
+            return await this.getUserConsumedItems(GetFoodEntriesInputSchema.parse(args));
+
+          case 'get_user_dietary_preferences':
+            return await this.getUserDietaryPreferences();
+
           case 'get_user_exercises':
             return await this.getUserExercises(GetUserExercisesInputSchema.parse(args));
+
+          case 'get_user_goals':
+            return await this.getUserGoals();
 
           case 'get_user_settings':
             return await this.getUserSettings();
@@ -268,17 +257,23 @@ class YazioMcpServer {
           case 'get_user_suggested_products':
             return await this.getUserSuggestedProducts(GetUserSuggestedProductsInputSchema.parse(args));
 
-          case 'add_consumed_item':
-            return await this.addConsumedItem(AddConsumedItemInputSchema.parse(args));
+          case 'get_user_water_intake':
+            return await this.getUserWaterIntake(GetWaterIntakeInputSchema.parse(args));
 
-          case 'remove_consumed_item':
-            return await this.removeConsumedItem(RemoveConsumedItemInputSchema.parse(args));
+          case 'get_user_weight':
+            return await this.getUserWeight(GetUserWeightInputSchema.parse(args));
 
-          case 'get_dietary_preferences':
-            return await this.getDietaryPreferences();
+          case 'search_products':
+            return await this.searchProducts(SearchProductsInputSchema.parse(args));
 
-          case 'get_user_goals':
-            return await this.getUserGoals();
+          case 'get_user_daily_summary':
+            return await this.getUserDailySummary(GetDailySummaryInputSchema.parse(args));
+
+          case 'add_user_consumed_item':
+            return await this.addUserConsumedItem(AddConsumedItemInputSchema.parse(args));
+
+          case 'remove_user_consumed_item':
+            return await this.removeUserConsumedItem(RemoveConsumedItemInputSchema.parse(args));
 
           default:
             throw new McpError(
@@ -300,46 +295,8 @@ class YazioMcpServer {
     return this.yazioClient;
   }
 
-  private async getDietData(args: GetDietDataInput) {
-    const client = await this.ensureAuthenticated();
 
-    try {
-      const results: any[] = [];
-      const start = new Date(args.startDate);
-      const end = new Date(args.endDate);
-      const current = new Date(start);
-
-      while (current <= end) {
-        try {
-          const dateStr = current.toISOString().split('T')[0];
-          const consumedItems = await client.user.getConsumedItems({ date: current });
-          const summary = await client.user.getDailySummary({ date: current });
-
-          results.push({
-            date: dateStr,
-            consumedItems: consumedItems || [],
-            summary: summary || {}
-          });
-        } catch (error) {
-          console.error(`Failed to get data for ${current.toISOString().split('T')[0]}:`, error);
-        }
-        current.setDate(current.getDate() + 1);
-      }
-
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `Diet data from ${args.startDate} to ${args.endDate}:\n\n${JSON.stringify(results, null, 2)}`,
-          },
-        ],
-      };
-    } catch (error) {
-      throw new Error(`Failed to get diet data: ${error}`);
-    }
-  }
-
-  private async getFoodEntries(args: GetFoodEntriesInput) {
+  private async getUserConsumedItems(args: GetFoodEntriesInput) {
     const client = await this.ensureAuthenticated();
 
     try {
@@ -358,7 +315,7 @@ class YazioMcpServer {
     }
   }
 
-  private async getUserInfo() {
+  private async getUser() {
     const client = await this.ensureAuthenticated();
 
     try {
@@ -377,7 +334,7 @@ class YazioMcpServer {
     }
   }
 
-  private async getDailySummary(args: GetDailySummaryInput) {
+  private async getUserDailySummary(args: GetDailySummaryInput) {
     const client = await this.ensureAuthenticated();
 
     try {
@@ -420,7 +377,7 @@ class YazioMcpServer {
     }
   }
 
-  private async getWaterIntake(args: GetWaterIntakeInput) {
+  private async getUserWaterIntake(args: GetWaterIntakeInput) {
     const client = await this.ensureAuthenticated();
 
     try {
@@ -545,7 +502,7 @@ class YazioMcpServer {
     }
   }
 
-  private async addConsumedItem(args: AddConsumedItemInput) {
+  private async addUserConsumedItem(args: AddConsumedItemInput) {
     const client = await this.ensureAuthenticated();
 
     try {
@@ -569,7 +526,7 @@ class YazioMcpServer {
     }
   }
 
-  private async removeConsumedItem(args: RemoveConsumedItemInput) {
+  private async removeUserConsumedItem(args: RemoveConsumedItemInput) {
     const client = await this.ensureAuthenticated();
 
     try {
@@ -588,7 +545,7 @@ class YazioMcpServer {
     }
   }
 
-  private async getDietaryPreferences() {
+  private async getUserDietaryPreferences() {
     const client = await this.ensureAuthenticated();
 
     try {
