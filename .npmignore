@@ -41,3 +41,6 @@ tsconfig.json
 .editorconfig
 .gitignore
 .npmignore
+
+# AI files
+.claude/

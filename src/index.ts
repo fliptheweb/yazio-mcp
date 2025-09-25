@@ -6,7 +6,6 @@ import {
   ListToolsRequestSchema,
   McpError,
 } from '@modelcontextprotocol/sdk/types.js';
-import { readPackageSync } from 'read-pkg';
 import { Yazio } from 'yazio';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import {
@@ -44,13 +43,10 @@ class YazioMcpServer {
   private yazioClient: Yazio | null = null;
 
   constructor() {
-    // Read package.json synchronously
-    const packageJson = readPackageSync();
-
     this.server = new Server(
       {
-        name: packageJson.name,
-        version: packageJson.version,
+        name: 'yazio-mcp',
+        version: '1.0.0',
       },
       {
         capabilities: {

@@ -15,6 +15,7 @@
     "dev": "tsx src/index.ts",
     "start": "node dist/index.js",
     "prepublishOnly": "npm run build",
+    "test": "node test-server.js",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
     "format": "prettier --write src/**/*.ts",
@@ -55,7 +56,6 @@
     "eslint": "^9.36.0",
     "globals": "^16.4.0",
     "prettier": "^3.6.2",
-    "read-pkg": "^9.0.1",
     "tsx": "^4.0.0",
     "typescript": "^5.0.0"
   }
