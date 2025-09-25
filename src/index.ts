@@ -48,7 +48,7 @@ class YazioMcpServer {
     this.server = new Server(
       {
         name: 'yazio-mcp',
-        version: '0.0.4',
+        version: '0.0.5',
       },
       {
         capabilities: {
@@ -100,16 +100,6 @@ class YazioMcpServer {
   private setupToolHandlers(): void {
     this.server.setRequestHandler(ListToolsRequestSchema, async () => ({
       tools: [
-        {
-          name: 'get_product',
-          description: 'Get detailed information about a specific product by ID',
-          inputSchema: zodToJsonSchema(GetProductInputSchema),
-          annotations: {
-            readOnlyHint: true,
-            idempotentHint: true,
-            openWorldHint: true
-          }
-        },
         {
           name: 'get_user',
           description: 'Get Yazio user profile information',
@@ -193,6 +183,15 @@ class YazioMcpServer {
           }
         },
         {
+          name: 'get_user_daily_summary',
+          description: 'Get daily nutrition summary for a specific date',
+          inputSchema: zodToJsonSchema(GetDailySummaryInputSchema),
+          annotations: {
+            readOnlyHint: true,
+            idempotentHint: true
+          }
+        },
+        {
           name: 'search_products',
           description: 'Search for food products in Yazio database',
           inputSchema: zodToJsonSchema(SearchProductsInputSchema),
@@ -203,12 +202,13 @@ class YazioMcpServer {
           }
         },
         {
-          name: 'get_user_daily_summary',
-          description: 'Get daily nutrition summary for a specific date',
-          inputSchema: zodToJsonSchema(GetDailySummaryInputSchema),
+          name: 'get_product',
+          description: 'Get detailed information about a specific product by ID',
+          inputSchema: zodToJsonSchema(GetProductInputSchema),
           annotations: {
             readOnlyHint: true,
-            idempotentHint: true
+            idempotentHint: true,
+            openWorldHint: true
           }
         },
         {
@@ -505,9 +505,7 @@ class YazioMcpServer {
     const client = await this.ensureAuthenticated();
 
     try {
-      // The Yazio API expects specific parameters, we'll pass them directly
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await client.user.addConsumedItem(args as any);
+      const result = await client.user.addConsumedItem(args);
 
       return {
         content: [

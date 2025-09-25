@@ -41,11 +41,13 @@ export const GetUserExercisesInputSchema = OptionalDateInputSchema; // Only supp
 export const GetUserSettingsInputSchema = EmptyInputSchema;
 export const GetUserSuggestedProductsInputSchema = OptionalQueryInputSchema;
 export const AddConsumedItemInputSchema = z.object({
-  productId: z.string().optional().describe('ID of the product to add'),
-  amount: z.number().optional().describe('Amount of the product consumed'),
-  unit: z.string().optional().describe('Unit of measurement (g, ml, pieces, etc.)'),
-  date: z.string().optional().describe('Date when the food was consumed (defaults to today) in YYYY-MM-DD format'),
-  mealType: DaytimeSchema.optional().describe('Type of meal')
+  id: z.string().describe('Unique identifier for the consumed item'),
+  product_id: z.string().describe('ID of the product to add'),
+  date: z.union([z.string(), z.date()]).describe('Date when the food was consumed in YYYY-MM-DD format or Date object'),
+  daytime: DaytimeSchema.describe('Type of meal (breakfast, lunch, dinner, snack)'),
+  amount: z.number().describe('Amount of the product consumed'),
+  serving: z.string().describe('Serving description'),
+  serving_quantity: z.number().describe('Quantity of servings')
 });
 export const RemoveConsumedItemInputSchema = z.object({
   itemId: ItemIdSchema.describe('ID of the consumed item to remove')
