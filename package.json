@@ -5,6 +5,9 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "module",
+  "bin": {
+    "yazio-mcp": "dist/index.js"
+  },
   "files": [
     "dist/**/*",
     "README.md",

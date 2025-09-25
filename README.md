@@ -1,38 +1,39 @@
-# Yazio MCP Server
+<div align="center">
+  <img src="https://assets.yazio.com/frontend/images/yazio-logo.svg" alt="Yazio Logo" width="200" />
+</div>
 
-An MCP (Model Context Protocol) server for accessing Yazio nutrition and diet data. This server allows Claude to retrieve your food intake, calorie tracking, and nutritional information from the Yazio app.
+# 🍎 Yazio MCP Server
 
-## Features
+> **⚠️ Important Notice**: This is **not an official MCP server** and Yazio does **not provide an official API**. This server uses an [unofficial reverse-engineered API](https://github.com/juriadams/yazio) and may stop working at any time.
 
-- 🔐 Secure authentication with Yazio account
-- 📊 Retrieve comprehensive diet data for date ranges
-- 🍎 Get detailed food entries for specific dates
-- 👤 Access user profile and settings information
-- 🏃‍♂️ Track exercises and fitness data
-- 💧 Monitor water intake
-- ⚖️ Weight tracking and history
-- 🔍 Search and manage food products
-- 🎯 View and manage nutrition goals
-- 📝 Add and remove consumed food items
+An MCP (Model Context Protocol) server that connects Claude/Cursor to your Yazio nutrition data. Track your diet, search food products, and manage your nutrition goals directly from your AI assistant.
 
-## Installation
+**Available on NPM**: `npx yazio-mcp`
 
-```bash
-npm install yazio-mcp-server
-```
+## ✨ Features
 
-## Usage
+- 🔐 **Authentication** - Connect with your Yazio account
+- 📊 **Nutrition Analysis** - Get comprehensive diet data and insights
+- 🍎 **Food Tracking** - Search, add, and manage food entries
+- 🏃‍♂️ **Fitness Data** - Track exercises and water intake
+- ⚖️ **Weight Monitoring** - View weight history and trends
+- 🎯 **Goal Management** - Access and manage nutrition goals
+- 🔍 **Product Search** - Search Yazio's extensive food database
 
-### As an MCP Server
+## 🚀 Quick Start
 
-Add to your MCP configuration:
+### 1. Configure MCP Client
+
+Add to your MCP client configuration:
+
+**Claude Desktop**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+**Cursor**: Your Cursor MCP configuration file
 
 ```json
 {
   "mcpServers": {
-    "yazio": {
-      "command": "npx",
-      "args": ["yazio-mcp-server"],
+    "yazio-mcp": {
+      "command": "npx yazio-mcp",
       "env": {
         "YAZIO_USERNAME": "your-email@example.com",
         "YAZIO_PASSWORD": "your-password"
@@ -42,153 +43,63 @@ Add to your MCP configuration:
 }
 ```
 
-### Direct Usage
+### 2. Test Connection
 
 ```bash
-# Set environment variables
-export YAZIO_USERNAME="your-email@example.com"
-export YAZIO_PASSWORD="your-password"
-
-# Run the server
-npx yazio-mcp-server
+# Test with npx
+YAZIO_USERNAME=your_email YAZIO_PASSWORD=your_password npx yazio-mcp
 ```
 
-### Development
+## 💡 Use Cases
 
-```bash
-# Clone the repository
-git clone https://github.com/arturkornakov/yazio-mcp.git
-cd yazio-mcp
+### 📈 Analyze Your Nutrition Trends
+> *"Get my nutrition data for the last week and analyze my eating patterns"*
 
-# Install dependencies
-npm install
+Claude can retrieve your daily summaries, identify trends, and provide insights about your eating habits, macro distribution, and areas for improvement.
 
-# Run in development mode
-npm run dev
+### 🔍 Search Food Products
+> *"Search for 'chicken breast' in the Yazio database"*
 
-# Build for production
-npm run build
-```
+Find detailed nutritional information for any food product, including calories, macros, vitamins, and minerals.
 
-## Available Tools
+### 📝 Add Forgotten Meals
+> *"Add 200g of grilled salmon for yesterday's dinner"*
 
-### configure_yazio
-Configure your Yazio credentials for API access.
+Easily log meals you forgot to track in the Yazio app directly from Claude or Cursor.
 
-**Parameters:**
-- `username` (string): Your Yazio account email/username
-- `password` (string): Your Yazio account password
+## 🛠️ Available Tools
 
-### get_diet_data
-Get comprehensive diet and nutrition data for a date range.
-
-**Parameters:**
-- `startDate` (string): Start date in YYYY-MM-DD format
-- `endDate` (string): End date in YYYY-MM-DD format
-
-### get_food_entries
-Get detailed food entries for a specific date.
-
-**Parameters:**
-- `date` (string): Date in YYYY-MM-DD format
-
-### get_daily_summary
-Get daily nutrition summary for a specific date.
-
-**Parameters:**
-- `date` (string): Date in YYYY-MM-DD format
-
-### get_user_info
-Retrieve your Yazio user profile information.
-
-### get_user_weight
-Get user weight data and tracking history.
-
-### get_water_intake
-Get water intake data for a specific date.
-
-**Parameters:**
-- `date` (string): Date in YYYY-MM-DD format
-
-### search_products
-Search for food products in the Yazio database.
-
-**Parameters:**
-- `query` (string): Search query for food products
-
-### get_product
-Get detailed information about a specific product by ID.
-
-**Parameters:**
-- `id` (string): Product ID
-
-### get_user_exercises
-Get user exercise data for a date or date range.
-
-**Parameters:**
-- `date` (string): Date in YYYY-MM-DD format (optional if using date range)
-- `startDate` (string): Start date in YYYY-MM-DD format for date range
-- `endDate` (string): End date in YYYY-MM-DD format for date range
-
-### get_user_settings
-Get user settings and preferences.
-
-### get_user_suggested_products
-Get product suggestions for the user.
-
-**Parameters:**
-- `query` (string): Search query for product suggestions
-- `limit` (number): Maximum number of suggestions to return
-
-### add_consumed_item
-Add a food item to user consumption log.
-
-**Parameters:**
-- `productId` (string): Product ID to add
-- `amount` (number): Amount consumed
-- `unit` (string): Unit of measurement (g, ml, pieces, etc.)
-- `date` (string): Date in YYYY-MM-DD format (defaults to today)
-- `mealType` (string): Type of meal (breakfast, lunch, dinner, snack)
-
-### remove_consumed_item
-Remove a food item from user consumption log.
-
-**Parameters:**
-- `itemId` (string): ID of the consumed item to remove
-
-### get_dietary_preferences
-Get user dietary preferences and restrictions.
-
-### get_user_goals
-Get user nutrition and fitness goals.
+| Tool | Description | Key Parameters |
+|------|-------------|----------------|
+| `get_user_daily_summary` | Get daily nutrition summary | `date` |
+| `get_user_consumed_items` | Get food entries for a date | `date` |
+| `get_user_weight` | Get weight data | - |
+| `get_user_exercises` | Get exercise data | `date` |
+| `get_user_water_intake` | Get water intake | `date` |
+| `get_user_goals` | Get nutrition goals | - |
+| `get_user_settings` | Get user preferences | - |
+| `search_products` | Search food database | `query` |
+| `get_product` | Get detailed product info | `id` |
+| `add_user_consumed_item` | Add food to your log | `productId`, `amount`, `date`, `mealType` |
+| `remove_user_consumed_item` | Remove food from log | `itemId` |
 
 
-## Authentication
+## ⚠️ Important Disclaimers
 
-The server requires Yazio credentials to be provided via environment variables:
+- **Unofficial API**: This uses a reverse-engineered API that may break
+- **No Official Support**: Neither Yazio nor this project provide official support
+- **Use at Your Own Risk**: API changes could affect functionality
+- **Credentials**: Your Yazio credentials are only used for authentication
 
-```bash
-export YAZIO_USERNAME="your-email@example.com"
-export YAZIO_PASSWORD="your-password"
-```
+## 📋 Requirements
 
-**Required Environment Variables:**
-- `YAZIO_USERNAME` - Your Yazio account email/username
-- `YAZIO_PASSWORD` - Your Yazio account password
+- Node.js 18+ (for npx)
+- Valid Yazio account
+- MCP-compatible client (Claude Desktop, Cursor, etc.)
 
-The server will exit with an error if these environment variables are not set.
 
-## API Integration
+## 📄 License
 
-This server uses the community-maintained `juriadams/yazio` package for API access. The integration:
-- Uses the unofficial Yazio API (reverse-engineered)
-- Provides robust authentication and token management
-- Is not officially supported by Yazio
-- May change without notice as Yazio updates their app
-- Requires valid Yazio account credentials
+MIT License - see [LICENSE](LICENSE) file for details.
 
-## Dependencies
-
-- `@modelcontextprotocol/sdk`: MCP server framework (v1.18.2 with tool annotations)
-- `yazio`: Community-maintained Yazio API client
-- `zod`: Runtime type validation and schema definitions
+---
