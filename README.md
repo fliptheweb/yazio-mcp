@@ -1,10 +1,7 @@
-<div align="center">
-  <img src="https://assets.yazio.com/frontend/images/yazio-logo.svg" alt="Yazio Logo" width="200" />
-</div>
+# Yazio MCP Server <img src="https://assets.yazio.com/frontend/images/yazio-logo.svg" alt="Yazio Logo" width="60" height="60" />
 
-# 🍎 Yazio MCP Server
-
-> **⚠️ Important Notice**: This is **not an official MCP server** and Yazio does **not provide an official API**. This server uses an [unofficial reverse-engineered API](https://github.com/juriadams/yazio) and may stop working at any time.
+> [!IMPORTANT]
+> This is **not an official MCP server** and Yazio does **not provide an official API**. This server uses an [unofficial reverse-engineered API](https://github.com/juriadams/yazio) and may stop working at any time.
 
 An MCP (Model Context Protocol) server that connects Claude/Cursor to your Yazio nutrition data. Track your diet, search food products, and manage your nutrition goals directly from your AI assistant.
 
@@ -22,11 +19,10 @@ An MCP (Model Context Protocol) server that connects Claude/Cursor to your Yazio
 
 ## 🚀 Quick Start
 
-### 1. Configure MCP Client
-
 Add to your MCP client configuration:
 
 **Claude Desktop**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+
 **Cursor**: Your Cursor MCP configuration file
 
 ```json
@@ -41,13 +37,6 @@ Add to your MCP client configuration:
     }
   }
 }
-```
-
-### 2. Test Connection
-
-```bash
-# Test with npx
-YAZIO_USERNAME=your_email YAZIO_PASSWORD=your_password npx yazio-mcp
 ```
 
 ## 💡 Use Cases
@@ -83,13 +72,17 @@ Easily log meals you forgot to track in the Yazio app directly from Claude or Cu
 | `add_user_consumed_item` | Add food to your log | `productId`, `amount`, `date`, `mealType` |
 | `remove_user_consumed_item` | Remove food from log | `itemId` |
 
+## Test Connection
+
+```bash
+YAZIO_USERNAME=your_email YAZIO_PASSWORD=your_password npx yazio-mcp
+```
 
 ## ⚠️ Important Disclaimers
 
-- **Unofficial API**: This uses a reverse-engineered API that may break
-- **No Official Support**: Neither Yazio nor this project provide official support
+- **Unofficial API**: This uses a [reverse-engineered API](https://github.com/juriadams/yazio) that may break
+- **Credentials**: Your Yazio credentials are only used for auth on Yazio servers
 - **Use at Your Own Risk**: API changes could affect functionality
-- **Credentials**: Your Yazio credentials are only used for authentication
 
 ## 📋 Requirements
 
@@ -97,9 +90,8 @@ Easily log meals you forgot to track in the Yazio app directly from Claude or Cu
 - Valid Yazio account
 - MCP-compatible client (Claude Desktop, Cursor, etc.)
 
+---
 
 ## 📄 License
 
 MIT License - see [LICENSE](LICENSE) file for details.
-
----
