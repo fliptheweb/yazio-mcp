@@ -6,6 +6,7 @@ import {
   ListToolsRequestSchema,
   McpError,
 } from '@modelcontextprotocol/sdk/types.js';
+import { readPackageSync } from 'read-pkg';
 import { Yazio } from 'yazio';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import {
@@ -25,7 +26,6 @@ import {
   GetUserGoalsInputSchema,
   type GetFoodEntriesInput,
   type GetDailySummaryInput,
-  type GetUserWeightInput,
   type GetWaterIntakeInput,
   type SearchProductsInput,
   type GetProductInput,
@@ -34,16 +34,23 @@ import {
   type AddConsumedItemInput,
   type RemoveConsumedItemInput
 } from './schemas.js';
+import type {
+  YazioExerciseOptions,
+  YazioSuggestedProductsOptions
+} from './types.js';
 
 class YazioMcpServer {
   private server: Server;
   private yazioClient: Yazio | null = null;
 
   constructor() {
+    // Read package.json synchronously
+    const packageJson = readPackageSync();
+
     this.server = new Server(
       {
-        name: 'yazio-mcp-server',
-        version: '1.0.0',
+        name: packageJson.name,
+        version: packageJson.version,
       },
       {
         capabilities: {
@@ -261,7 +268,7 @@ class YazioMcpServer {
             return await this.getUserWaterIntake(GetWaterIntakeInputSchema.parse(args));
 
           case 'get_user_weight':
-            return await this.getUserWeight(GetUserWeightInputSchema.parse(args));
+            return await this.getUserWeight();
 
           case 'search_products':
             return await this.searchProducts(SearchProductsInputSchema.parse(args));
@@ -353,16 +360,12 @@ class YazioMcpServer {
     }
   }
 
-  private async getUserWeight(args?: GetUserWeightInput) {
+  private async getUserWeight() {
     const client = await this.ensureAuthenticated();
 
     try {
-      const options: any = {};
-      if (args?.startDate) options.from = new Date(args.startDate);
-      if (args?.endDate) options.to = new Date(args.endDate);
-      if (args?.limit) options.limit = args.limit;
-
-      const weight = await client.user.getWeight(options);
+      // Yazio getWeight doesn't support date ranges, just single date
+      const weight = await client.user.getWeight();
 
       return {
         content: [
@@ -438,12 +441,9 @@ class YazioMcpServer {
     const client = await this.ensureAuthenticated();
 
     try {
-      const apiOptions: any = {};
+      const apiOptions: YazioExerciseOptions = {};
       if (args.date) {
-        apiOptions.date = new Date(args.date);
-      } else if (args.startDate && args.endDate) {
-        apiOptions.from = new Date(args.startDate);
-        apiOptions.to = new Date(args.endDate);
+        apiOptions.date = args.date;
       }
 
       const exercises = await client.user.getExercises(apiOptions);
@@ -484,10 +484,11 @@ class YazioMcpServer {
     const client = await this.ensureAuthenticated();
 
     try {
-      const suggestions = await client.user.getSuggestedProducts({
+      const options: YazioSuggestedProductsOptions = {
         daytime: 'breakfast',
         ...args
-      });
+      };
+      const suggestions = await client.user.getSuggestedProducts(options);
 
       return {
         content: [
@@ -506,12 +507,9 @@ class YazioMcpServer {
     const client = await this.ensureAuthenticated();
 
     try {
-      const options: any = { ...args };
-      if (args.date) {
-        options.date = new Date(args.date);
-      }
-
-      const result = await client.user.addConsumedItem(options);
+      // The Yazio API expects specific parameters, we'll pass them directly
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await client.user.addConsumedItem(args as any);
 
       return {
         content: [
@@ -530,7 +528,7 @@ class YazioMcpServer {
     const client = await this.ensureAuthenticated();
 
     try {
-      const result = await client.user.removeConsumedItem(args.itemId as any);
+      const result = await client.user.removeConsumedItem(args.itemId);
 
       return {
         content: [
