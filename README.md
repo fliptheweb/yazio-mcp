@@ -1,7 +1,8 @@
 # Yazio MCP Server <img src="https://assets.yazio.com/frontend/images/yazio-logo.svg" alt="Yazio Logo" width="60" height="60" />
 
 > [!IMPORTANT]
-> This is **not an official MCP server** and Yazio does **not provide an official API**. This server uses an [unofficial reverse-engineered API](https://github.com/juriadams/yazio) and may stop working at any time.
+> This is **not an official MCP server** and Yazio does **not provide an official API**.
+> This server uses an [unofficial reverse-engineered API](https://github.com/juriadams/yazio) and may stop working at any time.
 
 An MCP (Model Context Protocol) server that connects Claude/Cursor to your Yazio nutrition data. Track your diet, search food products, and manage your nutrition goals directly from your AI assistant.
 
