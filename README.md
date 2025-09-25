@@ -29,11 +29,12 @@ Add to your MCP client configuration:
 ```json
 {
   "mcpServers": {
-    "yazio-mcp": {
-      "command": "npx yazio-mcp",
+    "yazio": {
+      "command": "npx",
+      "args": ["-y", "yazio-mcp"],
       "env": {
-        "YAZIO_USERNAME": "your-email@example.com",
-        "YAZIO_PASSWORD": "your-password"
+        "YAZIO_USERNAME": "your_email@emai.com",
+        "YAZIO_PASSWORD": "your_password"
       }
     }
   }
