@@ -48,7 +48,7 @@ class YazioMcpServer {
     this.server = new Server(
       {
         name: 'yazio-mcp',
-        version: '0.0.2',
+        version: '0.0.4',
       },
       {
         capabilities: {
