@@ -77,7 +77,7 @@ Easily log meals you forgot to track in the Yazio app directly from Claude or Cu
 ## Test Connection
 
 ```bash
-YAZIO_USERNAME=your_email YAZIO_PASSWORD=your_password npx yazio-mcp
+YAZIO_USERNAME='your_email' YAZIO_PASSWORD='your_password' npx yazio-mcp
 ```
 
 ## ⚠️ Important Disclaimers
