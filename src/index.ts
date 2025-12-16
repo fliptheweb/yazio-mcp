@@ -3,6 +3,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { Yazio } from 'yazio';
+import { v1 as uuidv1 } from "uuid";
 import {
   GetFoodEntriesInputSchema,
   GetDailySummaryInputSchema,
@@ -10,7 +11,6 @@ import {
   GetUserWeightInputSchema,
   GetWaterIntakeInputSchema,
   SearchProductsInputSchema,
-  SearchProductsOutputSchema,
   GetProductInputSchema,
   GetUserExercisesInputSchema,
   GetUserSettingsInputSchema,
@@ -279,7 +279,10 @@ class YazioMcpServer {
         },
       },
       async (args: AddConsumedItemInput) => {
-        return await this.addUserConsumedItem(args);
+        return await this.addUserConsumedItem({
+          ...args,
+          id: uuidv1(),
+        });
       }
     );
 

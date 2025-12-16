@@ -2,7 +2,7 @@ import * as z from "zod";
 
 export const DaytimeSchema = z.enum(['breakfast', 'lunch', 'dinner', 'snack']);
 export const DateStringSchema = z.iso.date();
-export const ProductIdSchema = z.uuidv4().describe('Product UUID (e.g. 4ceff6e9-78ce-441b-964a-22e81c1dee92)');
+export const ProductIdSchema = z.uuid({ version: 'v1' }).describe('Product UUID (e.g. 4ceff6e9-78ce-441b-964a-22e81c1dee92)');
 export const ServingTypeSchema = z.string().describe('Serving type (e.g. portion, fruit, glass, cup, slice, piece, bar, gram, bottle, can, etc.)');
 export const ItemIdSchema = z.string().describe('Unique item identifier');
 export const QueryStringSchema = z.string().describe('Search query string');
@@ -56,11 +56,11 @@ export const GetUserExercisesInputSchema = OptionalDateInputSchema; // Only supp
 export const GetUserSettingsInputSchema = EmptyInputSchema;
 export const GetUserSuggestedProductsInputSchema = OptionalQueryInputSchema;
 export const AddConsumedItemInputSchema = z.object({
-  id: z.string().describe('Unique identifier for the consumed item'),
+  id: ProductIdSchema.describe('Unique identifier for the consumed item'),
   product_id: ProductIdSchema,
   date: DateStringSchema.describe('Date when the food was consumed'),
   daytime: DaytimeSchema.describe('Type of meal (breakfast, lunch, dinner, snack)'),
-  amount: z.number().describe('Amount of the product consumed'),
+  amount: z.number().optional().describe('Amount of the product consumed'),
   serving: ServingTypeSchema,
   serving_quantity: z.number().describe('Quantity of servings')
 });

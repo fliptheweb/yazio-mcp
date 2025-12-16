@@ -48,6 +48,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.25.0",
+    "uuid": "^13.0.0",
     "yazio": "^1.0.0",
     "zod": "^4.2.1"
   },
