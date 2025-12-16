@@ -1,13 +1,7 @@
 #!/usr/bin/env node
 
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import {
-  CallToolRequestSchema,
-  ErrorCode,
-  ListToolsRequestSchema,
-  McpError,
-} from '@modelcontextprotocol/sdk/types.js';
 import { Yazio } from 'yazio';
 import {
   GetFoodEntriesInputSchema,
@@ -40,21 +34,14 @@ import type {
 } from './types.js';
 
 class YazioMcpServer {
-  private server: Server;
+  private server: McpServer;
   private yazioClient: Yazio | null = null;
 
   constructor() {
-    this.server = new Server(
-      {
-        name: 'yazio-mcp',
-        version: '0.0.5',
-      },
-      {
-        capabilities: {
-          tools: {},
-        },
-      }
-    );
+    this.server = new McpServer({
+      name: 'yazio-mcp',
+      version: '0.0.5',
+    });
 
     this.setupToolHandlers();
     this.setupErrorHandling();
@@ -89,7 +76,6 @@ class YazioMcpServer {
   }
 
   private setupErrorHandling(): void {
-    this.server.onerror = (error) => console.error('[MCP Error]', error);
     process.on('SIGINT', async () => {
       await this.server.close();
       process.exit(0);
@@ -97,199 +83,159 @@ class YazioMcpServer {
   }
 
   private setupToolHandlers(): void {
-    this.server.setRequestHandler(ListToolsRequestSchema, async () => ({
-      tools: [
-        {
-          name: 'get_user',
-          description: 'Get Yazio user profile information',
-          inputSchema: GetUserInfoInputSchema.toJSONSchema(),
-          annotations: {
-            readOnlyHint: true,
-            idempotentHint: true
-          }
-        },
-        {
-          name: 'get_user_consumed_items',
-          description: 'Get food entries for a specific date',
-          inputSchema: GetFoodEntriesInputSchema.toJSONSchema(),
-          annotations: {
-            readOnlyHint: true,
-            idempotentHint: true
-          }
-        },
-        {
-          name: 'get_user_dietary_preferences',
-          description: 'Get user dietary preferences and restrictions',
-          inputSchema: GetDietaryPreferencesInputSchema.toJSONSchema(),
-          annotations: {
-            readOnlyHint: true,
-            idempotentHint: true
-          }
-        },
-        {
-          name: 'get_user_exercises',
-          description: 'Get user exercise data for a date or date range',
-          inputSchema: GetUserExercisesInputSchema.toJSONSchema(),
-          annotations: {
-            readOnlyHint: true,
-            idempotentHint: true
-          }
-        },
-        {
-          name: 'get_user_goals',
-          description: 'Get user nutrition and fitness goals',
-          inputSchema: GetUserGoalsInputSchema.toJSONSchema(),
-          annotations: {
-            readOnlyHint: true,
-            idempotentHint: true
-          }
-        },
-        {
-          name: 'get_user_settings',
-          description: 'Get user settings and preferences',
-          inputSchema: GetUserSettingsInputSchema.toJSONSchema(),
-          annotations: {
-            readOnlyHint: true,
-            idempotentHint: true
-          }
-        },
-        {
-          name: 'get_user_suggested_products',
-          description: 'Get product suggestions for the user',
-          inputSchema: GetUserSuggestedProductsInputSchema.toJSONSchema(),
-          annotations: {
-            readOnlyHint: true,
-            idempotentHint: true,
-            openWorldHint: true
-          }
-        },
-        {
-          name: 'get_user_water_intake',
-          description: 'Get water intake data for a specific date',
-          inputSchema: GetWaterIntakeInputSchema.toJSONSchema(),
-          annotations: {
-            readOnlyHint: true,
-            idempotentHint: true
-          }
-        },
-        {
-          name: 'get_user_weight',
-          description: 'Get user weight data',
-          inputSchema: GetUserWeightInputSchema.toJSONSchema(),
-          annotations: {
-            readOnlyHint: true,
-            idempotentHint: true
-          }
-        },
-        {
-          name: 'get_user_daily_summary',
-          description: 'Get daily nutrition summary for a specific date',
-          inputSchema: GetDailySummaryInputSchema.toJSONSchema(),
-          annotations: {
-            readOnlyHint: true,
-            idempotentHint: true
-          }
-        },
-        {
-          name: 'search_products',
-          description: 'Search for food products in Yazio database',
-          inputSchema: SearchProductsInputSchema.toJSONSchema(),
-          annotations: {
-            readOnlyHint: true,
-            idempotentHint: true,
-            openWorldHint: true
-          }
-        },
-        {
-          name: 'get_product',
-          description: 'Get detailed information about a specific product by ID',
-          inputSchema: GetProductInputSchema.toJSONSchema(),
-          annotations: {
-            readOnlyHint: true,
-            idempotentHint: true,
-            openWorldHint: true
-          }
-        },
-        {
-          name: 'add_user_consumed_item',
-          description: 'Add a food item to user consumption log',
-          inputSchema: AddConsumedItemInputSchema.toJSONSchema(),
-          annotations: {
-            readOnlyHint: false,
-            idempotentHint: false
-          }
-        },
-        {
-          name: 'remove_user_consumed_item',
-          description: 'Remove a food item from user consumption log',
-          inputSchema: RemoveConsumedItemInputSchema.toJSONSchema(),
-          annotations: {
-            readOnlyHint: false,
-            destructiveHint: true,
-            idempotentHint: true
-          }
-        },
-      ],
-    }));
-
-    this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
-      const { name, arguments: args } = request.params;
-
-      try {
-        switch (name) {
-          case 'get_product':
-            return await this.getProduct(GetProductInputSchema.parse(args));
-
-          case 'get_user':
-            return await this.getUser();
-
-          case 'get_user_consumed_items':
-            return await this.getUserConsumedItems(GetFoodEntriesInputSchema.parse(args));
-
-          case 'get_user_dietary_preferences':
-            return await this.getUserDietaryPreferences();
-
-          case 'get_user_exercises':
-            return await this.getUserExercises(GetUserExercisesInputSchema.parse(args));
-
-          case 'get_user_goals':
-            return await this.getUserGoals();
-
-          case 'get_user_settings':
-            return await this.getUserSettings();
-
-          case 'get_user_suggested_products':
-            return await this.getUserSuggestedProducts(GetUserSuggestedProductsInputSchema.parse(args));
-
-          case 'get_user_water_intake':
-            return await this.getUserWaterIntake(GetWaterIntakeInputSchema.parse(args));
-
-          case 'get_user_weight':
-            return await this.getUserWeight();
-
-          case 'search_products':
-            return await this.searchProducts(SearchProductsInputSchema.parse(args));
-
-          case 'get_user_daily_summary':
-            return await this.getUserDailySummary(GetDailySummaryInputSchema.parse(args));
-
-          case 'add_user_consumed_item':
-            return await this.addUserConsumedItem(AddConsumedItemInputSchema.parse(args));
-
-          case 'remove_user_consumed_item':
-            return await this.removeUserConsumedItem(RemoveConsumedItemInputSchema.parse(args));
-
-          default:
-            throw new McpError(
-              ErrorCode.MethodNotFound,
-              `Unknown tool: ${name}`
-            );
-        }
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        throw new McpError(ErrorCode.InternalError, errorMessage);
+    this.server.registerTool(
+      'get_user',
+      {
+        description: 'Get Yazio user profile information',
+        inputSchema: GetUserInfoInputSchema,
+      },
+      async () => {
+        return await this.getUser();
       }
-    });
+    );
+
+    this.server.registerTool(
+      'get_user_consumed_items',
+      {
+        description: 'Get food entries for a specific date',
+        inputSchema: GetFoodEntriesInputSchema,
+      },
+      async (args: GetFoodEntriesInput) => {
+        return await this.getUserConsumedItems(args);
+      }
+    );
+
+    this.server.registerTool(
+      'get_user_dietary_preferences',
+      {
+        description: 'Get user dietary preferences and restrictions',
+        inputSchema: GetDietaryPreferencesInputSchema,
+      },
+      async () => {
+        return await this.getUserDietaryPreferences();
+      }
+    );
+
+    this.server.registerTool(
+      'get_user_exercises',
+      {
+        description: 'Get user exercise data for a date or date range',
+        inputSchema: GetUserExercisesInputSchema,
+      },
+      async (args: GetUserExercisesInput) => {
+        return await this.getUserExercises(args);
+      }
+    );
+
+    this.server.registerTool(
+      'get_user_goals',
+      {
+        description: 'Get user nutrition and fitness goals',
+        inputSchema: GetUserGoalsInputSchema,
+      },
+      async () => {
+        return await this.getUserGoals();
+      }
+    );
+
+    this.server.registerTool(
+      'get_user_settings',
+      {
+        description: 'Get user settings and preferences',
+        inputSchema: GetUserSettingsInputSchema,
+      },
+      async () => {
+        return await this.getUserSettings();
+      }
+    );
+
+    this.server.registerTool(
+      'get_user_suggested_products',
+      {
+        description: 'Get product suggestions for the user',
+        inputSchema: GetUserSuggestedProductsInputSchema,
+      },
+      async (args: GetUserSuggestedProductsInput) => {
+        return await this.getUserSuggestedProducts(args);
+      }
+    );
+
+    this.server.registerTool(
+      'get_user_water_intake',
+      {
+        description: 'Get water intake data for a specific date',
+        inputSchema: GetWaterIntakeInputSchema,
+      },
+      async (args: GetWaterIntakeInput) => {
+        return await this.getUserWaterIntake(args);
+      }
+    );
+
+    this.server.registerTool(
+      'get_user_weight',
+      {
+        description: 'Get user weight data',
+        inputSchema: GetUserWeightInputSchema,
+      },
+      async () => {
+        return await this.getUserWeight();
+      }
+    );
+
+    this.server.registerTool(
+      'get_user_daily_summary',
+      {
+        description: 'Get daily nutrition summary for a specific date',
+        inputSchema: GetDailySummaryInputSchema,
+      },
+      async (args: GetDailySummaryInput) => {
+        return await this.getUserDailySummary(args);
+      }
+    );
+
+    this.server.registerTool(
+      'search_products',
+      {
+        description: 'Search for food products in Yazio database',
+        inputSchema: SearchProductsInputSchema,
+      },
+      async (args: SearchProductsInput) => {
+        return await this.searchProducts(args);
+      }
+    );
+
+    this.server.registerTool(
+      'get_product',
+      {
+        description: 'Get detailed information about a specific product by ID',
+        inputSchema: GetProductInputSchema,
+      },
+      async (args: GetProductInput) => {
+        return await this.getProduct(args);
+      }
+    );
+
+    this.server.registerTool(
+      'add_user_consumed_item',
+      {
+        description: 'Add a food item to user consumption log',
+        inputSchema: AddConsumedItemInputSchema,
+      },
+      async (args: AddConsumedItemInput) => {
+        return await this.addUserConsumedItem(args);
+      }
+    );
+
+    this.server.registerTool(
+      'remove_user_consumed_item',
+      {
+        description: 'Remove a food item from user consumption log',
+        inputSchema: RemoveConsumedItemInputSchema,
+      },
+      async (args: RemoveConsumedItemInput) => {
+        return await this.removeUserConsumedItem(args);
+      }
+    );
   }
 
   private async ensureAuthenticated(): Promise<Yazio> {
@@ -309,7 +255,7 @@ class YazioMcpServer {
       return {
         content: [
           {
-            type: 'text',
+            type: 'text' as const,
             text: `Food entries for ${args.date}:\n\n${JSON.stringify(foodEntries, null, 2)}`,
           },
         ],
@@ -328,7 +274,7 @@ class YazioMcpServer {
       return {
         content: [
           {
-            type: 'text',
+            type: 'text' as const,
             text: `User info:\n\n${JSON.stringify(userInfo, null, 2)}`,
           },
         ],
@@ -347,7 +293,7 @@ class YazioMcpServer {
       return {
         content: [
           {
-            type: 'text',
+            type: 'text' as const,
             text: `Daily summary for ${args.date}:\n\n${JSON.stringify(summary, null, 2)}`,
           },
         ],
@@ -367,7 +313,7 @@ class YazioMcpServer {
       return {
         content: [
           {
-            type: 'text',
+            type: 'text' as const,
             text: `User weight data:\n\n${JSON.stringify(weight, null, 2)}`,
           },
         ],
@@ -386,7 +332,7 @@ class YazioMcpServer {
       return {
         content: [
           {
-            type: 'text',
+            type: 'text' as const,
             text: `Water intake for ${args.date}:\n\n${JSON.stringify(waterIntake, null, 2)}`,
           },
         ],
@@ -405,7 +351,7 @@ class YazioMcpServer {
       return {
         content: [
           {
-            type: 'text',
+            type: 'text' as const,
             text: `Search results for "${args.query}":\n\n${JSON.stringify(products, null, 2)}`,
           },
         ],
@@ -424,7 +370,7 @@ class YazioMcpServer {
       return {
         content: [
           {
-            type: 'text',
+            type: 'text' as const,
             text: `Product details for ID "${args.id}":\n\n${JSON.stringify(product, null, 2)}`,
           },
         ],
@@ -448,7 +394,7 @@ class YazioMcpServer {
       return {
         content: [
           {
-            type: 'text',
+            type: 'text' as const,
             text: `User exercises:\n\n${JSON.stringify(exercises, null, 2)}`,
           },
         ],
@@ -467,7 +413,7 @@ class YazioMcpServer {
       return {
         content: [
           {
-            type: 'text',
+            type: 'text' as const,
             text: `User settings:\n\n${JSON.stringify(settings, null, 2)}`,
           },
         ],
@@ -490,7 +436,7 @@ class YazioMcpServer {
       return {
         content: [
           {
-            type: 'text',
+            type: 'text' as const,
             text: `Product suggestions:\n\n${JSON.stringify(suggestions, null, 2)}`,
           },
         ],
@@ -509,7 +455,7 @@ class YazioMcpServer {
       return {
         content: [
           {
-            type: 'text',
+            type: 'text' as const,
             text: `Successfully added consumed item:\n\n${JSON.stringify(result, null, 2)}`,
           },
         ],
@@ -528,7 +474,7 @@ class YazioMcpServer {
       return {
         content: [
           {
-            type: 'text',
+            type: 'text' as const,
             text: `Successfully removed consumed item with ID: ${args.itemId}\n\n${JSON.stringify(result, null, 2)}`,
           },
         ],
@@ -547,7 +493,7 @@ class YazioMcpServer {
       return {
         content: [
           {
-            type: 'text',
+            type: 'text' as const,
             text: `Dietary preferences:\n\n${JSON.stringify(preferences, null, 2)}`,
           },
         ],
@@ -566,7 +512,7 @@ class YazioMcpServer {
       return {
         content: [
           {
-            type: 'text',
+            type: 'text' as const,
             text: `User goals:\n\n${JSON.stringify(goals, null, 2)}`,
           },
         ],
