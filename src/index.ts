@@ -9,7 +9,6 @@ import {
   McpError,
 } from '@modelcontextprotocol/sdk/types.js';
 import { Yazio } from 'yazio';
-import { zodToJsonSchema } from 'zod-to-json-schema';
 import {
   GetFoodEntriesInputSchema,
   GetDailySummaryInputSchema,
@@ -103,7 +102,7 @@ class YazioMcpServer {
         {
           name: 'get_user',
           description: 'Get Yazio user profile information',
-          inputSchema: zodToJsonSchema(GetUserInfoInputSchema),
+          inputSchema: GetUserInfoInputSchema.toJSONSchema(),
           annotations: {
             readOnlyHint: true,
             idempotentHint: true
@@ -112,7 +111,7 @@ class YazioMcpServer {
         {
           name: 'get_user_consumed_items',
           description: 'Get food entries for a specific date',
-          inputSchema: zodToJsonSchema(GetFoodEntriesInputSchema),
+          inputSchema: GetFoodEntriesInputSchema.toJSONSchema(),
           annotations: {
             readOnlyHint: true,
             idempotentHint: true
@@ -121,7 +120,7 @@ class YazioMcpServer {
         {
           name: 'get_user_dietary_preferences',
           description: 'Get user dietary preferences and restrictions',
-          inputSchema: zodToJsonSchema(GetDietaryPreferencesInputSchema),
+          inputSchema: GetDietaryPreferencesInputSchema.toJSONSchema(),
           annotations: {
             readOnlyHint: true,
             idempotentHint: true
@@ -130,7 +129,7 @@ class YazioMcpServer {
         {
           name: 'get_user_exercises',
           description: 'Get user exercise data for a date or date range',
-          inputSchema: zodToJsonSchema(GetUserExercisesInputSchema),
+          inputSchema: GetUserExercisesInputSchema.toJSONSchema(),
           annotations: {
             readOnlyHint: true,
             idempotentHint: true
@@ -139,7 +138,7 @@ class YazioMcpServer {
         {
           name: 'get_user_goals',
           description: 'Get user nutrition and fitness goals',
-          inputSchema: zodToJsonSchema(GetUserGoalsInputSchema),
+          inputSchema: GetUserGoalsInputSchema.toJSONSchema(),
           annotations: {
             readOnlyHint: true,
             idempotentHint: true
@@ -148,7 +147,7 @@ class YazioMcpServer {
         {
           name: 'get_user_settings',
           description: 'Get user settings and preferences',
-          inputSchema: zodToJsonSchema(GetUserSettingsInputSchema),
+          inputSchema: GetUserSettingsInputSchema.toJSONSchema(),
           annotations: {
             readOnlyHint: true,
             idempotentHint: true
@@ -157,7 +156,7 @@ class YazioMcpServer {
         {
           name: 'get_user_suggested_products',
           description: 'Get product suggestions for the user',
-          inputSchema: zodToJsonSchema(GetUserSuggestedProductsInputSchema),
+          inputSchema: GetUserSuggestedProductsInputSchema.toJSONSchema(),
           annotations: {
             readOnlyHint: true,
             idempotentHint: true,
@@ -167,7 +166,7 @@ class YazioMcpServer {
         {
           name: 'get_user_water_intake',
           description: 'Get water intake data for a specific date',
-          inputSchema: zodToJsonSchema(GetWaterIntakeInputSchema),
+          inputSchema: GetWaterIntakeInputSchema.toJSONSchema(),
           annotations: {
             readOnlyHint: true,
             idempotentHint: true
@@ -176,7 +175,7 @@ class YazioMcpServer {
         {
           name: 'get_user_weight',
           description: 'Get user weight data',
-          inputSchema: zodToJsonSchema(GetUserWeightInputSchema),
+          inputSchema: GetUserWeightInputSchema.toJSONSchema(),
           annotations: {
             readOnlyHint: true,
             idempotentHint: true
@@ -185,7 +184,7 @@ class YazioMcpServer {
         {
           name: 'get_user_daily_summary',
           description: 'Get daily nutrition summary for a specific date',
-          inputSchema: zodToJsonSchema(GetDailySummaryInputSchema),
+          inputSchema: GetDailySummaryInputSchema.toJSONSchema(),
           annotations: {
             readOnlyHint: true,
             idempotentHint: true
@@ -194,7 +193,7 @@ class YazioMcpServer {
         {
           name: 'search_products',
           description: 'Search for food products in Yazio database',
-          inputSchema: zodToJsonSchema(SearchProductsInputSchema),
+          inputSchema: SearchProductsInputSchema.toJSONSchema(),
           annotations: {
             readOnlyHint: true,
             idempotentHint: true,
@@ -204,7 +203,7 @@ class YazioMcpServer {
         {
           name: 'get_product',
           description: 'Get detailed information about a specific product by ID',
-          inputSchema: zodToJsonSchema(GetProductInputSchema),
+          inputSchema: GetProductInputSchema.toJSONSchema(),
           annotations: {
             readOnlyHint: true,
             idempotentHint: true,
@@ -214,7 +213,7 @@ class YazioMcpServer {
         {
           name: 'add_user_consumed_item',
           description: 'Add a food item to user consumption log',
-          inputSchema: zodToJsonSchema(AddConsumedItemInputSchema),
+          inputSchema: AddConsumedItemInputSchema.toJSONSchema(),
           annotations: {
             readOnlyHint: false,
             idempotentHint: false
@@ -223,7 +222,7 @@ class YazioMcpServer {
         {
           name: 'remove_user_consumed_item',
           description: 'Remove a food item from user consumption log',
-          inputSchema: zodToJsonSchema(RemoveConsumedItemInputSchema),
+          inputSchema: RemoveConsumedItemInputSchema.toJSONSchema(),
           annotations: {
             readOnlyHint: false,
             destructiveHint: true,
