@@ -92,6 +92,14 @@ YAZIO_USERNAME='your_email' YAZIO_PASSWORD='your_password' npx yazio-mcp
 - Valid Yazio account
 - MCP-compatible client (Claude Desktop, Cursor, etc.)
 
+# Development
+1. Download the repository
+2. Point to local copy in your mcp config
+3. Debugging:
+
+```
+npx -y @modelcontextprotocol/inspector npx <local-path>/yazio-mcp
+```
 ---
 
 ## 📄 License

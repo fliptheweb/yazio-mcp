@@ -240,7 +240,7 @@ class YazioMcpServer {
       {
         description: 'Search for food products in Yazio database',
         inputSchema: SearchProductsInputSchema,
-        outputSchema: SearchProductsOutputSchema,
+        // outputSchema: SearchProductsOutputSchema,
         annotations: {
           readOnlyHint: true,
           idempotentHint: true,
@@ -414,9 +414,10 @@ class YazioMcpServer {
         content: [
           {
             type: 'text' as const,
-            text: JSON.stringify(products, null, 2),
+            text: `Products:\n\n${JSON.stringify(products, null, 2)}`,
           },
         ],
+        products,
       };
     } catch (error) {
       throw new Error(`Failed to search products: ${error}`);
