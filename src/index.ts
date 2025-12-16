@@ -10,6 +10,7 @@ import {
   GetUserWeightInputSchema,
   GetWaterIntakeInputSchema,
   SearchProductsInputSchema,
+  SearchProductsOutputSchema,
   GetProductInputSchema,
   GetUserExercisesInputSchema,
   GetUserSettingsInputSchema,
@@ -26,7 +27,7 @@ import {
   type GetUserExercisesInput,
   type GetUserSuggestedProductsInput,
   type AddConsumedItemInput,
-  type RemoveConsumedItemInput
+  type RemoveConsumedItemInput,
 } from './schemas.js';
 import type {
   YazioExerciseOptions,
@@ -88,6 +89,10 @@ class YazioMcpServer {
       {
         description: 'Get Yazio user profile information',
         inputSchema: GetUserInfoInputSchema,
+        annotations: {
+          readOnlyHint: true,
+          idempotentHint: true,
+        },
       },
       async () => {
         return await this.getUser();
@@ -99,6 +104,10 @@ class YazioMcpServer {
       {
         description: 'Get food entries for a specific date',
         inputSchema: GetFoodEntriesInputSchema,
+        annotations: {
+          readOnlyHint: true,
+          idempotentHint: true,
+        },
       },
       async (args: GetFoodEntriesInput) => {
         return await this.getUserConsumedItems(args);
@@ -110,6 +119,10 @@ class YazioMcpServer {
       {
         description: 'Get user dietary preferences and restrictions',
         inputSchema: GetDietaryPreferencesInputSchema,
+        annotations: {
+          readOnlyHint: true,
+          idempotentHint: true,
+        },
       },
       async () => {
         return await this.getUserDietaryPreferences();
@@ -121,6 +134,10 @@ class YazioMcpServer {
       {
         description: 'Get user exercise data for a date or date range',
         inputSchema: GetUserExercisesInputSchema,
+        annotations: {
+          readOnlyHint: true,
+          idempotentHint: true,
+        },
       },
       async (args: GetUserExercisesInput) => {
         return await this.getUserExercises(args);
@@ -132,6 +149,10 @@ class YazioMcpServer {
       {
         description: 'Get user nutrition and fitness goals',
         inputSchema: GetUserGoalsInputSchema,
+        annotations: {
+          readOnlyHint: true,
+          idempotentHint: true,
+        },
       },
       async () => {
         return await this.getUserGoals();
@@ -143,6 +164,10 @@ class YazioMcpServer {
       {
         description: 'Get user settings and preferences',
         inputSchema: GetUserSettingsInputSchema,
+        annotations: {
+          readOnlyHint: true,
+          idempotentHint: true,
+        },
       },
       async () => {
         return await this.getUserSettings();
@@ -154,6 +179,11 @@ class YazioMcpServer {
       {
         description: 'Get product suggestions for the user',
         inputSchema: GetUserSuggestedProductsInputSchema,
+        annotations: {
+          readOnlyHint: true,
+          idempotentHint: true,
+          openWorldHint: true,
+        },
       },
       async (args: GetUserSuggestedProductsInput) => {
         return await this.getUserSuggestedProducts(args);
@@ -165,6 +195,10 @@ class YazioMcpServer {
       {
         description: 'Get water intake data for a specific date',
         inputSchema: GetWaterIntakeInputSchema,
+        annotations: {
+          readOnlyHint: true,
+          idempotentHint: true,
+        },
       },
       async (args: GetWaterIntakeInput) => {
         return await this.getUserWaterIntake(args);
@@ -176,6 +210,10 @@ class YazioMcpServer {
       {
         description: 'Get user weight data',
         inputSchema: GetUserWeightInputSchema,
+        annotations: {
+          readOnlyHint: true,
+          idempotentHint: true,
+        },
       },
       async () => {
         return await this.getUserWeight();
@@ -187,6 +225,10 @@ class YazioMcpServer {
       {
         description: 'Get daily nutrition summary for a specific date',
         inputSchema: GetDailySummaryInputSchema,
+        annotations: {
+          readOnlyHint: true,
+          idempotentHint: true,
+        },
       },
       async (args: GetDailySummaryInput) => {
         return await this.getUserDailySummary(args);
@@ -198,6 +240,12 @@ class YazioMcpServer {
       {
         description: 'Search for food products in Yazio database',
         inputSchema: SearchProductsInputSchema,
+        outputSchema: SearchProductsOutputSchema,
+        annotations: {
+          readOnlyHint: true,
+          idempotentHint: true,
+          openWorldHint: true,
+        },
       },
       async (args: SearchProductsInput) => {
         return await this.searchProducts(args);
@@ -209,6 +257,11 @@ class YazioMcpServer {
       {
         description: 'Get detailed information about a specific product by ID',
         inputSchema: GetProductInputSchema,
+        annotations: {
+          readOnlyHint: true,
+          idempotentHint: true,
+          openWorldHint: true,
+        },
       },
       async (args: GetProductInput) => {
         return await this.getProduct(args);
@@ -220,6 +273,10 @@ class YazioMcpServer {
       {
         description: 'Add a food item to user consumption log',
         inputSchema: AddConsumedItemInputSchema,
+        annotations: {
+          readOnlyHint: false,
+          idempotentHint: false,
+        },
       },
       async (args: AddConsumedItemInput) => {
         return await this.addUserConsumedItem(args);
@@ -231,6 +288,11 @@ class YazioMcpServer {
       {
         description: 'Remove a food item from user consumption log',
         inputSchema: RemoveConsumedItemInputSchema,
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: true,
+          idempotentHint: true,
+        },
       },
       async (args: RemoveConsumedItemInput) => {
         return await this.removeUserConsumedItem(args);
@@ -352,7 +414,7 @@ class YazioMcpServer {
         content: [
           {
             type: 'text' as const,
-            text: `Search results for "${args.query}":\n\n${JSON.stringify(products, null, 2)}`,
+            text: JSON.stringify(products, null, 2),
           },
         ],
       };

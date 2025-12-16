@@ -6,7 +6,6 @@
  */
 
 import { Yazio } from 'yazio';
-import { AddConsumedItemInputSchema } from '../src/schemas.js';
 
 async function testRealEndpoint() {
   console.log('🧪 Testing add_user_consumed_item with real Yazio API...\n');
@@ -43,59 +42,7 @@ async function testRealEndpoint() {
     console.log('\n3️⃣ Searching for products...');
     const products = await yazio.products.search({ query: 'apple' });
 
-    if (products.length === 0) {
-      console.log('❌ No products found. Try a different search term.');
-      return;
-    }
-
-    const product = products[0];
-
-    // Test adding consumed item
-    console.log('\n4️⃣ Testing addConsumedItem...');
-
-    const testData = {
-      date: new Date(), // Today's date
-      serving: null,
-      // serving: product.serving,
-      serving_quantity: null,
-      // serving_quantity: product.serving_quantity,
-      id: `test-${Date.now()}`,
-      product_id: product.product_id,
-      daytime: 'breakfast' as const,
-      amount: product.amount,
-    };
-
-    console.log('📤 Sending data:', JSON.stringify(testData, null, 2));
-
-    // Validate input first
-    // const validatedData = AddConsumedItemInputSchema.parse(testData);
-    // console.log('✅ Input validation passed');
-
-    // Call the API
-    await yazio.user.addConsumedItem(testData).catch((error) => {
-      console.log('❌ Error occurred:', error);
-      throw error;
-    });
-
-    console.log('✅ Successfully added consumed item!');
-
-    // Verify it was added
-    console.log('\n5️⃣ Verifying item was added...');
-    const consumedItems = await yazio.user.getConsumedItems(testData.date);
-
-    const matchingItems = consumedItems.filter(item =>
-      item.product_id === testData.product_id &&
-      item.daytime === testData.daytime
-    );
-
-    if (matchingItems.length > 0) {
-      console.log('✅ Found the added item:');
-      console.log(JSON.stringify(matchingItems[0], null, 2));
-    } else {
-      console.log('⚠️ Item not found in consumed items list');
-      console.log('📋 All consumed items for today:');
-      console.log(JSON.stringify(consumedItems, null, 2));
-    }
+    console.log(products);
 
   } catch (error) {
     console.log('❌ Error occurred:');
