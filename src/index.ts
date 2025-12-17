@@ -280,10 +280,7 @@ class YazioMcpServer {
         },
       },
       async (args: AddConsumedItemInput) => {
-        return await this.addUserConsumedItem({
-          ...args,
-
-        });
+        return await this.addUserConsumedItem(args);
       }
     );
 
@@ -325,28 +322,32 @@ class YazioMcpServer {
 2. **Clarify the product**: If multiple products are found, ask the user to clarify which product they want to use.
 
 3. **Get product details**: Use the \`get_product\` tool with the \`product_id\` from the search results. This will show you:
-   - Available serving types (e.g., "portion", "gram", "piece", "cup")
-   - Serving quantities and amounts
+   - Available serving types (e.g., "portion", "gram", "piece", "cup") and their amounts in base units (g or ml)
    - Base unit (g or ml)
    - Full nutritional information
 
-4. **Clarify the serving**: If the user doesn't provide a serving type and quantity, ask them to clarify the serving type and quantity they want to use based on the product details.
+4. **Clarify the serving**: If the user doesn't provide a serving type and quantity, ask them to clarify the serving type provided by previous step and quantity they want to add.
 
 5. **Add the consumed item**: Use the \`add_user_consumed_item\` tool with:
    - \`product_id\`: The UUID from step 1
    - \`date\`: Date in YYYY-MM-DD format
    - \`daytime\`: One of: "breakfast", "lunch", "dinner", or "snack"
-   - **Either**:
-     * \`serving\` + \`serving_quantity\`: Use a serving type from step 2 (e.g., "portion", "piece", "cup") with the quantity (e.g., 1, 2, 0.5)
-     * **OR** \`amount\`: Direct amount in base units (grams or milliliters, e.g., 200 for 200g or 250 for 250ml)
-   - Note: Serving fields (\`serving\`, \`serving_quantity\`) can be omitted if using \`amount\`
+   - \`serving\`: Use a serving type from step 2 (e.g., "portion", "piece", "cup") OR base unit (g or ml)
+   - \`serving_quantity\`: Quantity of the serving type (e.g., 1, 2, 0.5)
+   - \`amount\`: Direct amount in base units (g or ml). If serving type is provided, use the amount of the serving type * serving_quantity. If serving type is not provided, use the amount of the base unit.
 
 **Important Notes**:
 - Always search first if you don't have a product_id
-- Check product details to understand available serving types and base unit (g or ml)
+- Check product details to understand available serving types, base unit (g or ml) and amount in serving
 - The date should be in ISO format (YYYY-MM-DD)
-- You can use either serving-based approach (serving + serving_quantity) OR direct amount (in base units)
-- If the user provides an amount (e.g., "200g"), use the \`amount\` parameter with the numeric value (200) and omit serving fields`
+- You can use serving or base unit approach:
+  1. serving type + serving quantity + amount (amount for selected serving type multiplied by serving quantity)
+  2. amount in g/ml - serving fields could be omitted
+Example:
+  1. "I ate 2 apples" - serving type "piece" which has 100g amount (from product details) + serving quantity 2 + amount 200g
+  2. "I ate 200g of chicken breast" - amount 200g
+- Always provide amount in base units (g or ml), not in servings.
+`
               }
             }
           ]
@@ -608,8 +609,10 @@ class YazioMcpServer {
     const client = await this.ensureAuthenticated();
 
     try {
-      const id = uuidv4();
-      await client.user.addConsumedItem({ ...args, id });
+      await client.user.addConsumedItem({
+        ...args,
+        id: uuidv4(),
+      });
 
       return {
         content: [
