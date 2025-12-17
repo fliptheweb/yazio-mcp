@@ -71,8 +71,8 @@ Easily log meals you forgot to track in the Yazio app directly from Claude or Cu
 | `get_user_settings` | Get user preferences | - |
 | `search_products` | Search food database | `query` |
 | `get_product` | Get detailed product info | `id` |
-| `add_user_consumed_item` | ⚠️ (doesn't work) Add food to your log | `productId`, `amount`, `date`, `mealType` |
-| `remove_user_consumed_item` | ⚠️ (doesn't work) Remove food from log | `itemId` |
+| `add_user_consumed_item` | Add food to your log | `productId`, `amount`, `date`, `mealType` |
+| `remove_user_consumed_item` | Remove food from log | `itemId` |
 
 ## Test Connection
 
@@ -98,7 +98,7 @@ YAZIO_USERNAME='your_email' YAZIO_PASSWORD='your_password' npx yazio-mcp
 3. Debugging:
 
 ```
-npx -y @modelcontextprotocol/inspector npx <local-path>/yazio-mcp
+YAZIO_USERNAME=X YAZIO_PASSWORD=X npx -y @modelcontextprotocol/inspector npx <local-path>/yazio-mcp
 ```
 ---
 

@@ -1,19 +1,20 @@
 import * as z from "zod";
 
 export const DaytimeSchema = z.enum(['breakfast', 'lunch', 'dinner', 'snack']);
-export const DateStringSchema = z.iso.date();
-export const ProductIdSchema = z.uuid({ version: 'v1' }).describe('Product UUID (e.g. 4ceff6e9-78ce-441b-964a-22e81c1dee92)');
+export const DateStringSchema = z.iso.date().describe('Date in YYYY-MM-DD format');
+export const ProductIdSchema = z.uuid().describe('Product UUID v1/v4 (e.g. 4ceff6e9-78ce-441b-964a-22e81c1dee92)');
+export const ItemIdSchema = ProductIdSchema.describe('Unique item identifier');
 export const ServingTypeSchema = z.string().describe('Serving type (e.g. portion, fruit, glass, cup, slice, piece, bar, gram, bottle, can, etc.)');
-export const ItemIdSchema = z.string().describe('Unique item identifier');
+
 export const QueryStringSchema = z.string().describe('Search query string');
 export const LimitSchema = z.number().optional().describe('Maximum number of results to return');
 
 export const DateInputSchema = z.object({
-  date: DateStringSchema.describe('Date to get data for')
+  date: DateStringSchema
 });
 
 export const OptionalDateInputSchema = z.object({
-  date: DateStringSchema.optional().describe('Specific date to get data for (optional)')
+  date: DateStringSchema.optional()
 });
 
 export const QueryInputSchema = z.object({
@@ -56,13 +57,13 @@ export const GetUserExercisesInputSchema = OptionalDateInputSchema; // Only supp
 export const GetUserSettingsInputSchema = EmptyInputSchema;
 export const GetUserSuggestedProductsInputSchema = OptionalQueryInputSchema;
 export const AddConsumedItemInputSchema = z.object({
-  id: ProductIdSchema.describe('Unique identifier for the consumed item'),
+  // id: ProductIdSchema.describe('Random identifier for the consumed item'),
   product_id: ProductIdSchema,
   date: DateStringSchema.describe('Date when the food was consumed'),
   daytime: DaytimeSchema.describe('Type of meal (breakfast, lunch, dinner, snack)'),
   amount: z.number().optional().describe('Amount of the product consumed'),
-  serving: ServingTypeSchema,
-  serving_quantity: z.number().describe('Quantity of servings')
+  serving: ServingTypeSchema.optional(),
+  serving_quantity: z.number().optional().describe('Quantity of servings')
 });
 export const RemoveConsumedItemInputSchema = z.object({
   itemId: ItemIdSchema.describe('ID of the consumed item to remove')

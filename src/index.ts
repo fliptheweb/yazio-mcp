@@ -3,7 +3,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { Yazio } from 'yazio';
-import { v1 as uuidv1 } from "uuid";
+import { v4 as uuidv4 } from "uuid";
 import {
   GetFoodEntriesInputSchema,
   GetDailySummaryInputSchema,
@@ -45,6 +45,7 @@ class YazioMcpServer {
     });
 
     this.setupToolHandlers();
+    this.setupPromptHandlers();
     this.setupErrorHandling();
     this.initializeClient();
   }
@@ -281,7 +282,7 @@ class YazioMcpServer {
       async (args: AddConsumedItemInput) => {
         return await this.addUserConsumedItem({
           ...args,
-          id: uuidv1(),
+
         });
       }
     );
@@ -299,6 +300,97 @@ class YazioMcpServer {
       },
       async (args: RemoveConsumedItemInput) => {
         return await this.removeUserConsumedItem(args);
+      }
+    );
+  }
+
+  private setupPromptHandlers(): void {
+    this.server.registerPrompt(
+      'add_food_item',
+      {
+        title: 'Add Food Item to Log',
+        description: 'Guide for adding a food item to the user\'s consumption log',
+      },
+      async () => {
+        return {
+          messages: [
+            {
+              role: 'user',
+              content: {
+                type: 'text',
+                text: `To add a food item to the user's consumption log, follow these steps:
+
+1. **Search for the product**: Use the \`search_products\` tool with a query string (e.g., "chicken breast", "apple", "pasta"). This will return a list of matching products with their IDs.
+
+2. **Clarify the product**: If multiple products are found, ask the user to clarify which product they want to use.
+
+3. **Get product details**: Use the \`get_product\` tool with the \`product_id\` from the search results. This will show you:
+   - Available serving types (e.g., "portion", "gram", "piece", "cup")
+   - Serving quantities and amounts
+   - Base unit (g or ml)
+   - Full nutritional information
+
+4. **Clarify the serving**: If the user doesn't provide a serving type and quantity, ask them to clarify the serving type and quantity they want to use based on the product details.
+
+5. **Add the consumed item**: Use the \`add_user_consumed_item\` tool with:
+   - \`product_id\`: The UUID from step 1
+   - \`date\`: Date in YYYY-MM-DD format
+   - \`daytime\`: One of: "breakfast", "lunch", "dinner", or "snack"
+   - **Either**:
+     * \`serving\` + \`serving_quantity\`: Use a serving type from step 2 (e.g., "portion", "piece", "cup") with the quantity (e.g., 1, 2, 0.5)
+     * **OR** \`amount\`: Direct amount in base units (grams or milliliters, e.g., 200 for 200g or 250 for 250ml)
+   - Note: Serving fields (\`serving\`, \`serving_quantity\`) can be omitted if using \`amount\`
+
+**Important Notes**:
+- Always search first if you don't have a product_id
+- Check product details to understand available serving types and base unit (g or ml)
+- The date should be in ISO format (YYYY-MM-DD)
+- You can use either serving-based approach (serving + serving_quantity) OR direct amount (in base units)
+- If the user provides an amount (e.g., "200g"), use the \`amount\` parameter with the numeric value (200) and omit serving fields`
+              }
+            }
+          ]
+        };
+      }
+    );
+
+    this.server.registerPrompt(
+      'remove_food_item',
+      {
+        title: 'Remove Food Item from Log',
+        description: 'Guide for removing a food item from the user\'s consumption log',
+      },
+      async () => {
+        return {
+          messages: [
+            {
+              role: 'user',
+              content: {
+                type: 'text',
+                text: `To remove a food item from the user's consumption log, follow these steps:
+
+1. **Get consumed items**: Use the \`get_user_consumed_items\` tool with the \`date\` parameter (in YYYY-MM-DD format) to retrieve all food entries for that date.
+
+2. **Identify the item**: From the returned list of consumed items, identify the specific item you want to remove. Each item will have:
+   - \`id\`: The unique identifier for the consumed item (this is what you need for removal)
+   - \`product_id\`: The product identifier
+   - \`name\`: The product name
+   - \`date\`: The date it was consumed
+   - \`daytime\`: The meal type (breakfast, lunch, dinner, snack)
+   - Other details like amount, serving, etc.
+
+3. **Remove the item**: Use the \`remove_user_consumed_item\` tool with:
+   - \`itemId\`: The \`id\` field from the consumed item you identified in step 2
+
+**Important Notes**:
+- You must first retrieve the consumed items to get the item ID
+- The \`itemId\` is different from \`product_id\` - use the \`id\` field from the consumed item
+- The date should be in ISO format (YYYY-MM-DD)
+- If multiple items match the description, you may need to ask the user to clarify which specific item to remove`
+              }
+            }
+          ]
+        };
       }
     );
   }
@@ -516,13 +608,14 @@ class YazioMcpServer {
     const client = await this.ensureAuthenticated();
 
     try {
-      const result = await client.user.addConsumedItem(args);
+      const id = uuidv4();
+      await client.user.addConsumedItem({ ...args, id });
 
       return {
         content: [
           {
             type: 'text' as const,
-            text: `Successfully added consumed item:\n\n${JSON.stringify(result, null, 2)}`,
+            text: `Successfully added consumed item`,
           },
         ],
       };
