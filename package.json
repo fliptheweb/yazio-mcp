@@ -1,6 +1,6 @@
 {
   "name": "yazio-mcp",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "MCP server for accessing Yazio user & nutrition data (unofficial)",
   "mcpName": "io.github.fliptheweb/yazio-mcp",
   "author": "fliptheweb",
