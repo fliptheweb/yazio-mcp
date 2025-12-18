@@ -85,6 +85,7 @@ Easily log meals you forgot to track in the Yazio app directly from Claude or Cu
 | `search_products` | Search food database | `query` |
 | `get_product` | Get detailed product info | `id` |
 | `add_user_consumed_item` | Add food to your log | `productId`, `amount`, `date`, `mealType` |
+| `add_user_water_intake` | Add water intake entry (cumulative value in ml) | `date`, `water_intake` |
 | `remove_user_consumed_item` | Remove food from log | `itemId` |
 
 ## Test Connection
