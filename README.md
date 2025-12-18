@@ -20,11 +20,7 @@ An MCP (Model Context Protocol) server that connects Claude/Cursor to your Yazio
 
 ## 🚀 Quick Start
 
-Add to your MCP client configuration:
-
-**Claude Desktop**: `~/Library/Application Support/Claude/claude_desktop_config.json`
-
-**Cursor**: Your Cursor MCP configuration file
+Add the following JSON your MCP client configuration:
 
 ```json
 {
@@ -40,6 +36,23 @@ Add to your MCP client configuration:
   }
 }
 ```
+
+
+### Claude Desktop
+
+`~/Library/Application Support/Claude/claude_desktop_config.json`
+
+### Claude Code (CLI)
+
+- Create a file named `.mcp.json` in a folder
+- Run `claude` in that folder
+- Approve access to the MCP when Claude runs for the first time in that folder
+- Optional: check configured MCP servers with `claude mcp list`
+
+### Cursor
+
+Add JSON in your Cursor MCP configuration file (`~/.cursor/mcp.json`)
+
 
 ## 💡 Use Cases
 
