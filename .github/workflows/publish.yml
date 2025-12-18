@@ -10,7 +10,7 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       id-token: write
 
     steps:
@@ -33,7 +33,7 @@ jobs:
         run: npm run build
 
       - name: Publish to NPM
-        run: npm publish --access public
+        run: npm publish --access public --provenance
 
       - name: Install MCP Publisher
         run: |
