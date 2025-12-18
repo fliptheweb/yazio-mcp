@@ -1,4 +1,4 @@
-# Yazio MCP Server <img src="https://assets.yazio.com/frontend/images/yazio-logo.svg" alt="Yazio Logo" width="60" height="60" />
+# Yazio MCP Server <img src="https://assets.yazio.com/frontend/images/branded-logo-dark.svg" alt="Yazio Logo" width="104" height="28" />
 
 > [!IMPORTANT]
 > This is **not an official MCP server** and Yazio does **not provide an official API**.
