@@ -7,13 +7,13 @@
     "url": "https://github.com/fliptheweb/yazio-mcp",
     "source": "github"
   },
-  "version": "0.0.10",
+  "version": "0.0.11",
   "packages": [
     {
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "yazio-mcp",
-      "version": "0.0.10",
+      "version": "0.0.11",
       "transport": {
         "type": "stdio"
       },
