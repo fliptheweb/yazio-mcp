@@ -17,6 +17,7 @@ import {
   GetUserSuggestedProductsInputSchema,
   AddConsumedItemInputSchema,
   RemoveConsumedItemInputSchema,
+  AddWaterIntakeInputSchema,
   GetDietaryPreferencesInputSchema,
   GetUserGoalsInputSchema,
   type GetFoodEntriesInput,
@@ -28,10 +29,12 @@ import {
   type GetUserSuggestedProductsInput,
   type AddConsumedItemInput,
   type RemoveConsumedItemInput,
+  type AddWaterIntakeInput,
 } from './schemas.js';
 import type {
   YazioExerciseOptions,
-  YazioSuggestedProductsOptions
+  YazioSuggestedProductsOptions,
+  YazioAddWaterIntakeOptions
 } from './types.js';
 
 class YazioMcpServer {
@@ -70,11 +73,40 @@ class YazioMcpServer {
       // Test the connection
       await this.yazioClient.user.get();
       console.error('✅ Successfully authenticated with Yazio using environment variables');
+      this.extendWaterIntakeSupport(this.yazioClient);
     } catch (error) {
       console.error('❌ Failed to authenticate with Yazio:', (error as Error).message);
       console.error('💡 Please check your YAZIO_USERNAME and YAZIO_PASSWORD environment variables');
       process.exit(1);
     }
+  }
+
+  // Extend yazio client package with addWaterIntake method
+  // Discussion https://github.com/juriadams/yazio/issues/3
+  private extendWaterIntakeSupport(client: Yazio): void {
+    // @ts-expect-error - Monkey-patching yazio client to add missing method
+    client.user.addWaterIntake = async (entries: YazioAddWaterIntakeOptions): Promise<void> => {
+      // @ts-expect-error - Accessing internal auth token from yazio client
+      const token = client.auth.token.access_token;
+
+      // Access internal HTTP client or make direct fetch call
+      // Try to access base URL from client, fallback to known API URL
+      const baseUrl = (client as Yazio & { baseUrl?: string }).baseUrl || 'https://yzapi.yazio.com/v15';
+
+      const response = await fetch(`${baseUrl}/user/water-intake`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(entries),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to add water intake: ${response.status} ${response.statusText} - ${errorText}`);
+      }
+    };
   }
 
   private setupErrorHandling(): void {
@@ -299,6 +331,21 @@ class YazioMcpServer {
         return await this.removeUserConsumedItem(args);
       }
     );
+
+    this.server.registerTool(
+      'add_user_water_intake',
+      {
+        description: 'Log a water intake entry. Requires date (YYYY-MM-DD HH:mm:ss format) and cumulative water_intake in milliliters (ml). Always get the latest water intake first and add the new amount to calculate the cumulative value.',
+        inputSchema: AddWaterIntakeInputSchema,
+        annotations: {
+          readOnlyHint: false,
+          idempotentHint: false,
+        },
+      },
+      async (args: AddWaterIntakeInput) => {
+        return await this.addUserWaterIntake(args);
+      }
+    );
   }
 
   private setupPromptHandlers(): void {
@@ -388,6 +435,50 @@ Example:
 - The \`itemId\` is different from \`product_id\` - use the \`id\` field from the consumed item
 - The date should be in ISO format (YYYY-MM-DD)
 - If multiple items match the description, you may need to ask the user to clarify which specific item to remove`
+              }
+            }
+          ]
+        };
+      }
+    );
+
+    this.server.registerPrompt(
+      'add_water_intake',
+      {
+        title: 'Add Water Intake to Log',
+        description: 'Guide for adding water intake entries to the user\'s log',
+      },
+      async () => {
+        return {
+          messages: [
+            {
+              role: 'user',
+              content: {
+                type: 'text',
+                text: `To add water intake to the user's log, follow these steps:
+
+1. **Get current water intake**: Use the \`get_user_water_intake\` tool with the \`date\` parameter (in YYYY-MM-DD format) to retrieve the current cumulative water intake for that date. The response will contain a \`water_intake\` field with the current cumulative value in milliliters (ml).
+
+2. **Calculate cumulative value**: Add the new water intake amount (in ml) that the user wants to add to the existing \`water_intake\` value from step 1. This gives you the new cumulative water intake value.
+
+3. **Add the water intake entry**: Use the \`add_user_water_intake\` tool with a single object (the tool will automatically wrap it in an array when sending to the API):
+   - \`date\`: Date and time in format "YYYY-MM-DD HH:mm:ss" (e.g., "2025-12-18 12:00:00")
+   - \`water_intake\`: The cumulative water intake in milliliters (ml) - this should be the previous cumulative value plus the new intake amount
+
+**Important Notes**:
+- Always get the latest water intake first to ensure you're adding to the correct cumulative value
+- The \`water_intake\` field must be cumulative (previous total + new intake), not just the new amount
+- The date format must be "YYYY-MM-DD HH:mm:ss" with both date and time
+- Water intake is measured in milliliters (ml)
+- The tool accepts a single object (not an array) - it will be automatically sent as a single-item array to the API
+
+**Example**:
+- Current water intake for 2025-12-18: 500ml
+- User says: "I want to add 250ml"
+- Get latest: 500ml
+- Calculate: 500 + 250 = 750ml
+- Call tool with: \`{ date: "2025-12-18 12:00:00", water_intake: 750 }\`
+- The tool sends: \`[{ date: "2025-12-18 12:00:00", water_intake: 750 }]\` to the API`
               }
             }
           ]
@@ -643,6 +734,29 @@ Example:
       };
     } catch (error) {
       throw new Error(`Failed to remove consumed item: ${error}`);
+    }
+  }
+
+  private async addUserWaterIntake(args: AddWaterIntakeInput) {
+    const client = await this.ensureAuthenticated();
+
+    try {
+      // @ts-expect-error - Using monkey-patched method
+      await client.user.addWaterIntake([{
+        date: args.date, // Already in "YYYY-MM-DD HH:mm:ss" format
+        water_intake: args.water_intake,
+      }]);
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Successfully logged water intake entry`,
+          },
+        ],
+      };
+    } catch (error) {
+      throw new Error(`Failed to add water intake: ${error}`);
     }
   }
 

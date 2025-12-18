@@ -289,3 +289,10 @@ export interface YazioAddConsumedItemOptions {
 export interface YazioRemoveConsumedItemOptions {
   itemId: string;
 }
+
+export interface YazioWaterIntakeEntry {
+  date: string; // Format: "YYYY-MM-DD HH:mm:ss"
+  water_intake: number; // Cumulative water intake in ml
+}
+
+export type YazioAddWaterIntakeOptions = YazioWaterIntakeEntry[];
