@@ -18,7 +18,10 @@ export const OptionalDateInputSchema = z.object({
 });
 
 export const QueryInputSchema = z.object({
-  query: QueryStringSchema.describe('Search query')
+  query: QueryStringSchema.describe('Search query'),
+  sex: z.enum(["male", "female"]).default("male").optional(),
+  countries: z.array(z.string()).default(["US"]).optional().describe('Array of country codes for product search (e.g. ["US", "DE", "TR"])'),
+  locales: z.array(z.string()).default(["en_US"]).optional().describe('Array of locale codes (e.g. ["en_US", "de_US"])')
 });
 
 export const OptionalQueryInputSchema = z.object({

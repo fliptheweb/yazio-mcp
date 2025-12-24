@@ -44,7 +44,7 @@ class YazioMcpServer {
   constructor() {
     this.server = new McpServer({
       name: 'yazio-mcp',
-      version: '0.0.11',
+      version: '0.0.12',
     });
 
     this.setupToolHandlers();
@@ -271,7 +271,7 @@ class YazioMcpServer {
     this.server.registerTool(
       'search_products',
       {
-        description: 'Search for food products in Yazio database',
+        description: 'Search for food products in Yazio database. You can optionally specify user\'s sex, country and locale of the products to search for.',
         inputSchema: SearchProductsInputSchema,
         // outputSchema: SearchProductsOutputSchema,
         annotations: {
@@ -364,14 +364,13 @@ class YazioMcpServer {
                 type: 'text',
                 text: `To add a food item to the user's consumption log, follow these steps:
 
-1. **Search for the product**: Use the \`search_products\` tool with a query string (e.g., "chicken breast", "apple", "pasta"). This will return a list of matching products with their IDs.
+1. **Search for the product**: Use the \`search_products\` tool with a query string (e.g., "chicken breast", "apple", "pasta"), optionally specifying user's sex, country and locale of the products to search for. This will return a list of matching products with their IDs and short information about the product and serving.
 
 2. **Clarify the product**: If multiple products are found, ask the user to clarify which product they want to use.
 
-3. **Get product details**: Use the \`get_product\` tool with the \`product_id\` from the search results. This will show you:
+3. **Get product details**: Use the \`get_product\` tool with the \`product_id\` from the search results. This will show you full information about the product and serving:
    - Available serving types (e.g., "portion", "gram", "piece", "cup") and their amounts in base units (g or ml)
    - Base unit (g or ml)
-   - Full nutritional information
 
 4. **Clarify the serving**: If the user doesn't provide a serving type and quantity, ask them to clarify the serving type provided by previous step and quantity they want to add.
 

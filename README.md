@@ -56,6 +56,8 @@ Add JSON in your Cursor MCP configuration file (`~/.cursor/mcp.json`)
 
 ## 💡 Use Cases
 
+![Showcase](https://github.com/user-attachments/assets/3aa47086-d40e-408c-ba51-cbe8cf165404)
+
 ### 📈 Analyze Your Nutrition Trends
 > *"Get my nutrition data for the last week and analyze my eating patterns"*
 
