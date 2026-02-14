@@ -1,7 +1,9 @@
 import * as z from "zod";
 
 export const DaytimeSchema = z.enum(['breakfast', 'lunch', 'dinner', 'snack']);
-export const DateStringSchema = z.iso.date().describe('Date in YYYY-MM-DD format');
+export const DateStringSchema = z.string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format')
+  .describe('Date in YYYY-MM-DD format');
 export const ProductIdSchema = z.uuid().describe('Product UUID v1/v4 (e.g. 4ceff6e9-78ce-441b-964a-22e81c1dee92)');
 export const ItemIdSchema = ProductIdSchema.describe('Unique item identifier');
 export const ServingTypeSchema = z.string().describe('Serving type (e.g. portion, fruit, glass, cup, slice, piece, bar, gram, bottle, can, etc.)');
