@@ -8,6 +8,8 @@ An MCP (Model Context Protocol) server that connects Claude/Cursor to your Yazio
 
 **Available on NPM**: `npx yazio-mcp`
 
+**Claude Desktop Extension**: [yazio-mcp.mcpb](https://github.com/fliptheweb/yazio-mcp/releases/latest/download/yazio-mcp.mcpb)
+
 ## ✨ Features
 
 - 🔐 **Authentication** - Connect with your Yazio account
