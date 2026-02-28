@@ -1,9 +1,13 @@
 #!/usr/bin/env node
 
+import { createRequire } from 'node:module';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { Yazio } from 'yazio';
 import { v4 as uuidv4 } from "uuid";
+
+const require = createRequire(import.meta.url);
+const { version } = require('../package.json') as { version: string };
 import {
   GetFoodEntriesInputSchema,
   GetDailySummaryInputSchema,
@@ -44,7 +48,7 @@ class YazioMcpServer {
   constructor() {
     this.server = new McpServer({
       name: 'yazio-mcp',
-      version: '0.0.12',
+      version,
     });
 
     this.setupToolHandlers();

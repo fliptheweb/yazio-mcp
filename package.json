@@ -32,7 +32,8 @@
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
     "format": "prettier --write src/**/*.ts",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "version": "node scripts/bump-version.cjs && git add manifest.json server.json"
   },
   "keywords": [
     "mcp",
