@@ -1,0 +1,51 @@
+{
+  "manifest_version": "0.3",
+  "name": "yazio-mcp",
+  "version": "0.0.12",
+  "description": "MCP server for accessing Yazio user & nutrition data (unofficial)",
+  "author": {
+    "name": "fliptheweb"
+  },
+  "server": {
+    "type": "node",
+    "entry_point": "server/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["server/index.js"],
+      "env": {
+        "YAZIO_USERNAME": "${user_config.YAZIO_USERNAME}",
+        "YAZIO_PASSWORD": "${user_config.YAZIO_PASSWORD}"
+      }
+    }
+  },
+  "tools": [
+    { "name": "get_user_daily_summary", "description": "Get daily nutrition summary" },
+    { "name": "get_user_consumed_items", "description": "Get food entries for a date" },
+    { "name": "get_user_weight", "description": "Get weight data" },
+    { "name": "get_user_exercises", "description": "Get exercise data" },
+    { "name": "get_user_water_intake", "description": "Get water intake" },
+    { "name": "get_user_goals", "description": "Get nutrition goals" },
+    { "name": "get_user_settings", "description": "Get user preferences" },
+    { "name": "search_products", "description": "Search food database" },
+    { "name": "get_product", "description": "Get detailed product info" },
+    { "name": "add_user_consumed_item", "description": "Add food to your log" },
+    { "name": "add_user_water_intake", "description": "Add water intake entry" },
+    { "name": "remove_user_consumed_item", "description": "Remove food from log" }
+  ],
+  "user_config": {
+    "YAZIO_USERNAME": {
+      "title": "Yazio Email",
+      "description": "Your Yazio account email",
+      "type": "string",
+      "required": true,
+      "sensitive": false
+    },
+    "YAZIO_PASSWORD": {
+      "title": "Yazio Password",
+      "description": "Your Yazio account password",
+      "type": "string",
+      "required": true,
+      "sensitive": true
+    }
+  }
+}

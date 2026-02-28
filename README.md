@@ -38,20 +38,31 @@ Add the following JSON your MCP client configuration:
 ```
 
 
-### Claude Desktop
+### Claude Desktop (Extension)
+
+Download and open [yazio-mcp.mcpb](https://github.com/fliptheweb/yazio-mcp/releases/latest/download/yazio-mcp.mcpb) with Claude Desktop. You'll be prompted to enter your Yazio credentials — your password is stored securely in the OS keychain.
+
+See [Building Desktop Extensions with MCPB](https://support.claude.com/en/articles/12922929-building-desktop-extensions-with-mcpb) for more details.
+
+### Claude Desktop (Manual)
 
 `~/Library/Application Support/Claude/claude_desktop_config.json`
 
 ### Claude Code (CLI)
 
-- Create a file named `.mcp.json` in a folder
-- Run `claude` in that folder
-- Approve access to the MCP when Claude runs for the first time in that folder
-- Optional: check configured MCP servers with `claude mcp list`
+```bash
+claude mcp add yazio -e YAZIO_USERNAME=your_email@email.com -e YAZIO_PASSWORD=your_password -- npx -y yazio-mcp
+```
+
+Verify with `claude mcp list`.
 
 ### Cursor
 
-Add JSON in your Cursor MCP configuration file (`~/.cursor/mcp.json`)
+There are a few ways to add the server:
+
+- **Settings UI** (easiest) — `Settings → MCP → + Add new MCP server`, then fill in the command, args, and env
+- **Project config** — add JSON to `.cursor/mcp.json` in your project root
+- **Global config** — add JSON to `~/.cursor/mcp.json` (applies to all projects)
 
 
 ## 💡 Use Cases

@@ -78,6 +78,9 @@ jspm_packages/
 # DynamoDB Local files
 .dynamodb/
 
+# MCPB bundle artifacts
+*.mcpb
+
 # AI files
 .claude/
 .mcpregistry_github_token
