@@ -1,32 +1,56 @@
-import * as z from "zod";
+import * as z from 'zod';
 
 export const DaytimeSchema = z.enum(['breakfast', 'lunch', 'dinner', 'snack']);
 export const DateStringSchema = z.iso.date().describe('Date in YYYY-MM-DD format');
 export const ProductIdSchema = z.uuid().describe('Product UUID v1/v4 (e.g. 4ceff6e9-78ce-441b-964a-22e81c1dee92)');
 export const ItemIdSchema = ProductIdSchema.describe('Unique item identifier');
-export const ServingTypeSchema = z.string().describe('Serving type (e.g. portion, fruit, glass, cup, slice, piece, bar, gram, bottle, can, etc.)');
+export const ServingTypeSchema = z
+  .string()
+  .describe('Serving type (e.g. portion, fruit, glass, cup, slice, piece, bar, gram, bottle, can, etc.)');
 
 export const QueryStringSchema = z.string().describe('Search query string');
 export const LimitSchema = z.number().optional().describe('Maximum number of results to return');
 
 export const DateInputSchema = z.object({
-  date: DateStringSchema
+  date: DateStringSchema,
 });
 
 export const OptionalDateInputSchema = z.object({
-  date: DateStringSchema.optional()
+  date: DateStringSchema.optional(),
 });
 
 export const QueryInputSchema = z.object({
   query: QueryStringSchema.describe('Search query'),
-  sex: z.enum(["male", "female"]).default("male").optional(),
-  countries: z.array(z.string()).default(["US"]).optional().describe('Array of country codes for product search (e.g. ["US", "DE", "TR"])'),
-  locales: z.array(z.string()).default(["en_US"]).optional().describe('Array of locale codes (e.g. ["en_US", "de_US"])')
+  sex: z.enum(['male', 'female']).default('male').optional(),
+  countries: z
+    .array(z.string())
+    .default(['US'])
+    .optional()
+    .describe('Array of country codes for product search (e.g. ["US", "DE", "TR"])'),
+  locales: z
+    .array(z.string())
+    .default(['en_US'])
+    .optional()
+    .describe('Array of locale codes (e.g. ["en_US", "de_US"])'),
 });
 
 export const OptionalQueryInputSchema = z.object({
   query: QueryStringSchema.optional().describe('Search query (optional)'),
-  limit: LimitSchema
+  limit: LimitSchema,
+});
+
+export const SearchByBarcodeInputSchema = z.object({
+  ean: z.string().describe('EAN/UPC barcode string (e.g. "4005500068709")'),
+  sex: z.enum(['male', 'female']).default('male').optional(),
+  countries: z.array(z.string()).default(['US']).optional().describe('Array of country codes'),
+  locales: z.array(z.string()).default(['en_US']).optional().describe('Array of locale codes'),
+});
+
+export const ScanBarcodeImageInputSchema = z.object({
+  image: z.string().describe('Base64-encoded image of a barcode'),
+  sex: z.enum(['male', 'female']).default('male').optional(),
+  countries: z.array(z.string()).default(['US']).optional().describe('Array of country codes'),
+  locales: z.array(z.string()).default(['en_US']).optional().describe('Array of locale codes'),
 });
 
 export const EmptyInputSchema = z.object({});
@@ -38,23 +62,27 @@ export const GetUserWeightInputSchema = EmptyInputSchema; // Yazio getWeight doe
 export const GetWaterIntakeInputSchema = DateInputSchema;
 export const SearchProductsInputSchema = QueryInputSchema;
 export const SearchProductsOutputSchema = z.object({
-  products: z.array(z.object({
-    score: z.number(),
-    name: z.string(),
-    product_id: ProductIdSchema,
-    serving: ServingTypeSchema,
-    serving_quantity: z.number(),
-    amount: z.number(),
-    base_unit: z.enum(['g', 'ml']).describe('Base unit: grams (g) or milliliters (ml)'),
-    producer: z.string().nullable().describe('Producer name'),
-    is_verified: z.boolean(),
-    nutrients: z.record(z.string(), z.number()).describe('Nutrients object with keys like energy.energy, nutrient.carb, etc.'),
-    countries: z.array(z.string()).describe('Array of country codes (e.g. ["US", "DE"])'),
-    language: z.string().describe('Language code (e.g. "en", "de")'),
-  })),
+  products: z.array(
+    z.object({
+      score: z.number(),
+      name: z.string(),
+      product_id: ProductIdSchema,
+      serving: ServingTypeSchema,
+      serving_quantity: z.number(),
+      amount: z.number(),
+      base_unit: z.enum(['g', 'ml']).describe('Base unit: grams (g) or milliliters (ml)'),
+      producer: z.string().nullable().describe('Producer name'),
+      is_verified: z.boolean(),
+      nutrients: z
+        .record(z.string(), z.number())
+        .describe('Nutrients object with keys like energy.energy, nutrient.carb, etc.'),
+      countries: z.array(z.string()).describe('Array of country codes (e.g. ["US", "DE"])'),
+      language: z.string().describe('Language code (e.g. "en", "de")'),
+    })
+  ),
 });
 export const GetProductInputSchema = z.object({
-  id: ProductIdSchema.describe('Product ID to get details for')
+  id: ProductIdSchema.describe('Product ID to get details for'),
 });
 export const GetUserExercisesInputSchema = OptionalDateInputSchema; // Only supports single date, not date ranges
 export const GetUserSettingsInputSchema = EmptyInputSchema;
@@ -66,14 +94,14 @@ export const AddConsumedItemInputSchema = z.object({
   daytime: DaytimeSchema.describe('Type of meal (breakfast, lunch, dinner, snack)'),
   amount: z.number().describe('Amount of the product consumed in base units (g or ml)'),
   serving: ServingTypeSchema.optional(),
-  serving_quantity: z.number().optional().describe('Quantity of servings')
+  serving_quantity: z.number().optional().describe('Quantity of servings'),
 });
 export const RemoveConsumedItemInputSchema = z.object({
-  itemId: ItemIdSchema.describe('ID of the consumed item to remove')
+  itemId: ItemIdSchema.describe('ID of the consumed item to remove'),
 });
 export const AddWaterIntakeInputSchema = z.object({
   date: z.string().describe('Date and time in format "YYYY-MM-DD HH:mm:ss" (e.g., "2025-12-18 12:00:00")'),
-  water_intake: z.number().describe('Cumulative water intake in milliliters (ml)')
+  water_intake: z.number().describe('Cumulative water intake in milliliters (ml)'),
 });
 export const GetDietaryPreferencesInputSchema = EmptyInputSchema;
 export const GetUserGoalsInputSchema = EmptyInputSchema;
@@ -94,3 +122,5 @@ export type RemoveConsumedItemInput = z.infer<typeof RemoveConsumedItemInputSche
 export type AddWaterIntakeInput = z.infer<typeof AddWaterIntakeInputSchema>;
 export type GetDietaryPreferencesInput = z.infer<typeof GetDietaryPreferencesInputSchema>;
 export type GetUserGoalsInput = z.infer<typeof GetUserGoalsInputSchema>;
+export type SearchByBarcodeInput = z.infer<typeof SearchByBarcodeInputSchema>;
+export type ScanBarcodeImageInput = z.infer<typeof ScanBarcodeImageInputSchema>;
