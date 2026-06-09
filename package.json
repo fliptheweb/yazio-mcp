@@ -25,7 +25,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "rm -rf dist && tsc --emitDeclarationOnly && esbuild src/index.ts --bundle --platform=node --format=esm --packages=bundle --outfile=dist/index.js",
     "dev": "tsx src/index.ts",
     "start": "node dist/index.js",
     "prepublishOnly": "npm run build",
@@ -47,20 +47,20 @@
   "engines": {
     "node": ">=18.0.0"
   },
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.25.0",
-    "uuid": "^13.0.0",
-    "yazio": "^1.0.0",
-    "zod": "^4.2.1"
-  },
+  "dependencies": {},
   "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.25.0",
     "@types/node": "^20.0.0",
     "@typescript-eslint/eslint-plugin": "^8.44.1",
     "@typescript-eslint/parser": "^8.44.1",
+    "esbuild": "^0.28.0",
     "eslint": "^9.36.0",
     "globals": "^16.4.0",
     "prettier": "^3.6.2",
     "tsx": "^4.0.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "uuid": "^13.0.0",
+    "yazio": "^1.0.0",
+    "zod": "^4.2.1"
   }
 }
