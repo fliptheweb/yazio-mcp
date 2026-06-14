@@ -26,6 +26,9 @@
   ],
   "scripts": {
     "build": "rm -rf dist && tsc --emitDeclarationOnly && esbuild src/index.ts --bundle --platform=node --format=esm --packages=bundle --outfile=dist/index.js",
+    "pack:mcpb": "node scripts/pack-mcpb.cjs",
+    "build:mcpb": "npm run build && npm run pack:mcpb",
+    "build:mcpb:unpacked": "npm run build && node scripts/pack-mcpb.cjs --unpacked",
     "dev": "tsx src/index.ts",
     "start": "node dist/index.js",
     "prepublishOnly": "npm run build",
@@ -49,6 +52,7 @@
   },
   "dependencies": {},
   "devDependencies": {
+    "@anthropic-ai/mcpb": "^2.1.2",
     "@modelcontextprotocol/sdk": "^1.25.0",
     "@types/node": "^20.0.0",
     "@typescript-eslint/eslint-plugin": "^8.44.1",

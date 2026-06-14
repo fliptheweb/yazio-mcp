@@ -80,6 +80,8 @@ jspm_packages/
 
 # MCPB bundle artifacts
 *.mcpb
+yazio-mcp.zip
+mcpb-build/
 
 # AI files
 .claude/

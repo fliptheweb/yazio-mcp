@@ -8,7 +8,7 @@ An MCP (Model Context Protocol) server that connects Claude/Cursor to your Yazio
 
 **Available on NPM**: `npx yazio-mcp`
 
-**Claude Desktop Extension**: [yazio-mcp.mcpb](https://github.com/fliptheweb/yazio-mcp/releases/latest/download/yazio-mcp.mcpb)
+**Claude Desktop Extension**: ~~[yazio-mcp.mcpb](https://github.com/fliptheweb/yazio-mcp/releases/latest/download/yazio-mcp.mcpb)~~ — one-click install is [broken upstream](https://github.com/modelcontextprotocol/mcpb/issues/281), see [workaround](#claude-desktop-extension).
 
 ## ✨ Features
 
@@ -42,9 +42,8 @@ Add the following JSON your MCP client configuration:
 
 ### Claude Desktop (Extension)
 
-Download and open [yazio-mcp.mcpb](https://github.com/fliptheweb/yazio-mcp/releases/latest/download/yazio-mcp.mcpb) with Claude Desktop. You'll be prompted to enter your Yazio credentials — your password is stored securely in the OS keychain.
-
-See [Building Desktop Extensions with MCPB](https://support.claude.com/en/articles/12922929-building-desktop-extensions-with-mcpb) for more details.
+> [!WARNING]
+> One-click `.mcpb` install is broken by a Claude Desktop bug ([mcpb#281](https://github.com/modelcontextprotocol/mcpb/issues/281)). **Workaround:** download [yazio-mcp.zip](https://github.com/fliptheweb/yazio-mcp/releases/latest/download/yazio-mcp.zip), extract it, and use **Settings → Extensions → Advanced settings → Install Unpacked Extension**. Or just use the `npx` config above.
 
 ### Claude Desktop (Manual)
 
