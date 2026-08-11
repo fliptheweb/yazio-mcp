@@ -37,22 +37,27 @@ export const GetUserInfoInputSchema = EmptyInputSchema;
 export const GetUserWeightInputSchema = EmptyInputSchema; // Yazio getWeight doesn't accept parameters
 export const GetWaterIntakeInputSchema = DateInputSchema;
 export const SearchProductsInputSchema = QueryInputSchema;
+// Advertised as the tool's `outputSchema`, so it is validated against the live
+// response on every call. The Yazio API is unofficial and reverse-engineered,
+// so every field is optional/loose: the schema documents the shape the model
+// should expect without rejecting responses that add, drop, or null a field.
 export const SearchProductsOutputSchema = z.object({
-  products: z.array(z.object({
-    score: z.number(),
-    name: z.string(),
-    product_id: ProductIdSchema,
-    serving: ServingTypeSchema,
-    serving_quantity: z.number(),
-    amount: z.number(),
-    base_unit: z.enum(['g', 'ml']).describe('Base unit: grams (g) or milliliters (ml)'),
-    producer: z.string().nullable().describe('Producer name'),
-    is_verified: z.boolean(),
-    nutrients: z.record(z.string(), z.number()).describe('Nutrients object with keys like energy.energy, nutrient.carb, etc.'),
-    countries: z.array(z.string()).describe('Array of country codes (e.g. ["US", "DE"])'),
-    language: z.string().describe('Language code (e.g. "en", "de")'),
-  })),
+  products: z.array(z.looseObject({
+    score: z.number().optional(),
+    name: z.string().optional(),
+    product_id: z.string().optional().describe('Product UUID'),
+    serving: z.string().nullish().describe('Serving type (e.g. portion, glass, piece)'),
+    serving_quantity: z.number().nullish(),
+    amount: z.number().nullish(),
+    base_unit: z.string().nullish().describe('Base unit: grams (g) or milliliters (ml)'),
+    producer: z.string().nullish().describe('Producer name'),
+    is_verified: z.boolean().optional(),
+    nutrients: z.record(z.string(), z.number()).optional().describe('Nutrients object with keys like energy.energy, nutrient.carb, etc.'),
+    countries: z.array(z.string()).optional().describe('Array of country codes (e.g. ["US", "DE"])'),
+    language: z.string().optional().describe('Language code (e.g. "en", "de")'),
+  })).describe('Matching food products, best match first'),
 });
+export type SearchProductsOutput = z.infer<typeof SearchProductsOutputSchema>;
 export const GetProductInputSchema = z.object({
   id: ProductIdSchema.describe('Product ID to get details for')
 });

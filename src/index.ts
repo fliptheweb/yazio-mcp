@@ -24,6 +24,7 @@ import {
   AddWaterIntakeInputSchema,
   GetDietaryPreferencesInputSchema,
   GetUserGoalsInputSchema,
+  SearchProductsOutputSchema,
   type GetFoodEntriesInput,
   type GetDailySummaryInput,
   type GetWaterIntakeInput,
@@ -124,6 +125,7 @@ class YazioMcpServer {
     this.server.registerTool(
       'get_user',
       {
+        title: 'Get User Profile',
         description: 'Get Yazio user profile information',
         inputSchema: GetUserInfoInputSchema,
         annotations: {
@@ -139,6 +141,7 @@ class YazioMcpServer {
     this.server.registerTool(
       'get_user_consumed_items',
       {
+        title: 'Get Consumed Items',
         description: 'Get food entries for a specific date',
         inputSchema: GetFoodEntriesInputSchema,
         annotations: {
@@ -154,6 +157,7 @@ class YazioMcpServer {
     this.server.registerTool(
       'get_user_dietary_preferences',
       {
+        title: 'Get Dietary Preferences',
         description: 'Get user dietary preferences and restrictions',
         inputSchema: GetDietaryPreferencesInputSchema,
         annotations: {
@@ -169,6 +173,7 @@ class YazioMcpServer {
     this.server.registerTool(
       'get_user_exercises',
       {
+        title: 'Get Exercises',
         description: 'Get user exercise data for a date or date range',
         inputSchema: GetUserExercisesInputSchema,
         annotations: {
@@ -184,6 +189,7 @@ class YazioMcpServer {
     this.server.registerTool(
       'get_user_goals',
       {
+        title: 'Get Goals',
         description: 'Get user nutrition and fitness goals',
         inputSchema: GetUserGoalsInputSchema,
         annotations: {
@@ -199,6 +205,7 @@ class YazioMcpServer {
     this.server.registerTool(
       'get_user_settings',
       {
+        title: 'Get Settings',
         description: 'Get user settings and preferences',
         inputSchema: GetUserSettingsInputSchema,
         annotations: {
@@ -214,6 +221,7 @@ class YazioMcpServer {
     this.server.registerTool(
       'get_user_suggested_products',
       {
+        title: 'Get Suggested Products',
         description: 'Get product suggestions for the user',
         inputSchema: GetUserSuggestedProductsInputSchema,
         annotations: {
@@ -230,6 +238,7 @@ class YazioMcpServer {
     this.server.registerTool(
       'get_user_water_intake',
       {
+        title: 'Get Water Intake',
         description: 'Get water intake data for a specific date',
         inputSchema: GetWaterIntakeInputSchema,
         annotations: {
@@ -245,6 +254,7 @@ class YazioMcpServer {
     this.server.registerTool(
       'get_user_weight',
       {
+        title: 'Get Weight',
         description: 'Get user weight data',
         inputSchema: GetUserWeightInputSchema,
         annotations: {
@@ -260,6 +270,7 @@ class YazioMcpServer {
     this.server.registerTool(
       'get_user_daily_summary',
       {
+        title: 'Get Daily Summary',
         description: 'Get daily nutrition summary for a specific date',
         inputSchema: GetDailySummaryInputSchema,
         annotations: {
@@ -275,9 +286,10 @@ class YazioMcpServer {
     this.server.registerTool(
       'search_products',
       {
+        title: 'Search Food Products',
         description: 'Search for food products in Yazio database. You can optionally specify user\'s sex, country and locale of the products to search for.',
         inputSchema: SearchProductsInputSchema,
-        // outputSchema: SearchProductsOutputSchema,
+        outputSchema: SearchProductsOutputSchema,
         annotations: {
           readOnlyHint: true,
           idempotentHint: true,
@@ -292,6 +304,7 @@ class YazioMcpServer {
     this.server.registerTool(
       'get_product',
       {
+        title: 'Get Product Details',
         description: 'Get detailed information about a specific product by ID',
         inputSchema: GetProductInputSchema,
         annotations: {
@@ -308,6 +321,7 @@ class YazioMcpServer {
     this.server.registerTool(
       'add_user_consumed_item',
       {
+        title: 'Add Consumed Item',
         description: 'Add a food item to user consumption log',
         inputSchema: AddConsumedItemInputSchema,
         annotations: {
@@ -323,6 +337,7 @@ class YazioMcpServer {
     this.server.registerTool(
       'remove_user_consumed_item',
       {
+        title: 'Remove Consumed Item',
         description: 'Remove a food item from user consumption log',
         inputSchema: RemoveConsumedItemInputSchema,
         annotations: {
@@ -339,6 +354,7 @@ class YazioMcpServer {
     this.server.registerTool(
       'add_user_water_intake',
       {
+        title: 'Add Water Intake',
         description: 'Log a water intake entry. Requires date (YYYY-MM-DD HH:mm:ss format) and cumulative water_intake in milliliters (ml). Always get the latest water intake first and add the new amount to calculate the cumulative value.',
         inputSchema: AddWaterIntakeInputSchema,
         annotations: {
@@ -497,6 +513,15 @@ Example:
     return this.yazioClient;
   }
 
+  // MCP `structuredContent` must be a JSON object at the root. Yazio responses
+  // are already objects, but this guards against a null/array/primitive slipping
+  // through — in which case we omit structuredContent and keep the text block.
+  private asStructuredContent(value: unknown): Record<string, unknown> | undefined {
+    return value !== null && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : undefined;
+  }
+
 
   private async getUserConsumedItems(args: GetFoodEntriesInput) {
     const client = await this.ensureAuthenticated();
@@ -549,6 +574,7 @@ Example:
             text: `Daily summary for ${args.date}:\n\n${JSON.stringify(summary, null, 2)}`,
           },
         ],
+        structuredContent: this.asStructuredContent(summary),
       };
     } catch (error) {
       throw new Error(`Failed to get daily summary: ${error}`);
@@ -599,15 +625,25 @@ Example:
 
     try {
       const products = await client.products.search(args);
+      // `search_products` advertises an `outputSchema`, so the result must carry
+      // a matching `structuredContent` object. Wrap the array under `products`
+      // (structuredContent needs an object root) and keep only object items so
+      // the payload always validates against the permissive schema. The yazio
+      // client already validates each result, so this drops nothing in practice.
+      const list = (Array.isArray(products) ? products : []).filter(
+        (item) => item !== null && typeof item === 'object' && !Array.isArray(item)
+      );
+      const parsed = SearchProductsOutputSchema.safeParse({ products: list });
+      const structuredContent = parsed.success ? parsed.data : { products: list };
 
       return {
         content: [
           {
             type: 'text' as const,
-            text: `Products:\n\n${JSON.stringify(products, null, 2)}`,
+            text: `Products:\n\n${JSON.stringify(structuredContent, null, 2)}`,
           },
         ],
-        products,
+        structuredContent,
       };
     } catch (error) {
       throw new Error(`Failed to search products: ${error}`);
@@ -627,6 +663,7 @@ Example:
             text: `Product details for ID "${args.id}":\n\n${JSON.stringify(product, null, 2)}`,
           },
         ],
+        structuredContent: this.asStructuredContent(product),
       };
     } catch (error) {
       throw new Error(`Failed to get product: ${error}`);
@@ -795,6 +832,7 @@ Example:
             text: `User goals:\n\n${JSON.stringify(goals, null, 2)}`,
           },
         ],
+        structuredContent: this.asStructuredContent(goals),
       };
     } catch (error) {
       throw new Error(`Failed to get user goals: ${error}`);
