@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 import { createRequire } from 'node:module';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { McpServer } from '@modelcontextprotocol/server';
+import { StdioServerTransport } from '@modelcontextprotocol/server/stdio';
 import { Yazio } from 'yazio';
 import { v4 as uuidv4 } from "uuid";
 
