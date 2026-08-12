@@ -39,11 +39,6 @@ import {
   type RemoveConsumedItemInput,
   type AddWaterIntakeInput,
 } from './schemas.js';
-import type {
-  YazioExerciseOptions,
-  YazioSuggestedProductsOptions,
-  YazioAddWaterIntakeOptions
-} from './types.js';
 
 class YazioMcpServer {
   private server: McpServer;
@@ -93,7 +88,7 @@ class YazioMcpServer {
   // Discussion https://github.com/juriadams/yazio/issues/3
   private extendWaterIntakeSupport(client: Yazio): void {
     // @ts-expect-error - Monkey-patching yazio client to add missing method
-    client.user.addWaterIntake = async (entries: YazioAddWaterIntakeOptions): Promise<void> => {
+    client.user.addWaterIntake = async (entries: { date: string; water_intake: number }[]): Promise<void> => {
       // @ts-expect-error - Accessing internal auth token from yazio client
       const token = client.auth.token.access_token;
 
@@ -695,12 +690,12 @@ Example:
     const client = await this.ensureAuthenticated();
 
     try {
-      const apiOptions: YazioExerciseOptions = {};
-      if (args.date) {
-        apiOptions.date = args.date;
-      }
-
-      const exercises = await client.user.getExercises(apiOptions);
+      // Types come straight from the yazio client. Its option schema expects a
+      // Date (ZodDate), so parse the YYYY-MM-DD arg like the other date-based
+      // handlers do rather than passing the raw string.
+      const exercises = await client.user.getExercises(
+        args.date ? { date: new Date(args.date) } : {}
+      );
 
       return {
         content: [
@@ -738,11 +733,11 @@ Example:
     const client = await this.ensureAuthenticated();
 
     try {
-      const options: YazioSuggestedProductsOptions = {
+      // The yazio client's own parameter type validates this call.
+      const suggestions = await client.user.getSuggestedProducts({
         daytime: 'breakfast',
-        ...args
-      };
-      const suggestions = await client.user.getSuggestedProducts(options);
+        ...args,
+      });
 
       return {
         content: [
