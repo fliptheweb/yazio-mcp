@@ -40,15 +40,36 @@ import {
   type AddWaterIntakeInput,
 } from './schemas.js';
 
+// Server-wide guidance returned in the MCP `initialize` result. Clients may add
+// this to the model's context, so it describes what the server is and the
+// conventions that span tools (rather than repeating any single tool's docs).
+const SERVER_INSTRUCTIONS = `Access to the signed-in user's Yazio nutrition and fitness data via an unofficial API.
+
+Conventions:
+- Dates are YYYY-MM-DD. Amounts are in base units — grams (g) or milliliters (ml).
+- daytime (meal) is one of: breakfast, lunch, dinner, snack.
+- Read-only tools (get_* and search_products) are safe to call freely; add_* and remove_* modify the user's diary.
+
+Logging food: search_products -> get_product (to read the product's serving types and base unit) -> add_user_consumed_item.
+
+Water intake is cumulative (the running total for the day, in ml). Before add_user_water_intake, call get_user_water_intake and add the new amount to the current total.
+
+Removing a logged item: call get_user_consumed_items first to find the entry's id, then pass that id (not product_id) to remove_user_consumed_item.
+
+The add_food_item, remove_food_item, and add_water_intake prompts give step-by-step guides.`;
+
 class YazioMcpServer {
   private server: McpServer;
   private yazioClient: Yazio | null = null;
 
   constructor() {
-    this.server = new McpServer({
-      name: 'yazio-mcp',
-      version,
-    });
+    this.server = new McpServer(
+      {
+        name: 'yazio-mcp',
+        version,
+      },
+      { instructions: SERVER_INSTRUCTIONS }
+    );
 
     this.setupToolHandlers();
     this.setupPromptHandlers();
