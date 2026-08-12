@@ -116,7 +116,7 @@ YAZIO_USERNAME='your_email' YAZIO_PASSWORD='your_password' npx yazio-mcp
 
 ## 📋 Requirements
 
-- Node.js 18+ (for npx)
+- Node.js 20+ (for npx)
 - Valid Yazio account
 - MCP-compatible client (Claude Desktop, Cursor, etc.)
 

@@ -43,18 +43,18 @@ export const SearchProductsInputSchema = QueryInputSchema;
 // should expect without rejecting responses that add, drop, or null a field.
 export const SearchProductsOutputSchema = z.object({
   products: z.array(z.looseObject({
-    score: z.number().optional(),
-    name: z.string().optional(),
-    product_id: z.string().optional().describe('Product UUID'),
+    score: z.number().nullish(),
+    name: z.string().nullish(),
+    product_id: z.string().nullish().describe('Product UUID'),
     serving: z.string().nullish().describe('Serving type (e.g. portion, glass, piece)'),
     serving_quantity: z.number().nullish(),
     amount: z.number().nullish(),
     base_unit: z.string().nullish().describe('Base unit: grams (g) or milliliters (ml)'),
     producer: z.string().nullish().describe('Producer name'),
-    is_verified: z.boolean().optional(),
-    nutrients: z.record(z.string(), z.number()).optional().describe('Nutrients object with keys like energy.energy, nutrient.carb, etc.'),
-    countries: z.array(z.string()).optional().describe('Array of country codes (e.g. ["US", "DE"])'),
-    language: z.string().optional().describe('Language code (e.g. "en", "de")'),
+    is_verified: z.boolean().nullish(),
+    nutrients: z.record(z.string(), z.number().nullish()).nullish().describe('Nutrients object with keys like energy.energy, nutrient.carb, etc.'),
+    countries: z.array(z.string()).nullish().describe('Array of country codes (e.g. ["US", "DE"])'),
+    language: z.string().nullish().describe('Language code (e.g. "en", "de")'),
   })).describe('Matching food products, best match first'),
 });
 export type SearchProductsOutput = z.infer<typeof SearchProductsOutputSchema>;

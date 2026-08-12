@@ -626,15 +626,15 @@ Example:
     try {
       const products = await client.products.search(args);
       // `search_products` advertises an `outputSchema`, so the result must carry
-      // a matching `structuredContent` object. Wrap the array under `products`
-      // (structuredContent needs an object root) and keep only object items so
-      // the payload always validates against the permissive schema. The yazio
-      // client already validates each result, so this drops nothing in practice.
+      // a `structuredContent` object that the SDK re-validates against it. Wrap
+      // the array under `products` (structuredContent needs an object root) and
+      // keep only object items; the schema's fields are all null-tolerant, so
+      // any object validates. The yazio client validates each result upstream,
+      // so this filter drops nothing in practice.
       const list = (Array.isArray(products) ? products : []).filter(
         (item) => item !== null && typeof item === 'object' && !Array.isArray(item)
       );
-      const parsed = SearchProductsOutputSchema.safeParse({ products: list });
-      const structuredContent = parsed.success ? parsed.data : { products: list };
+      const structuredContent = { products: list };
 
       return {
         content: [
