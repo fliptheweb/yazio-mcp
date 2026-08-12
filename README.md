@@ -66,28 +66,6 @@ There are a few ways to add the server:
 - **Global config** — add JSON to `~/.cursor/mcp.json` (applies to all projects)
 
 
-## 🔌 Compatibility
-
-This is a **local stdio MCP server**: an MCP client launches it (via `npx`) and talks to it over stdin/stdout. It's built on the official `@modelcontextprotocol/server` **v2** SDK and targets the [MCP `2026-07-28` ("v2") spec](https://blog.modelcontextprotocol.io/posts/2026-07-28/). That spec's headline change — a **stateless core** (no `initialize` handshake, no session id) — only affects *remote HTTP* servers; stdio is unchanged, and the v2 SDK stays backward-compatible with `2025`-era clients. So **yazio-mcp works with any MCP client that can run a local stdio server, whether or not that client has adopted the 2026-07-28 spec.**
-
-### Clients that can run this server (local stdio)
-
-| Client | Runs `yazio-mcp` | MCP `2026-07-28` (v2) | Evidence |
-|--------|:---:|:---:|----------|
-| **Claude Desktop** | ✅ | 🟡 rolling out | Anthropic is bringing `2026-07-28` to Claude products ([blog](https://claude.com/blog/bringing-mcp-2026-07-28-to-claude)) |
-| **Claude Code (CLI)** | ✅ | 🟡 rolling out | Same rollout; stronger MCP handling noted in the [Aug 2026 changelog](https://code.claude.com/docs/en/changelog) |
-| **VS Code (GitHub Copilot)** | ✅ | ✅ ships v2 features | `2026-07-28` extensions — MCP Apps & Enterprise Managed Auth — are already supported in VS Code ([MCP blog](https://blog.modelcontextprotocol.io/posts/2026-07-28/)) |
-| **Cursor** | ✅ | ➖ not publicly confirmed | Ships first-class MCP support; no `2026-07-28` announcement at time of writing |
-| Other stdio clients (Windsurf, Cline, Zed, …) | ✅ | varies | Anything that speaks MCP over stdio can run this server |
-
-**Legend:** ✅ yes / confirmed · 🟡 rolling out or partial · ➖ MCP works, `2026-07-28` support not publicly confirmed. *Status as of August 2026 — check each vendor for the latest.*
-
-> [!NOTE]
-> **Browser-hosted agents** (ChatGPT, Gemini on the web) connect to **remote** MCP servers over HTTP, not local stdio — they can't launch `yazio-mcp` directly. You'd need to host it behind an HTTP transport first.
-
-The official **TypeScript, Python, Go, and C# SDKs** speak `2026-07-28` today; **Rust** is in beta ([MCP blog](https://blog.modelcontextprotocol.io/posts/2026-07-28/)).
-
-
 ## 💡 Use Cases
 
 ![Showcase](https://github.com/user-attachments/assets/3aa47086-d40e-408c-ba51-cbe8cf165404)
