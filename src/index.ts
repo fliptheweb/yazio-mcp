@@ -25,6 +25,9 @@ import {
   GetDietaryPreferencesInputSchema,
   GetUserGoalsInputSchema,
   SearchProductsOutputSchema,
+  GetProductOutputSchema,
+  GetUserGoalsOutputSchema,
+  GetUserDailySummaryOutputSchema,
   type GetFoodEntriesInput,
   type GetDailySummaryInput,
   type GetWaterIntakeInput,
@@ -192,6 +195,7 @@ class YazioMcpServer {
         title: 'Get Goals',
         description: 'Get user nutrition and fitness goals',
         inputSchema: GetUserGoalsInputSchema,
+        outputSchema: GetUserGoalsOutputSchema,
         annotations: {
           readOnlyHint: true,
           idempotentHint: true,
@@ -273,6 +277,7 @@ class YazioMcpServer {
         title: 'Get Daily Summary',
         description: 'Get daily nutrition summary for a specific date',
         inputSchema: GetDailySummaryInputSchema,
+        outputSchema: GetUserDailySummaryOutputSchema,
         annotations: {
           readOnlyHint: true,
           idempotentHint: true,
@@ -307,6 +312,7 @@ class YazioMcpServer {
         title: 'Get Product Details',
         description: 'Get detailed information about a specific product by ID',
         inputSchema: GetProductInputSchema,
+        outputSchema: GetProductOutputSchema,
         annotations: {
           readOnlyHint: true,
           idempotentHint: true,
@@ -655,6 +661,21 @@ Example:
 
     try {
       const product = await client.products.get(args.id);
+
+      // `get_product` advertises an outputSchema, so a result must carry object
+      // `structuredContent`. Yazio returns null when no product matches the ID —
+      // surface that as an error result rather than an empty structured payload.
+      if (!product) {
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: `No product found for ID "${args.id}".`,
+            },
+          ],
+          isError: true,
+        };
+      }
 
       return {
         content: [
