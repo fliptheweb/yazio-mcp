@@ -58,6 +58,8 @@ Removing a logged item: call get_user_consumed_items first to find the entry's i
 
 The add_food_item, remove_food_item, and add_water_intake prompts give step-by-step guides.`;
 
+type ResourceFetcher = (client: Yazio) => Promise<unknown>;
+
 class YazioMcpServer {
   private server: McpServer;
   private yazioClient: Yazio | null = null;
@@ -67,11 +69,21 @@ class YazioMcpServer {
       {
         name: 'yazio-mcp',
         version,
+        title: 'Yazio',
+        description: "Access the signed-in user's Yazio nutrition & diet data (unofficial).",
+        websiteUrl: 'https://github.com/fliptheweb/yazio-mcp',
+        icons: [
+          {
+            src: 'https://assets.yazio.com/frontend/images/branded-logo-dark.svg',
+            mimeType: 'image/svg+xml',
+          },
+        ],
       },
       { instructions: SERVER_INSTRUCTIONS }
     );
 
     this.setupToolHandlers();
+    this.setupResourceHandlers();
     this.setupPromptHandlers();
     this.setupErrorHandling();
     this.initializeClient();
@@ -377,7 +389,7 @@ class YazioMcpServer {
       'add_user_water_intake',
       {
         title: 'Add Water Intake',
-        description: 'Log a water intake entry. Requires date (YYYY-MM-DD HH:mm:ss format) and cumulative water_intake in milliliters (ml). Always get the latest water intake first and add the new amount to calculate the cumulative value.',
+        description: 'Log water intake for a moment in time (date as "YYYY-MM-DD HH:mm:ss"). Preferred: pass add_ml (the amount to add) and the server reads the current daily total and adds to it — no cumulative math needed. Alternatively pass water_intake as the absolute new daily total in ml. Yazio stores a cumulative daily value.',
         inputSchema: AddWaterIntakeInputSchema,
         annotations: {
           readOnlyHint: false,
@@ -387,6 +399,66 @@ class YazioMcpServer {
       async (args: AddWaterIntakeInput) => {
         return await this.addUserWaterIntake(args);
       }
+    );
+  }
+
+  private setupResourceHandlers(): void {
+    // Expose read-only reference data as MCP resources (alongside the get_*
+    // tools) so a client can attach it as context without a tool call.
+    const jsonResource = (
+      name: string,
+      uri: string,
+      title: string,
+      description: string,
+      fetcher: ResourceFetcher
+    ): void => {
+      this.server.registerResource(
+        name,
+        uri,
+        { title, description, mimeType: 'application/json' },
+        async (u: URL) => {
+          const client = await this.ensureAuthenticated();
+          const data = await fetcher(client);
+          return {
+            contents: [
+              {
+                uri: u.href,
+                mimeType: 'application/json',
+                text: JSON.stringify(data, null, 2),
+              },
+            ],
+          };
+        }
+      );
+    };
+
+    jsonResource(
+      'user_goals',
+      'yazio://user/goals',
+      'Yazio Goals',
+      "The user's daily nutrition and fitness goals",
+      (client) => client.user.getGoals({})
+    );
+    jsonResource(
+      'user_settings',
+      'yazio://user/settings',
+      'Yazio Settings',
+      "The user's app settings and preferences",
+      (client) => client.user.getSettings()
+    );
+    jsonResource(
+      'user_dietary_preferences',
+      'yazio://user/dietary-preferences',
+      'Yazio Dietary Preferences',
+      "The user's dietary preferences and restrictions",
+      (client) => client.user.getDietaryPreferences()
+    );
+    jsonResource(
+      'user_profile',
+      'yazio://user/profile',
+      'Yazio Profile',
+      "The user's Yazio profile information",
+      (client) => client.user.get()
     );
   }
 
@@ -496,30 +568,26 @@ Example:
               role: 'user',
               content: {
                 type: 'text',
-                text: `To add water intake to the user's log, follow these steps:
+                text: `To add water intake to the user's log:
 
-1. **Get current water intake**: Use the \`get_user_water_intake\` tool with the \`date\` parameter (in YYYY-MM-DD format) to retrieve the current cumulative water intake for that date. The response will contain a \`water_intake\` field with the current cumulative value in milliliters (ml).
+**Preferred (let the server do the math):** Call \`add_user_water_intake\` with:
+- \`date\`: Date and time in format "YYYY-MM-DD HH:mm:ss" (e.g., "2025-12-18 12:00:00")
+- \`add_ml\`: The amount to add, in ml
 
-2. **Calculate cumulative value**: Add the new water intake amount (in ml) that the user wants to add to the existing \`water_intake\` value from step 1. This gives you the new cumulative water intake value.
+The server reads the current daily total and adds \`add_ml\` to it, so you do NOT need to fetch the current value or compute the cumulative total yourself.
 
-3. **Add the water intake entry**: Use the \`add_user_water_intake\` tool with a single object (the tool will automatically wrap it in an array when sending to the API):
-   - \`date\`: Date and time in format "YYYY-MM-DD HH:mm:ss" (e.g., "2025-12-18 12:00:00")
-   - \`water_intake\`: The cumulative water intake in milliliters (ml) - this should be the previous cumulative value plus the new intake amount
+**Alternative (set an absolute total):** If you already know the exact new daily total, pass \`water_intake\` (absolute cumulative ml for the day) instead of \`add_ml\`.
 
 **Important Notes**:
-- Always get the latest water intake first to ensure you're adding to the correct cumulative value
-- The \`water_intake\` field must be cumulative (previous total + new intake), not just the new amount
-- The date format must be "YYYY-MM-DD HH:mm:ss" with both date and time
-- Water intake is measured in milliliters (ml)
-- The tool accepts a single object (not an array) - it will be automatically sent as a single-item array to the API
+- Provide either \`add_ml\` (preferred) or \`water_intake\`, not both.
+- Yazio stores a cumulative daily value; \`add_ml\` keeps that correct automatically.
+- The date format must be "YYYY-MM-DD HH:mm:ss" with both date and time.
+- Water intake is measured in milliliters (ml).
 
 **Example**:
-- Current water intake for 2025-12-18: 500ml
-- User says: "I want to add 250ml"
-- Get latest: 500ml
-- Calculate: 500 + 250 = 750ml
-- Call tool with: \`{ date: "2025-12-18 12:00:00", water_intake: 750 }\`
-- The tool sends: \`[{ date: "2025-12-18 12:00:00", water_intake: 750 }]\` to the API`
+- User says: "I drank 250ml of water"
+- Call: \`{ date: "2025-12-18 12:00:00", add_ml: 250 }\`
+- If the day's total was 500ml, it becomes 750ml.`
               }
             }
           ]
@@ -818,17 +886,31 @@ Example:
     const client = await this.ensureAuthenticated();
 
     try {
+      // Yazio stores a cumulative daily total. Prefer add_ml: read the current
+      // total for the day and add to it server-side, so the model never has to
+      // compute the cumulative value. Fall back to water_intake as an absolute.
+      let cumulative: number;
+      if (args.add_ml !== undefined) {
+        const datePart = args.date.split(' ')[0]; // "YYYY-MM-DD" from the datetime
+        const current = await client.user.getWaterIntake({ date: new Date(datePart) });
+        cumulative = (current?.water_intake ?? 0) + args.add_ml;
+      } else if (args.water_intake !== undefined) {
+        cumulative = args.water_intake;
+      } else {
+        throw new Error('Provide either add_ml (preferred) or water_intake.');
+      }
+
       // @ts-expect-error - Using monkey-patched method
       await client.user.addWaterIntake([{
         date: args.date, // Already in "YYYY-MM-DD HH:mm:ss" format
-        water_intake: args.water_intake,
+        water_intake: cumulative,
       }]);
 
       return {
         content: [
           {
             type: 'text' as const,
-            text: `Successfully logged water intake entry`,
+            text: `Successfully logged water intake. New daily total: ${cumulative} ml.`,
           },
         ],
       };

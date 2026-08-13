@@ -138,7 +138,8 @@ export const RemoveConsumedItemInputSchema = z.object({
 });
 export const AddWaterIntakeInputSchema = z.object({
   date: z.string().describe('Date and time in format "YYYY-MM-DD HH:mm:ss" (e.g., "2025-12-18 12:00:00")'),
-  water_intake: z.number().describe('Cumulative water intake in milliliters (ml)')
+  add_ml: z.number().positive().optional().describe('Amount of water to ADD, in ml. The server reads the current daily total and adds this to it, so you do NOT need to compute the cumulative value yourself. Preferred. Provide this OR water_intake.'),
+  water_intake: z.number().positive().optional().describe('Absolute cumulative water intake for the day, in ml. Use only when you already know the exact new total; otherwise prefer add_ml. Provide this OR add_ml.')
 });
 export const GetDietaryPreferencesInputSchema = EmptyInputSchema;
 export const GetUserGoalsInputSchema = EmptyInputSchema;
