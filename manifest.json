@@ -1,7 +1,7 @@
 {
   "manifest_version": "0.3",
   "name": "yazio-mcp",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "description": "MCP server for accessing Yazio user & nutrition data (unofficial)",
   "author": {
     "name": "fliptheweb"
@@ -19,19 +19,23 @@
     }
   },
   "tools": [
-    { "name": "get_user_daily_summary", "description": "Get daily nutrition summary" },
+    { "name": "get_user", "description": "Get user profile information" },
+    { "name": "get_user_daily_summary", "description": "Get daily nutrition summary for a date" },
     { "name": "get_user_consumed_items", "description": "Get food entries for a date" },
     { "name": "get_user_weight", "description": "Get weight data" },
-    { "name": "get_user_exercises", "description": "Get exercise data" },
-    { "name": "get_user_water_intake", "description": "Get water intake" },
-    { "name": "get_user_goals", "description": "Get nutrition goals" },
-    { "name": "get_user_settings", "description": "Get user preferences" },
+    { "name": "get_user_exercises", "description": "Get exercise data for a date" },
+    { "name": "get_user_water_intake", "description": "Get water intake for a date" },
+    { "name": "get_user_goals", "description": "Get nutrition and fitness goals" },
+    { "name": "get_user_settings", "description": "Get user settings and preferences" },
+    { "name": "get_user_dietary_preferences", "description": "Get dietary preferences and restrictions" },
+    { "name": "get_user_suggested_products", "description": "Get product suggestions" },
     { "name": "search_products", "description": "Search food database" },
     { "name": "get_product", "description": "Get detailed product info" },
     { "name": "add_user_consumed_item", "description": "Add food to your log" },
-    { "name": "add_user_water_intake", "description": "Add water intake entry" },
-    { "name": "remove_user_consumed_item", "description": "Remove food from log" }
+    { "name": "remove_user_consumed_item", "description": "Remove food from log" },
+    { "name": "add_user_water_intake", "description": "Add water intake (amount to add, or absolute daily total)" }
   ],
+  "prompts_generated": true,
   "user_config": {
     "YAZIO_USERNAME": {
       "title": "Yazio Email",
