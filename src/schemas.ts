@@ -37,22 +37,87 @@ export const GetUserInfoInputSchema = EmptyInputSchema;
 export const GetUserWeightInputSchema = EmptyInputSchema; // Yazio getWeight doesn't accept parameters
 export const GetWaterIntakeInputSchema = DateInputSchema;
 export const SearchProductsInputSchema = QueryInputSchema;
+
+// -- Tool output schemas -----------------------------------------------------
+// These mirror the shapes the `yazio` client returns (which it already
+// validates upstream), so they document the real field names/types for the
+// model. Because the Yazio API is unofficial and reverse-engineered, every
+// field is null-tolerant and objects are `loose`: the schema advertises the
+// expected shape without rejecting a response that adds, drops, or nulls a
+// field. Advertised as a tool `outputSchema`, so the SDK validates the tool's
+// `structuredContent` against it on every call.
+
+// Yazio nutrient maps use dotted metric keys (e.g. "energy.energy",
+// "nutrient.carb", "mineral.iron", "vitamin.a"); values are numbers.
+export const NutrientMapSchema = z.record(z.string(), z.number().nullish())
+  .describe('Nutrients keyed by Yazio metric, e.g. energy.energy, nutrient.carb, mineral.iron, vitamin.a');
+
 export const SearchProductsOutputSchema = z.object({
-  products: z.array(z.object({
-    score: z.number(),
-    name: z.string(),
-    product_id: ProductIdSchema,
-    serving: ServingTypeSchema,
-    serving_quantity: z.number(),
-    amount: z.number(),
-    base_unit: z.enum(['g', 'ml']).describe('Base unit: grams (g) or milliliters (ml)'),
-    producer: z.string().nullable().describe('Producer name'),
-    is_verified: z.boolean(),
-    nutrients: z.record(z.string(), z.number()).describe('Nutrients object with keys like energy.energy, nutrient.carb, etc.'),
-    countries: z.array(z.string()).describe('Array of country codes (e.g. ["US", "DE"])'),
-    language: z.string().describe('Language code (e.g. "en", "de")'),
-  })),
+  products: z.array(z.looseObject({
+    score: z.number().nullish(),
+    name: z.string().nullish(),
+    product_id: z.string().nullish().describe('Product UUID'),
+    serving: z.string().nullish().describe('Serving type (e.g. portion, glass, piece)'),
+    serving_quantity: z.number().nullish(),
+    amount: z.number().nullish(),
+    base_unit: z.string().nullish().describe('Base unit: grams (g) or milliliters (ml)'),
+    producer: z.string().nullish().describe('Producer name'),
+    is_verified: z.boolean().nullish(),
+    nutrients: NutrientMapSchema.nullish(),
+    countries: z.array(z.string()).nullish().describe('Array of country codes (e.g. ["US", "DE"])'),
+    language: z.string().nullish().describe('Language code (e.g. "en", "de")'),
+  })).describe('Matching food products, best match first'),
 });
+export type SearchProductsOutput = z.infer<typeof SearchProductsOutputSchema>;
+
+// getProduct → Product (or null when not found; the tool handles null itself).
+export const GetProductOutputSchema = z.looseObject({
+  id: z.string().nullish().describe('Product UUID'),
+  name: z.string().nullish(),
+  category: z.string().nullish().describe('Yazio product category'),
+  producer: z.string().nullish(),
+  base_unit: z.string().nullish().describe('Base unit: grams (g) or milliliters (ml)'),
+  is_verified: z.boolean().nullish(),
+  is_private: z.boolean().nullish(),
+  is_deleted: z.boolean().nullish(),
+  has_ean: z.boolean().nullish(),
+  eans: z.array(z.string()).nullish().describe('Barcodes (EANs)'),
+  language: z.string().nullish().describe('Language code (e.g. "en", "de")'),
+  countries: z.array(z.string()).nullish().describe('Array of country codes'),
+  updated_at: z.string().nullish(),
+  nutrients: NutrientMapSchema.nullish().describe('Per-base-unit nutrients keyed by Yazio metric'),
+  servings: z.array(z.looseObject({
+    serving: z.string().nullish().describe('Serving type (e.g. portion, piece, cup)'),
+    amount: z.number().nullish().describe('Amount of this serving in base units'),
+  })).nullish().describe('Available serving types and their amount in base units'),
+});
+
+// getUserGoals → UserGoals. Daily targets keyed by Yazio metric.
+export const GetUserGoalsOutputSchema = z.looseObject({
+  'energy.energy': z.number().nullish().describe('Daily energy goal (kcal)'),
+  'nutrient.protein': z.number().nullish().describe('Daily protein goal (g)'),
+  'nutrient.fat': z.number().nullish().describe('Daily fat goal (g)'),
+  'nutrient.carb': z.number().nullish().describe('Daily carbohydrate goal (g)'),
+  'activity.step': z.number().nullish().describe('Daily step goal'),
+  'bodyvalue.weight': z.number().nullish().describe('Target body weight'),
+  water: z.number().nullish().describe('Daily water goal (ml)'),
+});
+
+// getUserDailySummary → UserDailySummary. Large nested object; top-level fields
+// are documented and the deeply-nested blobs (goals/units/meals/user) are kept
+// loose so their full contents pass through untouched.
+export const GetUserDailySummaryOutputSchema = z.looseObject({
+  activity_energy: z.number().nullish().describe('Energy burned via activity (kcal)'),
+  consume_activity_energy: z.boolean().nullish(),
+  steps: z.number().nullish(),
+  water_intake: z.number().nullish().describe('Cumulative water intake (ml)'),
+  goals: NutrientMapSchema.nullish().describe('Daily goals keyed by Yazio metric'),
+  units: z.looseObject({}).nullish().describe('User unit preferences (energy, mass, volume, etc.)'),
+  meals: z.looseObject({}).nullish().describe('Per-meal consumed items and totals (breakfast/lunch/dinner/snack)'),
+  user: z.looseObject({}).nullish().describe('User profile snapshot for the day'),
+  active_fasting_countdown_template_key: z.string().nullish(),
+});
+
 export const GetProductInputSchema = z.object({
   id: ProductIdSchema.describe('Product ID to get details for')
 });
@@ -73,7 +138,8 @@ export const RemoveConsumedItemInputSchema = z.object({
 });
 export const AddWaterIntakeInputSchema = z.object({
   date: z.string().describe('Date and time in format "YYYY-MM-DD HH:mm:ss" (e.g., "2025-12-18 12:00:00")'),
-  water_intake: z.number().describe('Cumulative water intake in milliliters (ml)')
+  add_ml: z.number().positive().optional().describe('Amount of water to ADD, in ml. The server reads the current daily total and adds this to it, so you do NOT need to compute the cumulative value yourself. Preferred. Provide this OR water_intake.'),
+  water_intake: z.number().positive().optional().describe('Absolute cumulative water intake for the day, in ml. Use only when you already know the exact new total; otherwise prefer add_ml. Provide this OR add_ml.')
 });
 export const GetDietaryPreferencesInputSchema = EmptyInputSchema;
 export const GetUserGoalsInputSchema = EmptyInputSchema;

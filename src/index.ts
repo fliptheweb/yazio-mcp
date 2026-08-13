@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 import { createRequire } from 'node:module';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { McpServer } from '@modelcontextprotocol/server';
+import { StdioServerTransport } from '@modelcontextprotocol/server/stdio';
 import { Yazio } from 'yazio';
 import { v4 as uuidv4 } from "uuid";
 
@@ -24,6 +24,10 @@ import {
   AddWaterIntakeInputSchema,
   GetDietaryPreferencesInputSchema,
   GetUserGoalsInputSchema,
+  SearchProductsOutputSchema,
+  GetProductOutputSchema,
+  GetUserGoalsOutputSchema,
+  GetUserDailySummaryOutputSchema,
   type GetFoodEntriesInput,
   type GetDailySummaryInput,
   type GetWaterIntakeInput,
@@ -35,23 +39,51 @@ import {
   type RemoveConsumedItemInput,
   type AddWaterIntakeInput,
 } from './schemas.js';
-import type {
-  YazioExerciseOptions,
-  YazioSuggestedProductsOptions,
-  YazioAddWaterIntakeOptions
-} from './types.js';
+
+// Server-wide guidance returned in the MCP `initialize` result. Clients may add
+// this to the model's context, so it describes what the server is and the
+// conventions that span tools (rather than repeating any single tool's docs).
+const SERVER_INSTRUCTIONS = `Access to the signed-in user's Yazio nutrition and fitness data via an unofficial API.
+
+Conventions:
+- Dates are YYYY-MM-DD. Amounts are in base units — grams (g) or milliliters (ml).
+- daytime (meal) is one of: breakfast, lunch, dinner, snack.
+- Read-only tools (get_* and search_products) are safe to call freely; add_* and remove_* modify the user's diary.
+
+Logging food: search_products -> get_product (to read the product's serving types and base unit) -> add_user_consumed_item.
+
+Water intake is cumulative (the running total for the day, in ml). Before add_user_water_intake, call get_user_water_intake and add the new amount to the current total.
+
+Removing a logged item: call get_user_consumed_items first to find the entry's id, then pass that id (not product_id) to remove_user_consumed_item.
+
+The add_food_item, remove_food_item, and add_water_intake prompts give step-by-step guides.`;
+
+type ResourceFetcher = (client: Yazio) => Promise<unknown>;
 
 class YazioMcpServer {
   private server: McpServer;
   private yazioClient: Yazio | null = null;
 
   constructor() {
-    this.server = new McpServer({
-      name: 'yazio-mcp',
-      version,
-    });
+    this.server = new McpServer(
+      {
+        name: 'yazio-mcp',
+        version,
+        title: 'Yazio',
+        description: "Access the signed-in user's Yazio nutrition & diet data (unofficial).",
+        websiteUrl: 'https://github.com/fliptheweb/yazio-mcp',
+        icons: [
+          {
+            src: 'https://assets.yazio.com/frontend/images/branded-logo-dark.svg',
+            mimeType: 'image/svg+xml',
+          },
+        ],
+      },
+      { instructions: SERVER_INSTRUCTIONS }
+    );
 
     this.setupToolHandlers();
+    this.setupResourceHandlers();
     this.setupPromptHandlers();
     this.setupErrorHandling();
     this.initializeClient();
@@ -89,7 +121,7 @@ class YazioMcpServer {
   // Discussion https://github.com/juriadams/yazio/issues/3
   private extendWaterIntakeSupport(client: Yazio): void {
     // @ts-expect-error - Monkey-patching yazio client to add missing method
-    client.user.addWaterIntake = async (entries: YazioAddWaterIntakeOptions): Promise<void> => {
+    client.user.addWaterIntake = async (entries: { date: string; water_intake: number }[]): Promise<void> => {
       // @ts-expect-error - Accessing internal auth token from yazio client
       const token = client.auth.token.access_token;
 
@@ -124,6 +156,7 @@ class YazioMcpServer {
     this.server.registerTool(
       'get_user',
       {
+        title: 'Get User Profile',
         description: 'Get Yazio user profile information',
         inputSchema: GetUserInfoInputSchema,
         annotations: {
@@ -139,6 +172,7 @@ class YazioMcpServer {
     this.server.registerTool(
       'get_user_consumed_items',
       {
+        title: 'Get Consumed Items',
         description: 'Get food entries for a specific date',
         inputSchema: GetFoodEntriesInputSchema,
         annotations: {
@@ -154,6 +188,7 @@ class YazioMcpServer {
     this.server.registerTool(
       'get_user_dietary_preferences',
       {
+        title: 'Get Dietary Preferences',
         description: 'Get user dietary preferences and restrictions',
         inputSchema: GetDietaryPreferencesInputSchema,
         annotations: {
@@ -169,6 +204,7 @@ class YazioMcpServer {
     this.server.registerTool(
       'get_user_exercises',
       {
+        title: 'Get Exercises',
         description: 'Get user exercise data for a date or date range',
         inputSchema: GetUserExercisesInputSchema,
         annotations: {
@@ -184,8 +220,10 @@ class YazioMcpServer {
     this.server.registerTool(
       'get_user_goals',
       {
+        title: 'Get Goals',
         description: 'Get user nutrition and fitness goals',
         inputSchema: GetUserGoalsInputSchema,
+        outputSchema: GetUserGoalsOutputSchema,
         annotations: {
           readOnlyHint: true,
           idempotentHint: true,
@@ -199,6 +237,7 @@ class YazioMcpServer {
     this.server.registerTool(
       'get_user_settings',
       {
+        title: 'Get Settings',
         description: 'Get user settings and preferences',
         inputSchema: GetUserSettingsInputSchema,
         annotations: {
@@ -214,6 +253,7 @@ class YazioMcpServer {
     this.server.registerTool(
       'get_user_suggested_products',
       {
+        title: 'Get Suggested Products',
         description: 'Get product suggestions for the user',
         inputSchema: GetUserSuggestedProductsInputSchema,
         annotations: {
@@ -230,6 +270,7 @@ class YazioMcpServer {
     this.server.registerTool(
       'get_user_water_intake',
       {
+        title: 'Get Water Intake',
         description: 'Get water intake data for a specific date',
         inputSchema: GetWaterIntakeInputSchema,
         annotations: {
@@ -245,6 +286,7 @@ class YazioMcpServer {
     this.server.registerTool(
       'get_user_weight',
       {
+        title: 'Get Weight',
         description: 'Get user weight data',
         inputSchema: GetUserWeightInputSchema,
         annotations: {
@@ -260,8 +302,10 @@ class YazioMcpServer {
     this.server.registerTool(
       'get_user_daily_summary',
       {
+        title: 'Get Daily Summary',
         description: 'Get daily nutrition summary for a specific date',
         inputSchema: GetDailySummaryInputSchema,
+        outputSchema: GetUserDailySummaryOutputSchema,
         annotations: {
           readOnlyHint: true,
           idempotentHint: true,
@@ -275,9 +319,10 @@ class YazioMcpServer {
     this.server.registerTool(
       'search_products',
       {
+        title: 'Search Food Products',
         description: 'Search for food products in Yazio database. You can optionally specify user\'s sex, country and locale of the products to search for.',
         inputSchema: SearchProductsInputSchema,
-        // outputSchema: SearchProductsOutputSchema,
+        outputSchema: SearchProductsOutputSchema,
         annotations: {
           readOnlyHint: true,
           idempotentHint: true,
@@ -292,8 +337,10 @@ class YazioMcpServer {
     this.server.registerTool(
       'get_product',
       {
+        title: 'Get Product Details',
         description: 'Get detailed information about a specific product by ID',
         inputSchema: GetProductInputSchema,
+        outputSchema: GetProductOutputSchema,
         annotations: {
           readOnlyHint: true,
           idempotentHint: true,
@@ -308,6 +355,7 @@ class YazioMcpServer {
     this.server.registerTool(
       'add_user_consumed_item',
       {
+        title: 'Add Consumed Item',
         description: 'Add a food item to user consumption log',
         inputSchema: AddConsumedItemInputSchema,
         annotations: {
@@ -323,6 +371,7 @@ class YazioMcpServer {
     this.server.registerTool(
       'remove_user_consumed_item',
       {
+        title: 'Remove Consumed Item',
         description: 'Remove a food item from user consumption log',
         inputSchema: RemoveConsumedItemInputSchema,
         annotations: {
@@ -339,7 +388,8 @@ class YazioMcpServer {
     this.server.registerTool(
       'add_user_water_intake',
       {
-        description: 'Log a water intake entry. Requires date (YYYY-MM-DD HH:mm:ss format) and cumulative water_intake in milliliters (ml). Always get the latest water intake first and add the new amount to calculate the cumulative value.',
+        title: 'Add Water Intake',
+        description: 'Log water intake for a moment in time (date as "YYYY-MM-DD HH:mm:ss"). Preferred: pass add_ml (the amount to add) and the server reads the current daily total and adds to it — no cumulative math needed. Alternatively pass water_intake as the absolute new daily total in ml. Yazio stores a cumulative daily value.',
         inputSchema: AddWaterIntakeInputSchema,
         annotations: {
           readOnlyHint: false,
@@ -349,6 +399,66 @@ class YazioMcpServer {
       async (args: AddWaterIntakeInput) => {
         return await this.addUserWaterIntake(args);
       }
+    );
+  }
+
+  private setupResourceHandlers(): void {
+    // Expose read-only reference data as MCP resources (alongside the get_*
+    // tools) so a client can attach it as context without a tool call.
+    const jsonResource = (
+      name: string,
+      uri: string,
+      title: string,
+      description: string,
+      fetcher: ResourceFetcher
+    ): void => {
+      this.server.registerResource(
+        name,
+        uri,
+        { title, description, mimeType: 'application/json' },
+        async (u: URL) => {
+          const client = await this.ensureAuthenticated();
+          const data = await fetcher(client);
+          return {
+            contents: [
+              {
+                uri: u.href,
+                mimeType: 'application/json',
+                text: JSON.stringify(data, null, 2),
+              },
+            ],
+          };
+        }
+      );
+    };
+
+    jsonResource(
+      'user_goals',
+      'yazio://user/goals',
+      'Yazio Goals',
+      "The user's daily nutrition and fitness goals",
+      (client) => client.user.getGoals({})
+    );
+    jsonResource(
+      'user_settings',
+      'yazio://user/settings',
+      'Yazio Settings',
+      "The user's app settings and preferences",
+      (client) => client.user.getSettings()
+    );
+    jsonResource(
+      'user_dietary_preferences',
+      'yazio://user/dietary-preferences',
+      'Yazio Dietary Preferences',
+      "The user's dietary preferences and restrictions",
+      (client) => client.user.getDietaryPreferences()
+    );
+    jsonResource(
+      'user_profile',
+      'yazio://user/profile',
+      'Yazio Profile',
+      "The user's Yazio profile information",
+      (client) => client.user.get()
     );
   }
 
@@ -458,30 +568,26 @@ Example:
               role: 'user',
               content: {
                 type: 'text',
-                text: `To add water intake to the user's log, follow these steps:
+                text: `To add water intake to the user's log:
 
-1. **Get current water intake**: Use the \`get_user_water_intake\` tool with the \`date\` parameter (in YYYY-MM-DD format) to retrieve the current cumulative water intake for that date. The response will contain a \`water_intake\` field with the current cumulative value in milliliters (ml).
+**Preferred (let the server do the math):** Call \`add_user_water_intake\` with:
+- \`date\`: Date and time in format "YYYY-MM-DD HH:mm:ss" (e.g., "2025-12-18 12:00:00")
+- \`add_ml\`: The amount to add, in ml
 
-2. **Calculate cumulative value**: Add the new water intake amount (in ml) that the user wants to add to the existing \`water_intake\` value from step 1. This gives you the new cumulative water intake value.
+The server reads the current daily total and adds \`add_ml\` to it, so you do NOT need to fetch the current value or compute the cumulative total yourself.
 
-3. **Add the water intake entry**: Use the \`add_user_water_intake\` tool with a single object (the tool will automatically wrap it in an array when sending to the API):
-   - \`date\`: Date and time in format "YYYY-MM-DD HH:mm:ss" (e.g., "2025-12-18 12:00:00")
-   - \`water_intake\`: The cumulative water intake in milliliters (ml) - this should be the previous cumulative value plus the new intake amount
+**Alternative (set an absolute total):** If you already know the exact new daily total, pass \`water_intake\` (absolute cumulative ml for the day) instead of \`add_ml\`.
 
 **Important Notes**:
-- Always get the latest water intake first to ensure you're adding to the correct cumulative value
-- The \`water_intake\` field must be cumulative (previous total + new intake), not just the new amount
-- The date format must be "YYYY-MM-DD HH:mm:ss" with both date and time
-- Water intake is measured in milliliters (ml)
-- The tool accepts a single object (not an array) - it will be automatically sent as a single-item array to the API
+- Provide either \`add_ml\` (preferred) or \`water_intake\`, not both.
+- Yazio stores a cumulative daily value; \`add_ml\` keeps that correct automatically.
+- The date format must be "YYYY-MM-DD HH:mm:ss" with both date and time.
+- Water intake is measured in milliliters (ml).
 
 **Example**:
-- Current water intake for 2025-12-18: 500ml
-- User says: "I want to add 250ml"
-- Get latest: 500ml
-- Calculate: 500 + 250 = 750ml
-- Call tool with: \`{ date: "2025-12-18 12:00:00", water_intake: 750 }\`
-- The tool sends: \`[{ date: "2025-12-18 12:00:00", water_intake: 750 }]\` to the API`
+- User says: "I drank 250ml of water"
+- Call: \`{ date: "2025-12-18 12:00:00", add_ml: 250 }\`
+- If the day's total was 500ml, it becomes 750ml.`
               }
             }
           ]
@@ -495,6 +601,15 @@ Example:
       throw new Error('Yazio client not initialized. Check environment variables.');
     }
     return this.yazioClient;
+  }
+
+  // MCP `structuredContent` must be a JSON object at the root. Yazio responses
+  // are already objects, but this guards against a null/array/primitive slipping
+  // through — in which case we omit structuredContent and keep the text block.
+  private asStructuredContent(value: unknown): Record<string, unknown> | undefined {
+    return value !== null && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : undefined;
   }
 
 
@@ -549,6 +664,7 @@ Example:
             text: `Daily summary for ${args.date}:\n\n${JSON.stringify(summary, null, 2)}`,
           },
         ],
+        structuredContent: this.asStructuredContent(summary),
       };
     } catch (error) {
       throw new Error(`Failed to get daily summary: ${error}`);
@@ -599,15 +715,25 @@ Example:
 
     try {
       const products = await client.products.search(args);
+      // `search_products` advertises an `outputSchema`, so the result must carry
+      // a `structuredContent` object that the SDK re-validates against it. Wrap
+      // the array under `products` (structuredContent needs an object root) and
+      // keep only object items; the schema's fields are all null-tolerant, so
+      // any object validates. The yazio client validates each result upstream,
+      // so this filter drops nothing in practice.
+      const list = (Array.isArray(products) ? products : []).filter(
+        (item) => item !== null && typeof item === 'object' && !Array.isArray(item)
+      );
+      const structuredContent = { products: list };
 
       return {
         content: [
           {
             type: 'text' as const,
-            text: `Products:\n\n${JSON.stringify(products, null, 2)}`,
+            text: `Products:\n\n${JSON.stringify(structuredContent, null, 2)}`,
           },
         ],
-        products,
+        structuredContent,
       };
     } catch (error) {
       throw new Error(`Failed to search products: ${error}`);
@@ -620,6 +746,21 @@ Example:
     try {
       const product = await client.products.get(args.id);
 
+      // `get_product` advertises an outputSchema, so a result must carry object
+      // `structuredContent`. Yazio returns null when no product matches the ID —
+      // surface that as an error result rather than an empty structured payload.
+      if (!product) {
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: `No product found for ID "${args.id}".`,
+            },
+          ],
+          isError: true,
+        };
+      }
+
       return {
         content: [
           {
@@ -627,6 +768,7 @@ Example:
             text: `Product details for ID "${args.id}":\n\n${JSON.stringify(product, null, 2)}`,
           },
         ],
+        structuredContent: this.asStructuredContent(product),
       };
     } catch (error) {
       throw new Error(`Failed to get product: ${error}`);
@@ -637,12 +779,12 @@ Example:
     const client = await this.ensureAuthenticated();
 
     try {
-      const apiOptions: YazioExerciseOptions = {};
-      if (args.date) {
-        apiOptions.date = args.date;
-      }
-
-      const exercises = await client.user.getExercises(apiOptions);
+      // Types come straight from the yazio client. Its option schema expects a
+      // Date (ZodDate), so parse the YYYY-MM-DD arg like the other date-based
+      // handlers do rather than passing the raw string.
+      const exercises = await client.user.getExercises(
+        args.date ? { date: new Date(args.date) } : {}
+      );
 
       return {
         content: [
@@ -680,11 +822,11 @@ Example:
     const client = await this.ensureAuthenticated();
 
     try {
-      const options: YazioSuggestedProductsOptions = {
+      // The yazio client's own parameter type validates this call.
+      const suggestions = await client.user.getSuggestedProducts({
         daytime: 'breakfast',
-        ...args
-      };
-      const suggestions = await client.user.getSuggestedProducts(options);
+        ...args,
+      });
 
       return {
         content: [
@@ -744,17 +886,31 @@ Example:
     const client = await this.ensureAuthenticated();
 
     try {
+      // Yazio stores a cumulative daily total. Prefer add_ml: read the current
+      // total for the day and add to it server-side, so the model never has to
+      // compute the cumulative value. Fall back to water_intake as an absolute.
+      let cumulative: number;
+      if (args.add_ml !== undefined) {
+        const datePart = args.date.split(' ')[0]; // "YYYY-MM-DD" from the datetime
+        const current = await client.user.getWaterIntake({ date: new Date(datePart) });
+        cumulative = (current?.water_intake ?? 0) + args.add_ml;
+      } else if (args.water_intake !== undefined) {
+        cumulative = args.water_intake;
+      } else {
+        throw new Error('Provide either add_ml (preferred) or water_intake.');
+      }
+
       // @ts-expect-error - Using monkey-patched method
       await client.user.addWaterIntake([{
         date: args.date, // Already in "YYYY-MM-DD HH:mm:ss" format
-        water_intake: args.water_intake,
+        water_intake: cumulative,
       }]);
 
       return {
         content: [
           {
             type: 'text' as const,
-            text: `Successfully logged water intake entry`,
+            text: `Successfully logged water intake. New daily total: ${cumulative} ml.`,
           },
         ],
       };
@@ -795,6 +951,7 @@ Example:
             text: `User goals:\n\n${JSON.stringify(goals, null, 2)}`,
           },
         ],
+        structuredContent: this.asStructuredContent(goals),
       };
     } catch (error) {
       throw new Error(`Failed to get user goals: ${error}`);

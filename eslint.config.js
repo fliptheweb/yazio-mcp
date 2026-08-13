@@ -21,6 +21,9 @@ export default [
       '@typescript-eslint': tseslint,
     },
     rules: {
+      // Disable the base rule in favor of the TS-aware one; the base rule
+      // false-positives on parameter names in function type annotations.
+      'no-unused-vars': 'off',
       '@typescript-eslint/no-unused-vars': 'error',
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/explicit-function-return-type': 'off', // Too strict for this project
