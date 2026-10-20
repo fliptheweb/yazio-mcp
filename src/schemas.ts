@@ -62,7 +62,9 @@ export const GetUserSuggestedProductsInputSchema = OptionalQueryInputSchema;
 export const AddConsumedItemInputSchema = z.object({
   // id: ProductIdSchema.describe('Random identifier for the consumed item'),
   product_id: ProductIdSchema,
-  date: DateStringSchema.describe('Date when the food was consumed'),
+  date: z
+    .union([DateStringSchema, z.string().regex(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)])
+    .describe('Date and time when the food was consumed in "YYYY-MM-DD HH:mm:ss" format (e.g., "2025-12-18 12:30:00"), or date only in YYYY-MM-DD format'),
   daytime: DaytimeSchema.describe('Type of meal (breakfast, lunch, dinner, snack)'),
   amount: z.number().describe('Amount of the product consumed in base units (g or ml)'),
   serving: ServingTypeSchema.optional(),
