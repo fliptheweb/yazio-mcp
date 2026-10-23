@@ -214,7 +214,7 @@ class YazioMcpServer {
     this.server.registerTool(
       'get_user_suggested_products',
       {
-        description: 'Get product suggestions for the user',
+        description: 'Get product suggestions for the user for a meal (daytime) on a date',
         inputSchema: GetUserSuggestedProductsInputSchema,
         annotations: {
           readOnlyHint: true,
@@ -680,11 +680,13 @@ Example:
     const client = await this.ensureAuthenticated();
 
     try {
+      const { limit, ...rest } = args;
       const options: YazioSuggestedProductsOptions = {
         daytime: 'breakfast',
-        ...args
+        ...rest
       };
-      const suggestions = await client.user.getSuggestedProducts(options);
+      // The API doesn't support limiting, so apply it here
+      const suggestions = (await client.user.getSuggestedProducts(options)).slice(0, limit);
 
       return {
         content: [

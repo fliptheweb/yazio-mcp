@@ -7,7 +7,7 @@ export const ItemIdSchema = ProductIdSchema.describe('Unique item identifier');
 export const ServingTypeSchema = z.string().describe('Serving type (e.g. portion, fruit, glass, cup, slice, piece, bar, gram, bottle, can, etc.)');
 
 export const QueryStringSchema = z.string().describe('Search query string');
-export const LimitSchema = z.number().optional().describe('Maximum number of results to return');
+export const LimitSchema = z.number().int().positive().optional().describe('Maximum number of results to return');
 
 export const DateInputSchema = z.object({
   date: DateStringSchema
@@ -22,11 +22,6 @@ export const QueryInputSchema = z.object({
   sex: z.enum(["male", "female"]).default("male").optional(),
   countries: z.array(z.string()).default(["US"]).optional().describe('Array of country codes for product search (e.g. ["US", "DE", "TR"])'),
   locales: z.array(z.string()).default(["en_US"]).optional().describe('Array of locale codes (e.g. ["en_US", "de_US"])')
-});
-
-export const OptionalQueryInputSchema = z.object({
-  query: QueryStringSchema.optional().describe('Search query (optional)'),
-  limit: LimitSchema
 });
 
 export const EmptyInputSchema = z.object({});
@@ -58,7 +53,11 @@ export const GetProductInputSchema = z.object({
 });
 export const GetUserExercisesInputSchema = OptionalDateInputSchema; // Only supports single date, not date ranges
 export const GetUserSettingsInputSchema = EmptyInputSchema;
-export const GetUserSuggestedProductsInputSchema = OptionalQueryInputSchema;
+export const GetUserSuggestedProductsInputSchema = z.object({
+  date: DateStringSchema.optional().describe('Date to get suggestions for (defaults to today)'),
+  daytime: DaytimeSchema.optional().describe('Meal to get suggestions for (defaults to breakfast)'),
+  limit: LimitSchema
+});
 export const AddConsumedItemInputSchema = z.object({
   // id: ProductIdSchema.describe('Random identifier for the consumed item'),
   product_id: ProductIdSchema,
