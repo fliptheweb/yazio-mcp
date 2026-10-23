@@ -308,7 +308,7 @@ class YazioMcpServer {
     this.server.registerTool(
       'add_user_consumed_item',
       {
-        description: 'Add a food item to user consumption log',
+        description: 'Add a food item to user consumption log. Pass date with time ("YYYY-MM-DD HH:mm:ss") to keep the time of the entry; date only (YYYY-MM-DD) logs it at 00:00.',
         inputSchema: AddConsumedItemInputSchema,
         annotations: {
           readOnlyHint: false,
@@ -380,7 +380,7 @@ class YazioMcpServer {
 
 5. **Add the consumed item**: Use the \`add_user_consumed_item\` tool with:
    - \`product_id\`: The UUID from step 1
-   - \`date\`: Date in YYYY-MM-DD format
+   - \`date\`: Date and time in "YYYY-MM-DD HH:mm:ss" format (or date only in YYYY-MM-DD format)
    - \`daytime\`: One of: "breakfast", "lunch", "dinner", or "snack"
    - \`serving\`: Use a serving type from step 2 (e.g., "portion", "piece", "cup") OR base unit (g or ml)
    - \`serving_quantity\`: Quantity of the serving type (e.g., 1, 2, 0.5)
@@ -389,7 +389,7 @@ class YazioMcpServer {
 **Important Notes**:
 - Always search first if you don't have a product_id
 - Check product details to understand available serving types, base unit (g or ml) and amount in serving
-- The date should be in ISO format (YYYY-MM-DD)
+- The date should include the time the food was consumed ("YYYY-MM-DD HH:mm:ss"); date only (YYYY-MM-DD) logs it at 00:00
 - You can use serving or base unit approach:
   1. serving type + serving quantity + amount (amount for selected serving type multiplied by serving quantity)
   2. amount in g/ml - serving fields could be omitted
@@ -703,10 +703,27 @@ Example:
     const client = await this.ensureAuthenticated();
 
     try {
-      await client.user.addConsumedItem({
-        ...args,
-        id: uuidv4(),
+      // yazio client's addConsumedItem truncates date to YYYY-MM-DD (toISOString, UTC),
+      // so post directly to keep the time ("YYYY-MM-DD HH:mm:ss") as is
+      // @ts-expect-error - Accessing internal auth from yazio client
+      const token = await client.auth.authenticate();
+      const response = await fetch('https://yzapi.yazio.com/v15/user/consumed-items', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token.access_token}`,
+        },
+        body: JSON.stringify({
+          recipe_portions: [],
+          simple_products: [],
+          products: [{ ...args, id: uuidv4() }],
+        }),
       });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`${response.status} ${response.statusText} - ${errorText}`);
+      }
 
       return {
         content: [
