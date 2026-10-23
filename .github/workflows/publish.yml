@@ -54,6 +54,12 @@ jobs:
         continue-on-error: true
         run: ./mcp-publisher login github-oidc
 
+      # The registry rejects the publish until npm serves the new version, which takes a short time after npm publish.
       - name: Publish to MCP Registry
         continue-on-error: true
-        run: ./mcp-publisher publish
+        uses: nick-fields/retry@v4
+        with:
+          command: ./mcp-publisher publish
+          max_attempts: 10
+          retry_wait_seconds: 30
+          timeout_minutes: 2
