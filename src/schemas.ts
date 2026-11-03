@@ -58,12 +58,15 @@ export const GetUserSuggestedProductsInputSchema = z.object({
   daytime: DaytimeSchema.optional().describe('Meal to get suggestions for (defaults to breakfast)'),
   limit: LimitSchema
 });
+// Consumption time: "YYYY-MM-DD HH:mm:ss" keeps the time, date only logs it at 00:00
+const ConsumedAtSchema = z
+  .union([DateStringSchema, z.string().regex(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)])
+  .describe('Date and time when the food was consumed in "YYYY-MM-DD HH:mm:ss" format (e.g., "2025-12-18 12:30:00"), or date only in YYYY-MM-DD format');
+
 export const AddConsumedItemInputSchema = z.object({
   // id: ProductIdSchema.describe('Random identifier for the consumed item'),
   product_id: ProductIdSchema,
-  date: z
-    .union([DateStringSchema, z.string().regex(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)])
-    .describe('Date and time when the food was consumed in "YYYY-MM-DD HH:mm:ss" format (e.g., "2025-12-18 12:30:00"), or date only in YYYY-MM-DD format'),
+  date: ConsumedAtSchema,
   daytime: DaytimeSchema.describe('Type of meal (breakfast, lunch, dinner, snack)'),
   amount: z.number().describe('Amount of the product consumed in base units (g or ml)'),
   serving: ServingTypeSchema.optional(),
@@ -75,6 +78,49 @@ export const RemoveConsumedItemInputSchema = z.object({
 export const AddWaterIntakeInputSchema = z.object({
   date: z.string().describe('Date and time in format "YYYY-MM-DD HH:mm:ss" (e.g., "2025-12-18 12:00:00")'),
   water_intake: z.number().describe('Cumulative water intake in milliliters (ml)')
+});
+export const ProductCategorySchema = z.enum([
+  'babyfood', 'bakedgoods', 'bakingingredients', 'bread', 'candy', 'cerealproducts', 'cheese', 'chocolate',
+  'dishes', 'drinksalcoholic', 'drinksnonalcoholic', 'fastfood', 'fish', 'fruits', 'icecream', 'legumes',
+  'meat', 'milk', 'miscellaneous', 'nutritionalsupplements', 'oils', 'pasta', 'potatoproducts', 'poultry',
+  'riceproducts', 'sauces', 'seeds', 'soyproducts', 'spices', 'spreads', 'vegetables',
+]);
+export const ServingNameSchema = z.enum([
+  'bar', 'bottle', 'can', 'cup', 'each', 'glass', 'package', 'piece', 'portion', 'slice', 'tablespoon', 'tablet', 'teaspoon',
+]);
+const ExtraNutrientsSchema = z
+  .record(z.string().regex(/^(nutrient|mineral|vitamin)\.[a-z0-9]+$/), z.number().nonnegative())
+  .optional()
+  .describe('Other nutrients by Yazio key, e.g. {"nutrient.sugar": 5, "nutrient.dietaryfiber": 2, "nutrient.saturated": 1.5, "nutrient.salt": 0.8}; same scale as the main values');
+
+export const CreateProductInputSchema = z.object({
+  name: z.string().min(1).describe('Product name as it will show in search and the diary'),
+  producer: z.string().optional().describe('Brand / producer / restaurant'),
+  category: ProductCategorySchema.describe('Product category'),
+  base_unit: z.enum(['g', 'ml']).default('g').describe('Base unit: grams (g) or milliliters (ml)'),
+  energy_per_100: z.number().nonnegative().describe('Energy in kcal per 100 g (or 100 ml), as on the label'),
+  protein_per_100: z.number().nonnegative().describe('Protein in g per 100 g/ml'),
+  fat_per_100: z.number().nonnegative().describe('Fat in g per 100 g/ml'),
+  carb_per_100: z.number().nonnegative().describe('Carbohydrates in g per 100 g/ml'),
+  extra_nutrients_per_100: ExtraNutrientsSchema,
+  servings: z
+    .array(z.object({
+      serving: ServingNameSchema,
+      amount: z.number().positive().describe('Size of one serving in base units (g or ml)'),
+    }))
+    .optional()
+    .describe('Named servings, e.g. [{"serving": "slice", "amount": 25}]'),
+  is_private: z.boolean().default(true).describe('Private products are visible only to this user'),
+});
+export const AddQuickEntryInputSchema = z.object({
+  name: z.string().min(1).describe('Entry name, e.g. "Тартин Pinch"'),
+  date: ConsumedAtSchema,
+  daytime: DaytimeSchema.describe('Type of meal (breakfast, lunch, dinner, snack)'),
+  energy: z.number().nonnegative().describe('Total energy of the eaten amount in kcal (not per 100 g)'),
+  protein: z.number().nonnegative().optional().describe('Total protein in g'),
+  fat: z.number().nonnegative().optional().describe('Total fat in g'),
+  carb: z.number().nonnegative().optional().describe('Total carbohydrates in g'),
+  extra_nutrients: ExtraNutrientsSchema,
 });
 export const GetDietaryPreferencesInputSchema = EmptyInputSchema;
 export const GetUserGoalsInputSchema = EmptyInputSchema;
@@ -95,3 +141,5 @@ export type RemoveConsumedItemInput = z.infer<typeof RemoveConsumedItemInputSche
 export type AddWaterIntakeInput = z.infer<typeof AddWaterIntakeInputSchema>;
 export type GetDietaryPreferencesInput = z.infer<typeof GetDietaryPreferencesInputSchema>;
 export type GetUserGoalsInput = z.infer<typeof GetUserGoalsInputSchema>;
+export type CreateProductInput = z.infer<typeof CreateProductInputSchema>;
+export type AddQuickEntryInput = z.infer<typeof AddQuickEntryInputSchema>;
