@@ -4,7 +4,7 @@ import { TokenResponseSchema } from './schemas.js';
 
 // Client id/secret are the public ones of the Yazio apps, same as in the `yazio` npm package.
 
-export const YAZIO_API_BASE_URL = 'https://yzapi.yazio.com/v15';
+export const API_BASE_URL = 'https://yzapi.yazio.com/v15';
 
 const CLIENT_ID = '1_4hiybetvfksgw40o0sog4s884kwc840wwso8go4k8c04goo4c';
 const CLIENT_SECRET = '6rok2m65xuskgkgogw40wkkk8sw0osg84s8cggsc4woos4s8o';
@@ -37,7 +37,7 @@ export interface RequestOptions<T> {
 }
 
 export interface YazioHttpOptions {
-  baseUrl?: string;
+  /** Replaces the global fetch, for tests */
   fetch?: typeof fetch;
 }
 
@@ -68,7 +68,6 @@ export class YazioResponseError extends Error {
 }
 
 export class YazioHttp {
-  private readonly baseUrl: string;
   private readonly fetch: typeof fetch;
   private token: Token | null = null;
   // Concurrent tool calls share one login/refresh instead of starting several
@@ -77,7 +76,6 @@ export class YazioHttp {
 
   constructor(credentials: Credentials, options: YazioHttpOptions = {}) {
     this.credentials = credentials;
-    this.baseUrl = options.baseUrl ?? YAZIO_API_BASE_URL;
     this.fetch = options.fetch ?? globalThis.fetch;
   }
 
@@ -139,7 +137,7 @@ export class YazioHttp {
   }
 
   private async requestToken(grant: Record<string, string>): Promise<Token> {
-    const response = await this.fetch(`${this.baseUrl}/oauth/token`, {
+    const response = await this.fetch(`${API_BASE_URL}/oauth/token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ client_id: CLIENT_ID, client_secret: CLIENT_SECRET, ...grant }),
@@ -166,7 +164,7 @@ export class YazioHttp {
   }
 
   private buildUrl(path: string, query?: Record<string, QueryValue>): string {
-    const url = new URL(`${this.baseUrl}${path}`);
+    const url = new URL(`${API_BASE_URL}${path}`);
     for (const [key, value] of Object.entries(query ?? {})) {
       if (value !== undefined) url.searchParams.set(key, String(value));
     }

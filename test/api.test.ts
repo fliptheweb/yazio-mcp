@@ -1,7 +1,7 @@
 // Offline tests for src/api with a mocked fetch. Run: npm test
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { YazioApi, YazioApiError, YazioResponseError, YAZIO_API_BASE_URL } from '../src/api/index.js';
+import { YazioApi, YazioApiError, YazioResponseError, API_BASE_URL } from '../src/api/index.js';
 
 interface Call {
   method: string;
@@ -49,7 +49,7 @@ test('logs in with the password grant once and reuses the token', async () => {
   assert.equal(tokenCalls().length, 1);
   const login = tokenCalls()[0];
   assert.equal(login.method, 'POST');
-  assert.equal(login.url, `${YAZIO_API_BASE_URL}/oauth/token`);
+  assert.equal(login.url, `${API_BASE_URL}/oauth/token`);
   assert.equal(login.headers['Content-Type'], 'application/json');
   assert.deepEqual(
     { ...(login.body as object), client_id: undefined, client_secret: undefined },
@@ -182,7 +182,7 @@ test('date queries are sent unchanged', async () => {
   }
 
   assert.deepEqual(
-    apiCalls().map((c) => c.url.replace(YAZIO_API_BASE_URL, '')),
+    apiCalls().map((c) => c.url.replace(API_BASE_URL, '')),
     [
       '/user/consumed-items?date=2026-11-06',
       '/user/widgets/daily-summary?date=2026-11-06',
@@ -226,8 +226,8 @@ test('write bodies', async () => {
   assert.equal(add.headers['Content-Type'], 'application/json');
   assert.equal(remove.method, 'DELETE');
   assert.deepEqual(remove.body, ['q1']);
-  assert.equal(water.url, `${YAZIO_API_BASE_URL}/user/water-intake`);
+  assert.equal(water.url, `${API_BASE_URL}/user/water-intake`);
   assert.deepEqual(water.body, [{ date: '2026-11-06 12:00:00', water_intake: 750 }]);
   assert.equal(deleteRecipe.method, 'DELETE');
-  assert.equal(deleteRecipe.url, `${YAZIO_API_BASE_URL}/user/recipes/r1`);
+  assert.equal(deleteRecipe.url, `${API_BASE_URL}/user/recipes/r1`);
 });
