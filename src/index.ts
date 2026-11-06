@@ -15,6 +15,7 @@ import {
   GetProductInputSchema,
   GetRecipeInputSchema,
   GetUserRecipesInputSchema,
+  DeleteUserRecipeInputSchema,
   GetUserExercisesInputSchema,
   GetUserSettingsInputSchema,
   GetUserSuggestedProductsInputSchema,
@@ -31,6 +32,7 @@ import {
   type SearchProductsInput,
   type GetProductInput,
   type GetRecipeInput,
+  type DeleteUserRecipeInput,
   type GetUserExercisesInput,
   type GetUserSuggestedProductsInput,
   type AddConsumedItemInput,
@@ -301,6 +303,22 @@ class YazioMcpServer {
       },
       async () => {
         return await this.getUserRecipes();
+      }
+    );
+
+    this.server.registerTool(
+      'delete_user_recipe',
+      {
+        description: "Permanently delete one of the user's own recipes. It can't be restored or recreated through this server, so confirm with the user first.",
+        inputSchema: DeleteUserRecipeInputSchema,
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: true,
+          idempotentHint: true,
+        },
+      },
+      async (args: DeleteUserRecipeInput) => {
+        return await this.deleteUserRecipe(args);
       }
     );
 
@@ -703,6 +721,25 @@ Example:
       };
     } catch (error) {
       throw new Error(`Failed to get user recipes: ${error}`);
+    }
+  }
+
+  private async deleteUserRecipe(args: DeleteUserRecipeInput) {
+    const client = await this.ensureAuthenticated();
+
+    try {
+      await client.deleteUserRecipe(args.id);
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Successfully deleted recipe with ID: ${args.id}`,
+          },
+        ],
+      };
+    } catch (error) {
+      throw new Error(`Failed to delete recipe: ${error}`);
     }
   }
 
