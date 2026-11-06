@@ -6,10 +6,6 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { Yazio } from 'yazio';
 import { v4 as uuidv4 } from "uuid";
 
-const require = createRequire(import.meta.url);
-
-const API_BASE_URL = 'https://yzapi.yazio.com/v15';
-const { version } = require('../package.json') as { version: string };
 import {
   GetFoodEntriesInputSchema,
   GetDailySummaryInputSchema,
@@ -47,6 +43,11 @@ import type {
   YazioAddWaterIntakeOptions
 } from './types.js';
 
+const require = createRequire(import.meta.url);
+const { version } = require('../package.json') as { version: string };
+
+const API_BASE_URL = 'https://yzapi.yazio.com/v15';
+
 class YazioMcpServer {
   private server: McpServer;
   private yazioClient: Yazio | null = null;
@@ -83,40 +84,11 @@ class YazioMcpServer {
       // Test the connection
       await this.yazioClient.user.get();
       console.error('✅ Successfully authenticated with Yazio using environment variables');
-      this.extendWaterIntakeSupport(this.yazioClient);
     } catch (error) {
       console.error('❌ Failed to authenticate with Yazio:', (error as Error).message);
       console.error('💡 Please check your YAZIO_USERNAME and YAZIO_PASSWORD environment variables');
       process.exit(1);
     }
-  }
-
-  // Extend yazio client package with addWaterIntake method
-  // Discussion https://github.com/juriadams/yazio/issues/3
-  private extendWaterIntakeSupport(client: Yazio): void {
-    // @ts-expect-error - Monkey-patching yazio client to add missing method
-    client.user.addWaterIntake = async (entries: YazioAddWaterIntakeOptions): Promise<void> => {
-      // @ts-expect-error - Accessing internal auth token from yazio client
-      const token = client.auth.token.access_token;
-
-      // Access internal HTTP client or make direct fetch call
-      // Try to access base URL from client, fallback to known API URL
-      const baseUrl = (client as Yazio & { baseUrl?: string }).baseUrl || API_BASE_URL;
-
-      const response = await fetch(`${baseUrl}/user/water-intake`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(entries),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to add water intake: ${response.status} ${response.statusText} - ${errorText}`);
-      }
-    };
   }
 
   private setupErrorHandling(): void {
@@ -318,6 +290,7 @@ class YazioMcpServer {
         inputSchema: AddConsumedItemInputSchema,
         annotations: {
           readOnlyHint: false,
+          destructiveHint: false,
           idempotentHint: false,
         },
       },
@@ -349,6 +322,7 @@ class YazioMcpServer {
         inputSchema: AddWaterIntakeInputSchema,
         annotations: {
           readOnlyHint: false,
+          destructiveHint: false,
           idempotentHint: false,
         },
       },
@@ -364,6 +338,7 @@ class YazioMcpServer {
         inputSchema: CreateProductInputSchema,
         annotations: {
           readOnlyHint: false,
+          destructiveHint: false,
           idempotentHint: false,
         },
       },
@@ -379,6 +354,7 @@ class YazioMcpServer {
         inputSchema: AddQuickEntryInputSchema,
         annotations: {
           readOnlyHint: false,
+          destructiveHint: false,
           idempotentHint: false,
         },
       },
@@ -787,11 +763,11 @@ Example:
     try {
       // The API stores nutrients per 1 g/ml of the base unit, labels give them per 100
       const per100: Record<string, number> = {
+        ...args.extra_nutrients_per_100,
         'energy.energy': args.energy_per_100,
         'nutrient.protein': args.protein_per_100,
         'nutrient.fat': args.fat_per_100,
         'nutrient.carb': args.carb_per_100,
-        ...args.extra_nutrients_per_100,
       };
       const nutrients = Object.fromEntries(Object.entries(per100).map(([key, value]) => [key, value / 100]));
       const id = uuidv4();
@@ -872,11 +848,12 @@ Example:
     const client = await this.ensureAuthenticated();
 
     try {
-      // @ts-expect-error - Using monkey-patched method
-      await client.user.addWaterIntake([{
+      // The yazio client has no addWaterIntake: https://github.com/juriadams/yazio/issues/3
+      const entries: YazioAddWaterIntakeOptions = [{
         date: args.date, // Already in "YYYY-MM-DD HH:mm:ss" format
         water_intake: args.water_intake,
-      }]);
+      }];
+      await this.postJson(client, '/user/water-intake', entries);
 
       return {
         content: [
