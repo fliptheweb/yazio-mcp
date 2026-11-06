@@ -7,6 +7,8 @@ import { Yazio } from 'yazio';
 import { v4 as uuidv4 } from "uuid";
 
 const require = createRequire(import.meta.url);
+
+const API_BASE_URL = 'https://yzapi.yazio.com/v15';
 const { version } = require('../package.json') as { version: string };
 import {
   GetFoodEntriesInputSchema,
@@ -24,6 +26,8 @@ import {
   AddWaterIntakeInputSchema,
   GetDietaryPreferencesInputSchema,
   GetUserGoalsInputSchema,
+  CreateProductInputSchema,
+  AddQuickEntryInputSchema,
   type GetFoodEntriesInput,
   type GetDailySummaryInput,
   type GetWaterIntakeInput,
@@ -34,6 +38,8 @@ import {
   type AddConsumedItemInput,
   type RemoveConsumedItemInput,
   type AddWaterIntakeInput,
+  type CreateProductInput,
+  type AddQuickEntryInput,
 } from './schemas.js';
 import type {
   YazioExerciseOptions,
@@ -95,7 +101,7 @@ class YazioMcpServer {
 
       // Access internal HTTP client or make direct fetch call
       // Try to access base URL from client, fallback to known API URL
-      const baseUrl = (client as Yazio & { baseUrl?: string }).baseUrl || 'https://yzapi.yazio.com/v15';
+      const baseUrl = (client as Yazio & { baseUrl?: string }).baseUrl || API_BASE_URL;
 
       const response = await fetch(`${baseUrl}/user/water-intake`, {
         method: 'POST',
@@ -348,6 +354,36 @@ class YazioMcpServer {
       },
       async (args: AddWaterIntakeInput) => {
         return await this.addUserWaterIntake(args);
+      }
+    );
+
+    this.server.registerTool(
+      'create_product',
+      {
+        description: 'Create a custom product (e.g. a restaurant dish or a brand missing in search) from label values per 100 g/ml. Returns its product_id for add_user_consumed_item. Search first: creating duplicates clutters the database.',
+        inputSchema: CreateProductInputSchema,
+        annotations: {
+          readOnlyHint: false,
+          idempotentHint: false,
+        },
+      },
+      async (args: CreateProductInput) => {
+        return await this.createProduct(args);
+      }
+    );
+
+    this.server.registerTool(
+      'add_quick_entry',
+      {
+        description: 'Log a one-off diary entry with a name and total nutrition of the eaten amount (Yazio "quick add"), without creating a product. Shows up in get_user_consumed_items as simple_products and is removed with remove_user_consumed_item.',
+        inputSchema: AddQuickEntryInputSchema,
+        annotations: {
+          readOnlyHint: false,
+          idempotentHint: false,
+        },
+      },
+      async (args: AddQuickEntryInput) => {
+        return await this.addQuickEntry(args);
       }
     );
   }
@@ -707,25 +743,11 @@ Example:
     try {
       // yazio client's addConsumedItem truncates date to YYYY-MM-DD (toISOString, UTC),
       // so post directly to keep the time ("YYYY-MM-DD HH:mm:ss") as is
-      // @ts-expect-error - Accessing internal auth from yazio client
-      const token = await client.auth.authenticate();
-      const response = await fetch('https://yzapi.yazio.com/v15/user/consumed-items', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token.access_token}`,
-        },
-        body: JSON.stringify({
-          recipe_portions: [],
-          simple_products: [],
-          products: [{ ...args, id: uuidv4() }],
-        }),
+      await this.postJson(client, '/user/consumed-items', {
+        recipe_portions: [],
+        simple_products: [],
+        products: [{ ...args, id: uuidv4() }],
       });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`${response.status} ${response.statusText} - ${errorText}`);
-      }
 
       return {
         content: [
@@ -737,6 +759,93 @@ Example:
       };
     } catch (error) {
       throw new Error(`Failed to add consumed item: ${error}`);
+    }
+  }
+
+  // Endpoints the yazio client doesn't wrap. Request shapes follow the Yazio Android app.
+  private async postJson(client: Yazio, path: string, body: unknown): Promise<void> {
+    // @ts-expect-error - Accessing internal auth from yazio client
+    const token = await client.auth.authenticate();
+    const response = await fetch(`${API_BASE_URL}${path}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token.access_token}`,
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`${response.status} ${response.statusText} - ${errorText}`);
+    }
+  }
+
+  private async createProduct(args: CreateProductInput) {
+    const client = await this.ensureAuthenticated();
+
+    try {
+      // The API stores nutrients per 1 g/ml of the base unit, labels give them per 100
+      const per100: Record<string, number> = {
+        'energy.energy': args.energy_per_100,
+        'nutrient.protein': args.protein_per_100,
+        'nutrient.fat': args.fat_per_100,
+        'nutrient.carb': args.carb_per_100,
+        ...args.extra_nutrients_per_100,
+      };
+      const nutrients = Object.fromEntries(Object.entries(per100).map(([key, value]) => [key, value / 100]));
+      const id = uuidv4();
+
+      await this.postJson(client, '/user/products', {
+        id,
+        name: args.name,
+        category: args.category,
+        base_unit: args.base_unit,
+        is_private: args.is_private,
+        nutrients,
+        servings: args.servings ?? [],
+        producer: args.producer ?? null,
+      });
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Successfully created product "${args.name}" with product_id: ${id}`,
+          },
+        ],
+      };
+    } catch (error) {
+      throw new Error(`Failed to create product: ${error}`);
+    }
+  }
+
+  private async addQuickEntry(args: AddQuickEntryInput) {
+    const client = await this.ensureAuthenticated();
+
+    try {
+      const nutrients: Record<string, number> = { 'energy.energy': args.energy, ...args.extra_nutrients };
+      if (args.protein !== undefined) nutrients['nutrient.protein'] = args.protein;
+      if (args.fat !== undefined) nutrients['nutrient.fat'] = args.fat;
+      if (args.carb !== undefined) nutrients['nutrient.carb'] = args.carb;
+      const id = uuidv4();
+
+      await this.postJson(client, '/user/consumed-items', {
+        recipe_portions: [],
+        products: [],
+        simple_products: [{ id, date: args.date, daytime: args.daytime, name: args.name, nutrients }],
+      });
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Successfully added quick entry "${args.name}" with id: ${id}`,
+          },
+        ],
+      };
+    } catch (error) {
+      throw new Error(`Failed to add quick entry: ${error}`);
     }
   }
 
