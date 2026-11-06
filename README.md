@@ -89,6 +89,7 @@ Easily log meals you forgot to track in the Yazio app directly from Claude or Cu
 
 | Tool | Description | Key Parameters |
 |------|-------------|----------------|
+| `get_user` | Get user profile | - |
 | `get_user_daily_summary` | Get daily nutrition summary | `date` |
 | `get_user_consumed_items` | Get food entries for a date | `date` |
 | `get_user_weight` | Get weight data | - |
@@ -96,9 +97,11 @@ Easily log meals you forgot to track in the Yazio app directly from Claude or Cu
 | `get_user_water_intake` | Get water intake | `date` |
 | `get_user_goals` | Get nutrition goals | - |
 | `get_user_settings` | Get user preferences | - |
+| `get_user_dietary_preferences` | Get dietary preferences | - |
+| `get_user_suggested_products` | Get suggested products for a meal | `date`, `daytime`, `limit` (all optional) |
 | `search_products` | Search food database | `query` |
 | `get_product` | Get detailed product info | `id` |
-| `add_user_consumed_item` | Add food to your log | `productId`, `amount`, `date`, `mealType` |
+| `add_user_consumed_item` | Add food to your log | `product_id`, `amount`, `date`, `daytime` |
 | `add_user_water_intake` | Add water intake entry (cumulative value in ml) | `date`, `water_intake` |
 | `remove_user_consumed_item` | Remove food from log | `itemId` |
 | `create_product` | Create a custom product from label values per 100 g/ml | `name`, `category`, `energy_per_100`, `protein_per_100`, `fat_per_100`, `carb_per_100` |
