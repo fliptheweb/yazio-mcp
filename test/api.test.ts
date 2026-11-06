@@ -1,7 +1,7 @@
 // Offline tests for src/api with a mocked fetch. Run: npm test
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { YazioApi, YazioApiError, YazioResponseError, API_BASE_URL } from '../src/api/index.js';
+import { YazioApi, YazioApiError, API_BASE_URL } from '../src/api/index.js';
 
 interface Call {
   method: string;
@@ -152,7 +152,7 @@ test('a token response without access_token is rejected without echoing it', asy
   await assert.rejects(api.getUser(), (error: unknown) => error instanceof Error && !error.message.includes('secret-refresh'));
 });
 
-test('responses are validated: extra fields pass, wrong shapes fail', async () => {
+test('responses are validated: extra fields pass, mismatches are logged and passed on', async () => {
   const { api } = mockApi((c) => {
     if (c.url.includes('/user/water-intake')) return json({ water_intake: 750, gateway: null, source: null, new_field: 1 });
     if (c.url.includes('/user/dietary-preferences')) return json({ restriction: 42 });
@@ -160,25 +160,33 @@ test('responses are validated: extra fields pass, wrong shapes fail', async () =
   });
 
   assert.deepEqual(await api.getWaterIntake('2026-11-06'), { water_intake: 750, gateway: null, source: null, new_field: 1 });
-  await assert.rejects(
-    api.getDietaryPreferences(),
-    (error: unknown) =>
-      error instanceof YazioResponseError && error.path === '/user/dietary-preferences' && error.message.includes('restriction'),
-  );
+
+  const warnings: string[] = [];
+  const consoleError = console.error;
+  console.error = (message: string) => warnings.push(message);
+  try {
+    assert.deepEqual(await api.getDietaryPreferences(), { restriction: 42 });
+  } finally {
+    console.error = consoleError;
+  }
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0], /GET \/user\/dietary-preferences returned an unexpected response shape[\s\S]*restriction/);
 });
 
 test('date queries are sent unchanged', async () => {
   const { api, apiCalls } = mockApi((c) => (c.method === 'GET' ? json({}) : undefined));
 
-  // The empty mock responses fail validation; only the URLs matter here
-  for (const call of [
-    () => api.getConsumedItems('2026-11-06'),
-    () => api.getDailySummary('2026-11-06'),
-    () => api.getWaterIntake('2026-11-06'),
-    () => api.getSuggestedProducts('dinner', '2026-11-06'),
-    () => api.getGoals('2026-11-06'),
-  ]) {
-    await assert.rejects(call(), YazioResponseError);
+  // The empty mock responses only log a schema warning; the URLs matter here
+  const consoleError = console.error;
+  console.error = () => {};
+  try {
+    await api.getConsumedItems('2026-11-06');
+    await api.getDailySummary('2026-11-06');
+    await api.getWaterIntake('2026-11-06');
+    await api.getSuggestedProducts('dinner', '2026-11-06');
+    await api.getGoals('2026-11-06');
+  } finally {
+    console.error = consoleError;
   }
 
   assert.deepEqual(

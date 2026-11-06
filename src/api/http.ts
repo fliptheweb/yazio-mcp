@@ -1,4 +1,6 @@
 // HTTP transport and OAuth for the Yazio API (unofficial).
+// Endpoints, auth flow and schemas in src/api are based on https://github.com/juriadams/yazio
+// by Juri Adams and contributors. Thank you!
 import * as z from 'zod';
 import { TokenResponseSchema } from './schemas.js';
 
@@ -32,7 +34,7 @@ export type QueryValue = string | number | boolean | undefined;
 export interface RequestOptions<T> {
   query?: Record<string, QueryValue>;
   body?: unknown;
-  /** Validates the JSON response; requests without a schema return nothing */
+  /** Expected shape of the JSON response; requests without a schema return nothing */
   schema?: z.ZodType<T>;
 }
 
@@ -52,18 +54,6 @@ export class YazioApiError extends Error {
     const detail = body ? ` - ${body.slice(0, MAX_ERROR_BODY_LENGTH)}` : '';
     super(`${method} ${path} failed: ${status} ${statusText}${detail}`);
     this.name = 'YazioApiError';
-  }
-}
-
-/** The API answered with JSON that doesn't match the expected schema */
-export class YazioResponseError extends Error {
-  constructor(
-    readonly method: string,
-    readonly path: string,
-    readonly issues: z.core.$ZodIssue[],
-  ) {
-    super(`${method} ${path} returned an unexpected response:\n${z.prettifyError({ issues } as z.ZodError)}`);
-    this.name = 'YazioResponseError';
   }
 }
 
@@ -98,9 +88,13 @@ export class YazioHttp {
     if (!options.schema) return undefined as T;
 
     const text = await response.text();
-    const result = options.schema.safeParse(text ? JSON.parse(text) : undefined);
-    if (!result.success) throw new YazioResponseError(method, path, result.error.issues);
-    return result.data;
+    const data: unknown = text ? JSON.parse(text) : undefined;
+    const result = options.schema.safeParse(data);
+    if (result.success) return result.data;
+
+    // The schemas are reverse-engineered: a mismatch shouldn't break the tool, so log it and pass the data on
+    console.error(`⚠️ ${method} ${path} returned an unexpected response shape:\n${z.prettifyError(result.error)}`);
+    return data as T;
   }
 
   async authenticate(): Promise<Token> {
