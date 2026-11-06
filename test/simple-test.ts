@@ -5,7 +5,7 @@
  * This will test the actual endpoint with real data
  */
 
-import { Yazio } from 'yazio';
+import { YazioApi } from '../src/api/index.js';
 
 async function testRealEndpoint() {
   console.log('🧪 Testing add_user_consumed_item with real Yazio API...\n');
@@ -29,18 +29,18 @@ async function testRealEndpoint() {
   try {
     // Initialize Yazio client
     console.log('1️⃣ Initializing Yazio client...');
-    const yazio = new Yazio({ credentials: { username, password } });
+    const yazio = new YazioApi({ username, password });
     console.log('✅ Client initialized');
 
     // Test authentication
     console.log('\n2️⃣ Testing authentication...');
-    const user = await yazio.user.get();
+    const user = await yazio.getUser();
     console.log('✅ Authentication successful');
     console.log('👤 User:', `${user.first_name} ${user.last_name}`);
 
     // Search for a real product
     console.log('\n3️⃣ Searching for products...');
-    const products = await yazio.products.search({ query: 'apple' });
+    const products = await yazio.searchProducts({ query: 'apple' });
 
     console.log(products);
 

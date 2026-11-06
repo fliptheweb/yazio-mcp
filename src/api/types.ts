@@ -250,49 +250,57 @@ export interface YazioConsumedItems {
   simple_products: unknown[];
 }
 
-// API Options interfaces - these match the actual Yazio library signatures
-export interface YazioWeightOptions {
-  date?: string | Date;
-}
+// Request bodies. Shapes follow the API models of the Yazio Android app.
 
-export interface YazioExerciseOptions {
-  date?: string | Date; // Only supports single date, not date ranges
-}
+export type Daytime = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
-export interface YazioSuggestedProductsOptions {
-  daytime: "breakfast" | "lunch" | "dinner" | "snack";
-  date?: string | Date;
-}
+/** "YYYY-MM-DD" or "YYYY-MM-DD HH:mm:ss" (local time, sent as is) */
+export type YazioDateTime = string;
 
-export interface YazioWaterIntakeOptions {
-  date: string | Date;
-}
-
-export interface YazioDailySummaryOptions {
-  date: string | Date;
-}
-
-export interface YazioConsumedItemsOptions {
-  date: string | Date;
-}
-
-export interface YazioAddConsumedItemOptions {
-  date: string | Date;
-  serving: string;
-  amount: number;
+export interface ConsumedProductDto {
   id: string;
   product_id: string;
-  serving_quantity: number;
-  daytime: "breakfast" | "lunch" | "dinner" | "snack";
+  date: YazioDateTime;
+  daytime: Daytime;
+  amount: number;
+  serving?: string;
+  serving_quantity?: number;
 }
 
-export interface YazioRemoveConsumedItemOptions {
-  itemId: string;
+export interface ConsumedSimpleProductDto {
+  id: string;
+  date: YazioDateTime;
+  daytime: Daytime;
+  name: string;
+  nutrients: Record<string, number>;
 }
 
-export interface YazioWaterIntakeEntry {
-  date: string; // Format: "YYYY-MM-DD HH:mm:ss"
-  water_intake: number; // Cumulative water intake in ml
+export interface AddConsumedItemsDto {
+  products?: ConsumedProductDto[];
+  simple_products?: ConsumedSimpleProductDto[];
+  recipe_portions?: unknown[];
 }
 
-export type YazioAddWaterIntakeOptions = YazioWaterIntakeEntry[];
+export interface CreateProductDto {
+  id: string;
+  name: string;
+  category: string;
+  base_unit: 'g' | 'ml';
+  is_private: boolean;
+  /** Per 1 g/ml of the base unit */
+  nutrients: Record<string, number>;
+  servings: { serving: string; amount: number }[];
+  producer: string | null;
+}
+
+export interface WaterIntakeEntry {
+  date: string; // "YYYY-MM-DD HH:mm:ss"
+  water_intake: number; // Cumulative water intake of the day in ml
+}
+
+export interface ProductSearchOptions {
+  query: string;
+  sex?: 'male' | 'female';
+  countries?: string[];
+  locales?: string[];
+}

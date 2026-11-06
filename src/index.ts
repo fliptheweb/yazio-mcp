@@ -3,7 +3,6 @@
 import { createRequire } from 'node:module';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { Yazio } from 'yazio';
 import { v4 as uuidv4 } from "uuid";
 
 import {
@@ -37,20 +36,14 @@ import {
   type CreateProductInput,
   type AddQuickEntryInput,
 } from './schemas.js';
-import type {
-  YazioExerciseOptions,
-  YazioSuggestedProductsOptions,
-  YazioAddWaterIntakeOptions
-} from './types.js';
+import { YazioApi } from './api/index.js';
 
 const require = createRequire(import.meta.url);
 const { version } = require('../package.json') as { version: string };
 
-const API_BASE_URL = 'https://yzapi.yazio.com/v15';
-
 class YazioMcpServer {
   private server: McpServer;
-  private yazioClient: Yazio | null = null;
+  private yazioClient: YazioApi | null = null;
 
   constructor() {
     this.server = new McpServer({
@@ -75,14 +68,9 @@ class YazioMcpServer {
     }
 
     try {
-      this.yazioClient = new Yazio({
-        credentials: {
-          username,
-          password
-        }
-      });
+      this.yazioClient = new YazioApi({ username, password });
       // Test the connection
-      await this.yazioClient.user.get();
+      await this.yazioClient.getUser();
       console.error('✅ Successfully authenticated with Yazio using environment variables');
     } catch (error) {
       console.error('❌ Failed to authenticate with Yazio:', (error as Error).message);
@@ -502,7 +490,7 @@ Example:
     );
   }
 
-  private async ensureAuthenticated(): Promise<Yazio> {
+  private async ensureAuthenticated(): Promise<YazioApi> {
     if (!this.yazioClient) {
       throw new Error('Yazio client not initialized. Check environment variables.');
     }
@@ -514,7 +502,7 @@ Example:
     const client = await this.ensureAuthenticated();
 
     try {
-      const foodEntries = await client.user.getConsumedItems({ date: new Date(args.date) });
+      const foodEntries = await client.getConsumedItems(args.date);
 
       return {
         content: [
@@ -533,7 +521,7 @@ Example:
     const client = await this.ensureAuthenticated();
 
     try {
-      const userInfo = await client.user.get();
+      const userInfo = await client.getUser();
 
       return {
         content: [
@@ -552,7 +540,7 @@ Example:
     const client = await this.ensureAuthenticated();
 
     try {
-      const summary = await client.user.getDailySummary({ date: new Date(args.date) });
+      const summary = await client.getDailySummary(args.date);
 
       return {
         content: [
@@ -571,8 +559,8 @@ Example:
     const client = await this.ensureAuthenticated();
 
     try {
-      // Yazio getWeight doesn't support date ranges, just single date
-      const weight = await client.user.getWeight();
+      // The API returns the last weight entry up to a date, not a range
+      const weight = await client.getLastWeight();
 
       return {
         content: [
@@ -591,7 +579,7 @@ Example:
     const client = await this.ensureAuthenticated();
 
     try {
-      const waterIntake = await client.user.getWaterIntake({ date: new Date(args.date) });
+      const waterIntake = await client.getWaterIntake(args.date);
 
       return {
         content: [
@@ -610,7 +598,7 @@ Example:
     const client = await this.ensureAuthenticated();
 
     try {
-      const products = await client.products.search(args);
+      const products = await client.searchProducts(args);
 
       return {
         content: [
@@ -630,7 +618,7 @@ Example:
     const client = await this.ensureAuthenticated();
 
     try {
-      const product = await client.products.get(args.id);
+      const product = await client.getProduct(args.id);
 
       return {
         content: [
@@ -649,12 +637,7 @@ Example:
     const client = await this.ensureAuthenticated();
 
     try {
-      const apiOptions: YazioExerciseOptions = {};
-      if (args.date) {
-        apiOptions.date = args.date;
-      }
-
-      const exercises = await client.user.getExercises(apiOptions);
+      const exercises = await client.getExercises(args.date);
 
       return {
         content: [
@@ -673,7 +656,7 @@ Example:
     const client = await this.ensureAuthenticated();
 
     try {
-      const settings = await client.user.getSettings();
+      const settings = await client.getSettings();
 
       return {
         content: [
@@ -692,13 +675,8 @@ Example:
     const client = await this.ensureAuthenticated();
 
     try {
-      const { limit, ...rest } = args;
-      const options: YazioSuggestedProductsOptions = {
-        daytime: 'breakfast',
-        ...rest
-      };
       // The API doesn't support limiting, so apply it here
-      const suggestions = (await client.user.getSuggestedProducts(options)).slice(0, limit);
+      const suggestions = (await client.getSuggestedProducts(args.daytime ?? 'breakfast', args.date)).slice(0, args.limit);
 
       return {
         content: [
@@ -717,13 +695,8 @@ Example:
     const client = await this.ensureAuthenticated();
 
     try {
-      // yazio client's addConsumedItem truncates date to YYYY-MM-DD (toISOString, UTC),
-      // so post directly to keep the time ("YYYY-MM-DD HH:mm:ss") as is
-      await this.postJson(client, '/user/consumed-items', {
-        recipe_portions: [],
-        simple_products: [],
-        products: [{ ...args, id: uuidv4() }],
-      });
+      // The date is sent as is, so "YYYY-MM-DD HH:mm:ss" keeps the time of the entry
+      await client.addConsumedItems({ products: [{ ...args, id: uuidv4() }] });
 
       return {
         content: [
@@ -735,25 +708,6 @@ Example:
       };
     } catch (error) {
       throw new Error(`Failed to add consumed item: ${error}`);
-    }
-  }
-
-  // Endpoints the yazio client doesn't wrap. Request shapes follow the Yazio Android app.
-  private async postJson(client: Yazio, path: string, body: unknown): Promise<void> {
-    // @ts-expect-error - Accessing internal auth from yazio client
-    const token = await client.auth.authenticate();
-    const response = await fetch(`${API_BASE_URL}${path}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token.access_token}`,
-      },
-      body: JSON.stringify(body),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`${response.status} ${response.statusText} - ${errorText}`);
     }
   }
 
@@ -772,7 +726,7 @@ Example:
       const nutrients = Object.fromEntries(Object.entries(per100).map(([key, value]) => [key, value / 100]));
       const id = uuidv4();
 
-      await this.postJson(client, '/user/products', {
+      await client.createProduct({
         id,
         name: args.name,
         category: args.category,
@@ -806,9 +760,7 @@ Example:
       if (args.carb !== undefined) nutrients['nutrient.carb'] = args.carb;
       const id = uuidv4();
 
-      await this.postJson(client, '/user/consumed-items', {
-        recipe_portions: [],
-        products: [],
+      await client.addConsumedItems({
         simple_products: [{ id, date: args.date, daytime: args.daytime, name: args.name, nutrients }],
       });
 
@@ -829,13 +781,13 @@ Example:
     const client = await this.ensureAuthenticated();
 
     try {
-      const result = await client.user.removeConsumedItem(args.itemId);
+      await client.removeConsumedItems([args.itemId]);
 
       return {
         content: [
           {
             type: 'text' as const,
-            text: `Successfully removed consumed item with ID: ${args.itemId}\n\n${JSON.stringify(result, null, 2)}`,
+            text: `Successfully removed consumed item with ID: ${args.itemId}`,
           },
         ],
       };
@@ -848,12 +800,10 @@ Example:
     const client = await this.ensureAuthenticated();
 
     try {
-      // The yazio client has no addWaterIntake: https://github.com/juriadams/yazio/issues/3
-      const entries: YazioAddWaterIntakeOptions = [{
+      await client.addWaterIntake([{
         date: args.date, // Already in "YYYY-MM-DD HH:mm:ss" format
         water_intake: args.water_intake,
-      }];
-      await this.postJson(client, '/user/water-intake', entries);
+      }]);
 
       return {
         content: [
@@ -872,7 +822,7 @@ Example:
     const client = await this.ensureAuthenticated();
 
     try {
-      const preferences = await client.user.getDietaryPreferences();
+      const preferences = await client.getDietaryPreferences();
 
       return {
         content: [
@@ -891,7 +841,7 @@ Example:
     const client = await this.ensureAuthenticated();
 
     try {
-      const goals = await client.user.getGoals({});
+      const goals = await client.getGoals();
 
       return {
         content: [
