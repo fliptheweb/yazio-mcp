@@ -36,6 +36,7 @@
     "lint:fix": "eslint src/**/*.ts --fix",
     "format": "prettier --write src/**/*.ts",
     "type-check": "tsc --noEmit",
+    "test": "tsx --test test/*.test.ts",
     "version": "node scripts/bump-version.cjs && git add manifest.json server.json"
   },
   "keywords": [
@@ -50,7 +51,6 @@
   "engines": {
     "node": ">=18.0.0"
   },
-  "dependencies": {},
   "devDependencies": {
     "@anthropic-ai/mcpb": "^2.1.2",
     "@modelcontextprotocol/sdk": "^1.25.0",
@@ -64,7 +64,6 @@
     "tsx": "^4.0.0",
     "typescript": "^5.0.0",
     "uuid": "^13.0.0",
-    "yazio": "^1.0.0",
     "zod": "^4.2.1"
   }
 }
