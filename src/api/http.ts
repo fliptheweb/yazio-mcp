@@ -4,11 +4,10 @@
 import * as z from 'zod';
 import { TokenResponseSchema } from './schemas.js';
 
-// OAuth client id/secret of the Yazio apps, taken from juriadams/yazio
-// (https://github.com/juriadams/yazio/blob/main/src/utils/constants.ts). Thanks!
-
 export const API_BASE_URL = 'https://yzapi.yazio.com/v15';
 
+// OAuth client id/secret of the Yazio apps, taken from juriadams/yazio
+// (https://github.com/juriadams/yazio/blob/main/src/utils/constants.ts). Thanks!
 const CLIENT_ID = '1_4hiybetvfksgw40o0sog4s884kwc840wwso8go4k8c04goo4c';
 const CLIENT_SECRET = '6rok2m65xuskgkgogw40wkkk8sw0osg84s8cggsc4woos4s8o';
 
