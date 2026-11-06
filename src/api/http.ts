@@ -1,10 +1,11 @@
 // HTTP transport and OAuth for the Yazio API (unofficial).
-// Endpoints, auth flow and schemas in src/api are based on https://github.com/juriadams/yazio
-// by Juri Adams and contributors. Thank you!
+// Based on https://github.com/juriadams/yazio by Juri Adams and its contributors,
+// who reverse-engineered the endpoints and the auth flow. Thank you!
 import * as z from 'zod';
 import { TokenResponseSchema } from './schemas.js';
 
-// Client id/secret are the public ones of the Yazio apps, same as in the `yazio` npm package.
+// OAuth client id/secret of the Yazio apps, taken from juriadams/yazio
+// (https://github.com/juriadams/yazio/blob/main/src/utils/constants.ts). Thanks!
 
 export const API_BASE_URL = 'https://yzapi.yazio.com/v15';
 

@@ -137,10 +137,6 @@ YAZIO_USERNAME=X YAZIO_PASSWORD=X npx -y @modelcontextprotocol/inspector npx <lo
 ```
 ---
 
-## 🙏 Acknowledgements
-
-The Yazio API client in [`src/api`](src/api) (endpoints, auth flow and response schemas) is based on [juriadams/yazio](https://github.com/juriadams/yazio). Many thanks to [Juri Adams](https://github.com/juriadams) and [all its contributors](https://github.com/juriadams/yazio/graphs/contributors) for reverse-engineering and documenting the API.
-
 ## 📄 License
 
 MIT License - see [LICENSE](LICENSE) file for details.
