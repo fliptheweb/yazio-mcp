@@ -1,0 +1,279 @@
+// Zod schemas for Yazio API responses (v15).
+// Adapted from the schemas in https://github.com/juriadams/yazio (master), which are tested
+// against the live API. Changes:
+// - Objects are loose: fields the API adds later pass through instead of failing the call.
+// - No format checks (uuid, email, url, length): they add nothing for this server and break on edge cases.
+// - Product nutrients are a record: custom products only have the nutrients they were created with.
+// - Fields only seen on v20 (type and is_ai_generated of recipe portions and simple products) are optional.
+import * as z from 'zod';
+
+export const DaytimeSchema = z.enum(['breakfast', 'lunch', 'dinner', 'snack']);
+
+/** Nutrient values keyed by Yazio nutrient key, e.g. "energy.energy", "nutrient.protein" */
+export const NutrientsSchema = z.record(z.string(), z.number());
+
+export const BasicNutrientsSchema = z.looseObject({
+  'energy.energy': z.number(),
+  'nutrient.carb': z.number(),
+  'nutrient.protein': z.number(),
+  'nutrient.fat': z.number(),
+});
+
+// Auth
+
+export const TokenResponseSchema = z.looseObject({
+  token_type: z.string(),
+  access_token: z.string().min(1),
+  refresh_token: z.string().min(1),
+  expires_in: z.number().positive(),
+});
+
+// User
+
+export const UserSchema = z.looseObject({
+  diet: z
+    .looseObject({
+      carb_percentage: z.number(),
+      fat_percentage: z.number(),
+      protein_percentage: z.number(),
+      name: z.string(),
+    })
+    .nullable(),
+  email: z.string(),
+  premium_type: z.string(),
+  sex: z.enum(['male', 'female', 'other']),
+  first_name: z.string(),
+  last_name: z.string(),
+  city: z.string(),
+  country: z.string(),
+  weight_change_per_week: z.number(),
+  body_height: z.number(),
+  goal: z.string(),
+  date_of_birth: z.string(),
+  registration_date: z.string(),
+  timezone_offset: z.number(),
+  unit_length: z.string(),
+  unit_mass: z.string(),
+  unit_glucose: z.string(),
+  unit_serving: z.string(),
+  unit_energy: z.string(),
+  food_database_country: z.string(),
+  profile_image: z.string().nullable(),
+  user_token: z.string(),
+  start_weight: z.number(),
+  email_confirmation_status: z.string(),
+  newsletter_opt_in: z.boolean(),
+  login_type: z.string(),
+  siwa_user_id: z.string().nullable(),
+  uuid: z.string(),
+  reset_date: z.string().nullable(),
+  activity_degree: z.string(),
+  stripe_customer_id: z.string().nullable(),
+});
+
+export const UserSettingsSchema = z.looseObject({
+  has_water_tracker: z.boolean(),
+  has_diary_tipps: z.boolean(),
+  has_meal_reminders: z.boolean(),
+  has_usage_reminders: z.boolean(),
+  has_weight_reminders: z.boolean(),
+  has_water_reminders: z.boolean(),
+  consume_activity_calories: z.boolean(),
+  has_feelings: z.boolean(),
+  has_fasting_tracker_reminders: z.boolean(),
+  has_fasting_stage_reminders: z.boolean(),
+});
+
+export const DietaryPreferencesSchema = z.looseObject({
+  restriction: z.string().nullable(),
+});
+
+export const GoalsSchema = z.looseObject({
+  'energy.energy': z.number(),
+  'nutrient.protein': z.number(),
+  'nutrient.fat': z.number(),
+  'nutrient.carb': z.number(),
+  'activity.step': z.number(),
+  'bodyvalue.weight': z.number(),
+  water: z.number(),
+});
+
+const MealSummarySchema = z.looseObject({
+  energy_goal: z.number(),
+  nutrients: BasicNutrientsSchema,
+});
+
+export const DailySummarySchema = z.looseObject({
+  activity_energy: z.number(),
+  consume_activity_energy: z.boolean(),
+  steps: z.number(),
+  water_intake: z.number(),
+  goals: GoalsSchema,
+  units: z.looseObject({
+    unit_mass: z.string(),
+    unit_energy: z.string(),
+    unit_serving: z.string(),
+    unit_length: z.string(),
+  }),
+  meals: z.looseObject({
+    breakfast: MealSummarySchema,
+    lunch: MealSummarySchema,
+    dinner: MealSummarySchema,
+    snack: MealSummarySchema,
+  }),
+  user: z.looseObject({
+    start_weight: z.number().optional(),
+    current_weight: z.number().optional(),
+    goal: z.string().optional(),
+    sex: z.string().optional(),
+  }),
+  active_fasting_countdown_template_key: z.string().nullable(),
+});
+
+export const WeightEntrySchema = z.looseObject({
+  id: z.string(),
+  date: z.string(),
+  value: z.number().nullable(),
+  external_id: z.string().nullable(),
+  gateway: z.string().nullable(),
+  source: z.string().nullable(),
+});
+
+const ExerciseSchema = z.looseObject({
+  id: z.string(),
+  note: z.string().nullable(),
+  date: z.string(),
+  name: z.string(),
+  external_id: z.string().nullable(),
+  energy: z.number(),
+  distance: z.number(),
+  duration: z.number(),
+  source: z.string().nullable(),
+  gateway: z.string().nullable(),
+  steps: z.number(),
+});
+
+export const ExercisesSchema = z.looseObject({
+  training: z.array(ExerciseSchema),
+  custom_training: z.array(ExerciseSchema),
+});
+
+export const SuggestedProductsSchema = z.array(
+  z.looseObject({
+    product_id: z.string(),
+    amount: z.number(),
+    serving: z.string().nullable(),
+    serving_quantity: z.number().nullable(),
+  }),
+);
+
+export const WaterIntakeSchema = z.looseObject({
+  water_intake: z.number(),
+  gateway: z.string().nullable(),
+  source: z.string().nullable(),
+});
+
+// Diary
+
+const ConsumedProductSchema = z.looseObject({
+  id: z.string(),
+  date: z.string(),
+  daytime: DaytimeSchema,
+  type: z.string(),
+  product_id: z.string(),
+  amount: z.number(),
+  serving: z.string().nullable(),
+  serving_quantity: z.number().nullable(),
+});
+
+const ConsumedRecipePortionSchema = z.looseObject({
+  id: z.string(),
+  date: z.string(),
+  daytime: DaytimeSchema,
+  type: z.string().optional(),
+  recipe_id: z.string(),
+  portion_count: z.number(),
+});
+
+const ConsumedSimpleProductSchema = z.looseObject({
+  id: z.string(),
+  date: z.string(),
+  daytime: DaytimeSchema,
+  type: z.string().optional(),
+  name: z.string(),
+  nutrients: NutrientsSchema,
+  is_ai_generated: z.boolean().optional(),
+});
+
+export const ConsumedItemsSchema = z.looseObject({
+  products: z.array(ConsumedProductSchema),
+  recipe_portions: z.array(ConsumedRecipePortionSchema),
+  simple_products: z.array(ConsumedSimpleProductSchema),
+});
+
+// Products
+
+export const ProductSearchResultsSchema = z.array(
+  z.looseObject({
+    score: z.number(),
+    name: z.string(),
+    product_id: z.string(),
+    serving: z.string(),
+    serving_quantity: z.number(),
+    amount: z.number(),
+    base_unit: z.string(),
+    producer: z.string().nullable(),
+    is_verified: z.boolean(),
+    nutrients: BasicNutrientsSchema,
+    countries: z.array(z.string()),
+    language: z.string(),
+  }),
+);
+
+export const ProductSchema = z.looseObject({
+  id: z.string(),
+  name: z.string(),
+  is_verified: z.boolean(),
+  is_private: z.boolean(),
+  is_deleted: z.boolean(),
+  has_ean: z.boolean(),
+  category: z.string(),
+  producer: z.string().nullable(),
+  nutrients: NutrientsSchema,
+  updated_at: z.string(),
+  servings: z.array(z.looseObject({ serving: z.string(), amount: z.number() })),
+  base_unit: z.string(),
+  eans: z.array(z.string()),
+  language: z.string(),
+  countries: z.array(z.string()),
+});
+
+// Recipes
+
+export const RecipeSchema = z.looseObject({
+  id: z.string(),
+  yazio_id: z.string().nullable(),
+  locale: z.string(),
+  name: z.string(),
+  portion_count: z.number(),
+  nutrients: NutrientsSchema,
+  image: z.string().nullable(),
+  instructions: z.array(z.string()),
+  is_yazio_recipe: z.boolean(),
+  available_since: z.string().nullable(),
+  is_pro_recipe: z.boolean(),
+  servings: z.array(
+    z.looseObject({
+      producer: z.string().nullable(),
+      name: z.string(),
+      amount: z.number(),
+      base_unit: z.string(),
+      serving: z.string().nullable(),
+      serving_quantity: z.number().nullable(),
+      note: z.string().nullable(),
+      product_id: z.string(),
+    }),
+  ),
+});
+
+export const RecipeIdsSchema = z.array(z.string());

@@ -1,4 +1,7 @@
 // HTTP transport and OAuth for the Yazio API (unofficial).
+import * as z from 'zod';
+import { TokenResponseSchema } from './schemas.js';
+
 // Client id/secret are the public ones of the Yazio apps, same as in the `yazio` npm package.
 
 export const YAZIO_API_BASE_URL = 'https://yzapi.yazio.com/v15';
@@ -26,9 +29,11 @@ export interface Token {
 
 export type QueryValue = string | number | boolean | undefined;
 
-export interface RequestOptions {
+export interface RequestOptions<T> {
   query?: Record<string, QueryValue>;
   body?: unknown;
+  /** Validates the JSON response; requests without a schema return nothing */
+  schema?: z.ZodType<T>;
 }
 
 export interface YazioHttpOptions {
@@ -50,6 +55,18 @@ export class YazioApiError extends Error {
   }
 }
 
+/** The API answered with JSON that doesn't match the expected schema */
+export class YazioResponseError extends Error {
+  constructor(
+    readonly method: string,
+    readonly path: string,
+    readonly issues: z.core.$ZodIssue[],
+  ) {
+    super(`${method} ${path} returned an unexpected response:\n${z.prettifyError({ issues } as z.ZodError)}`);
+    this.name = 'YazioResponseError';
+  }
+}
+
 export class YazioHttp {
   private readonly baseUrl: string;
   private readonly fetch: typeof fetch;
@@ -64,7 +81,7 @@ export class YazioHttp {
     this.fetch = options.fetch ?? globalThis.fetch;
   }
 
-  async request<T>(method: string, path: string, options: RequestOptions = {}): Promise<T> {
+  async request<T = void>(method: string, path: string, options: RequestOptions<T> = {}): Promise<T> {
     const url = this.buildUrl(path, options.query);
     let token = await this.authenticate();
     let response = await this.send(method, url, token, options.body);
@@ -80,9 +97,12 @@ export class YazioHttp {
       throw new YazioApiError(method, path, response.status, response.statusText, await response.text());
     }
 
-    // Writes answer with 204 or an empty body
+    if (!options.schema) return undefined as T;
+
     const text = await response.text();
-    return (text ? JSON.parse(text) : undefined) as T;
+    const result = options.schema.safeParse(text ? JSON.parse(text) : undefined);
+    if (!result.success) throw new YazioResponseError(method, path, result.error.issues);
+    return result.data;
   }
 
   async authenticate(): Promise<Token> {
@@ -128,8 +148,11 @@ export class YazioHttp {
       // Don't echo the body: it can repeat the submitted credentials
       throw new YazioApiError('POST', '/oauth/token', response.status, response.statusText, '');
     }
-    const token = (await response.json()) as Omit<Token, 'expires_at'>;
-    return { ...token, expires_at: Date.now() + token.expires_in * 1000 };
+    const result = TokenResponseSchema.safeParse(await response.json());
+    // Don't include the issues: they can contain the token values
+    if (!result.success) throw new Error('POST /oauth/token returned an unexpected response');
+    const { token_type, access_token, refresh_token, expires_in } = result.data;
+    return { token_type, access_token, refresh_token, expires_in, expires_at: Date.now() + expires_in * 1000 };
   }
 
   private send(method: string, url: string, token: Token, body: unknown): Promise<Response> {

@@ -1,7 +1,7 @@
 // Offline tests for src/api with a mocked fetch. Run: npm test
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { YazioApi, YazioApiError, YAZIO_API_BASE_URL } from '../src/api/index.js';
+import { YazioApi, YazioApiError, YazioResponseError, YAZIO_API_BASE_URL } from '../src/api/index.js';
 
 interface Call {
   method: string;
@@ -41,10 +41,10 @@ function mockApi(handler: Handler = () => undefined) {
 }
 
 test('logs in with the password grant once and reuses the token', async () => {
-  const { api, apiCalls, tokenCalls } = mockApi((c) => (c.url.endsWith('/user') ? json({ email: 'x' }) : undefined));
+  const { api, apiCalls, tokenCalls } = mockApi((c) => (c.url.endsWith('/user/dietary-preferences') ? json({ restriction: null }) : undefined));
 
-  await api.getUser();
-  await api.getUser();
+  await api.getDietaryPreferences();
+  await api.getDietaryPreferences();
 
   assert.equal(tokenCalls().length, 1);
   const login = tokenCalls()[0];
@@ -59,8 +59,8 @@ test('logs in with the password grant once and reuses the token', async () => {
 });
 
 test('concurrent requests share one login', async () => {
-  const { api, tokenCalls } = mockApi();
-  await Promise.all([api.getSettings(), api.getSettings(), api.getSettings()]);
+  const { api, tokenCalls } = mockApi((c) => (c.url.endsWith('/user/recipes') ? json([]) : undefined));
+  await Promise.all([api.getUserRecipeIds(), api.getUserRecipeIds(), api.getUserRecipeIds()]);
   assert.equal(tokenCalls().length, 1);
 });
 
@@ -72,8 +72,8 @@ test('renews an expired token with the refresh token', async () => {
     return undefined;
   });
 
-  await api.getSettings();
-  await api.getSettings();
+  await api.removeConsumedItems(['x']);
+  await api.removeConsumedItems(['x']);
 
   assert.equal(tokenCalls().length, 2);
   assert.deepEqual(
@@ -92,8 +92,8 @@ test('falls back to the password when the refresh fails', async () => {
     return tokenResponse(++n, n === 1 ? 30 : 3600);
   });
 
-  await api.getSettings();
-  await api.getSettings();
+  await api.removeConsumedItems(['x']);
+  await api.removeConsumedItems(['x']);
 
   assert.deepEqual(
     tokenCalls().map((c) => (c.body as Record<string, string>).grant_type),
@@ -104,14 +104,14 @@ test('falls back to the password when the refresh fails', async () => {
 test('retries once with a new token after a 401', async () => {
   let rejected = false;
   const { api, apiCalls } = mockApi((c) => {
-    if (c.url.endsWith('/user/settings') && !rejected) {
+    if (c.url.endsWith('/user/consumed-items') && !rejected) {
       rejected = true;
       return json({ error: 'expired' }, 401);
     }
     return undefined;
   });
 
-  await api.getSettings();
+  await api.removeConsumedItems(['x']);
 
   assert.deepEqual(
     apiCalls().map((c) => c.headers.Authorization),
@@ -145,14 +145,41 @@ test('login errors do not leak the response body', async () => {
   await assert.rejects(api.getUser(), (error: unknown) => error instanceof Error && !error.message.includes('user@example.com'));
 });
 
-test('date queries are sent unchanged', async () => {
-  const { api, apiCalls } = mockApi((c) => (c.method === 'GET' ? json([]) : undefined));
+test('a token response without access_token is rejected without echoing it', async () => {
+  const { api } = mockApi((c) =>
+    c.url.endsWith('/oauth/token') ? json({ token_type: 'bearer', refresh_token: 'secret-refresh', expires_in: 3600 }) : undefined,
+  );
+  await assert.rejects(api.getUser(), (error: unknown) => error instanceof Error && !error.message.includes('secret-refresh'));
+});
 
-  await api.getConsumedItems('2026-11-06');
-  await api.getDailySummary('2026-11-06');
-  await api.getWaterIntake('2026-11-06');
-  await api.getSuggestedProducts('dinner', '2026-11-06');
-  await api.getGoals('2026-11-06');
+test('responses are validated: extra fields pass, wrong shapes fail', async () => {
+  const { api } = mockApi((c) => {
+    if (c.url.includes('/user/water-intake')) return json({ water_intake: 750, gateway: null, source: null, new_field: 1 });
+    if (c.url.includes('/user/dietary-preferences')) return json({ restriction: 42 });
+    return undefined;
+  });
+
+  assert.deepEqual(await api.getWaterIntake('2026-11-06'), { water_intake: 750, gateway: null, source: null, new_field: 1 });
+  await assert.rejects(
+    api.getDietaryPreferences(),
+    (error: unknown) =>
+      error instanceof YazioResponseError && error.path === '/user/dietary-preferences' && error.message.includes('restriction'),
+  );
+});
+
+test('date queries are sent unchanged', async () => {
+  const { api, apiCalls } = mockApi((c) => (c.method === 'GET' ? json({}) : undefined));
+
+  // The empty mock responses fail validation; only the URLs matter here
+  for (const call of [
+    () => api.getConsumedItems('2026-11-06'),
+    () => api.getDailySummary('2026-11-06'),
+    () => api.getWaterIntake('2026-11-06'),
+    () => api.getSuggestedProducts('dinner', '2026-11-06'),
+    () => api.getGoals('2026-11-06'),
+  ]) {
+    await assert.rejects(call(), YazioResponseError);
+  }
 
   assert.deepEqual(
     apiCalls().map((c) => c.url.replace(YAZIO_API_BASE_URL, '')),
@@ -167,8 +194,8 @@ test('date queries are sent unchanged', async () => {
 });
 
 test('product search applies the same defaults as the yazio package', async () => {
-  const { api, apiCalls } = mockApi(() => undefined);
-  await api.searchProducts({ query: 'greek yogurt' });
+  const { api, apiCalls } = mockApi((c) => (c.url.includes('/products/search') ? json([]) : undefined));
+  assert.deepEqual(await api.searchProducts({ query: 'greek yogurt' }), []);
   const url = new URL(apiCalls()[0].url);
   assert.equal(url.pathname, '/v15/products/search');
   assert.deepEqual(Object.fromEntries(url.searchParams), {
@@ -187,8 +214,9 @@ test('write bodies', async () => {
   });
   await api.removeConsumedItems(['q1']);
   await api.addWaterIntake([{ date: '2026-11-06 12:00:00', water_intake: 750 }]);
+  await api.deleteUserRecipe('r1');
 
-  const [add, remove, water] = apiCalls();
+  const [add, remove, water, deleteRecipe] = apiCalls();
   assert.equal(add.method, 'POST');
   assert.deepEqual(add.body, {
     products: [],
@@ -200,4 +228,6 @@ test('write bodies', async () => {
   assert.deepEqual(remove.body, ['q1']);
   assert.equal(water.url, `${YAZIO_API_BASE_URL}/user/water-intake`);
   assert.deepEqual(water.body, [{ date: '2026-11-06 12:00:00', water_intake: 750 }]);
+  assert.equal(deleteRecipe.method, 'DELETE');
+  assert.equal(deleteRecipe.url, `${YAZIO_API_BASE_URL}/user/recipes/r1`);
 });

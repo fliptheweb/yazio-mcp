@@ -13,6 +13,8 @@ import {
   GetWaterIntakeInputSchema,
   SearchProductsInputSchema,
   GetProductInputSchema,
+  GetRecipeInputSchema,
+  GetUserRecipesInputSchema,
   GetUserExercisesInputSchema,
   GetUserSettingsInputSchema,
   GetUserSuggestedProductsInputSchema,
@@ -28,6 +30,7 @@ import {
   type GetWaterIntakeInput,
   type SearchProductsInput,
   type GetProductInput,
+  type GetRecipeInput,
   type GetUserExercisesInput,
   type GetUserSuggestedProductsInput,
   type AddConsumedItemInput,
@@ -268,6 +271,36 @@ class YazioMcpServer {
       },
       async (args: GetProductInput) => {
         return await this.getProduct(args);
+      }
+    );
+
+    this.server.registerTool(
+      'get_recipe',
+      {
+        description: 'Get a recipe by ID with its ingredients, portion count and nutrients per portion. Use it to resolve recipe_id of recipe portions in get_user_consumed_items.',
+        inputSchema: GetRecipeInputSchema,
+        annotations: {
+          readOnlyHint: true,
+          idempotentHint: true,
+        },
+      },
+      async (args: GetRecipeInput) => {
+        return await this.getRecipe(args);
+      }
+    );
+
+    this.server.registerTool(
+      'get_user_recipes',
+      {
+        description: "Get the user's own recipes with their ingredients and nutrients",
+        inputSchema: GetUserRecipesInputSchema,
+        annotations: {
+          readOnlyHint: true,
+          idempotentHint: true,
+        },
+      },
+      async () => {
+        return await this.getUserRecipes();
       }
     );
 
@@ -630,6 +663,46 @@ Example:
       };
     } catch (error) {
       throw new Error(`Failed to get product: ${error}`);
+    }
+  }
+
+  private async getRecipe(args: GetRecipeInput) {
+    const client = await this.ensureAuthenticated();
+
+    try {
+      const recipe = await client.getRecipe(args.id);
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Recipe "${recipe.name}":\n\n${JSON.stringify(recipe, null, 2)}`,
+          },
+        ],
+      };
+    } catch (error) {
+      throw new Error(`Failed to get recipe: ${error}`);
+    }
+  }
+
+  private async getUserRecipes() {
+    const client = await this.ensureAuthenticated();
+
+    try {
+      // The API only lists IDs, so load each recipe
+      const ids = await client.getUserRecipeIds();
+      const recipes = await Promise.all(ids.map((id) => client.getRecipe(id)));
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `User recipes (${recipes.length}):\n\n${JSON.stringify(recipes, null, 2)}`,
+          },
+        ],
+      };
+    } catch (error) {
+      throw new Error(`Failed to get user recipes: ${error}`);
     }
   }
 

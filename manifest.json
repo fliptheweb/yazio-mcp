@@ -31,6 +31,8 @@
     { "name": "get_user_suggested_products", "description": "Get suggested products for a meal" },
     { "name": "search_products", "description": "Search food database" },
     { "name": "get_product", "description": "Get detailed product info" },
+    { "name": "get_recipe", "description": "Get a recipe with ingredients and nutrients" },
+    { "name": "get_user_recipes", "description": "Get your own recipes" },
     { "name": "add_user_consumed_item", "description": "Add food to your log" },
     { "name": "add_user_water_intake", "description": "Add water intake entry" },
     { "name": "remove_user_consumed_item", "description": "Remove food from log" },

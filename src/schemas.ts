@@ -51,6 +51,10 @@ export const SearchProductsOutputSchema = z.object({
 export const GetProductInputSchema = z.object({
   id: ProductIdSchema.describe('Product ID to get details for')
 });
+export const GetRecipeInputSchema = z.object({
+  id: z.uuid().describe('Recipe ID, e.g. recipe_id of a recipe portion from get_user_consumed_items or an ID from get_user_recipes')
+});
+export const GetUserRecipesInputSchema = EmptyInputSchema;
 export const GetUserExercisesInputSchema = OptionalDateInputSchema; // Only supports single date, not date ranges
 export const GetUserSettingsInputSchema = EmptyInputSchema;
 export const GetUserSuggestedProductsInputSchema = z.object({
@@ -133,6 +137,7 @@ export type GetUserWeightInput = z.infer<typeof GetUserWeightInputSchema>;
 export type GetWaterIntakeInput = z.infer<typeof GetWaterIntakeInputSchema>;
 export type SearchProductsInput = z.infer<typeof SearchProductsInputSchema>;
 export type GetProductInput = z.infer<typeof GetProductInputSchema>;
+export type GetRecipeInput = z.infer<typeof GetRecipeInputSchema>;
 export type GetUserExercisesInput = z.infer<typeof GetUserExercisesInputSchema>;
 export type GetUserSettingsInput = z.infer<typeof GetUserSettingsInputSchema>;
 export type GetUserSuggestedProductsInput = z.infer<typeof GetUserSuggestedProductsInputSchema>;
