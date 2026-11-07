@@ -1,6 +1,7 @@
 import * as z from "zod";
+import { DaytimeSchema, ProductCategorySchema, ServingNameSchema } from './api/schemas.js';
 
-export const DaytimeSchema = z.enum(['breakfast', 'lunch', 'dinner', 'snack']);
+export { DaytimeSchema, ProductCategorySchema, ServingNameSchema };
 export const DateStringSchema = z.iso.date().describe('Date in YYYY-MM-DD format');
 export const ProductIdSchema = z.uuid().describe('Product UUID v1/v4 (e.g. 4ceff6e9-78ce-441b-964a-22e81c1dee92)');
 export const ItemIdSchema = ProductIdSchema.describe('Unique item identifier');
@@ -79,6 +80,8 @@ export const AddConsumedItemInputSchema = z.object({
   amount: z.number().describe('Amount of the product consumed in base units (g or ml)'),
   serving: ServingTypeSchema.optional(),
   serving_quantity: z.number().optional().describe('Quantity of servings')
+}).refine((args) => (args.serving === undefined) === (args.serving_quantity === undefined), {
+  message: 'Pass serving and serving_quantity together, or neither',
 });
 export const RemoveConsumedItemInputSchema = z.object({
   itemId: ItemIdSchema.describe('ID of the consumed item to remove')
@@ -87,15 +90,6 @@ export const AddWaterIntakeInputSchema = z.object({
   date: DateTimeStringSchema.describe('Date and time in format "YYYY-MM-DD HH:mm:ss" (e.g., "2025-12-18 12:00:00"); a date without time is rejected by the API'),
   water_intake: z.number().describe('Cumulative water intake in milliliters (ml)')
 });
-export const ProductCategorySchema = z.enum([
-  'babyfood', 'bakedgoods', 'bakingingredients', 'bread', 'candy', 'cerealproducts', 'cheese', 'chocolate',
-  'dishes', 'drinksalcoholic', 'drinksnonalcoholic', 'fastfood', 'fish', 'fruits', 'icecream', 'legumes',
-  'meat', 'milk', 'miscellaneous', 'nutritionalsupplements', 'oils', 'pasta', 'potatoproducts', 'poultry',
-  'riceproducts', 'sauces', 'seeds', 'soyproducts', 'spices', 'spreads', 'vegetables',
-]);
-export const ServingNameSchema = z.enum([
-  'bar', 'bottle', 'can', 'cup', 'each', 'glass', 'package', 'piece', 'portion', 'slice', 'tablespoon', 'tablet', 'teaspoon',
-]);
 const ExtraNutrientsSchema = z
   .record(z.string().regex(/^(nutrient|mineral|vitamin)\.[a-z0-9]+$/), z.number().nonnegative())
   .optional()

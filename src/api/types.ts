@@ -20,14 +20,26 @@ export type Daytime = z.infer<typeof S.DaytimeSchema>;
 /** "YYYY-MM-DD" or "YYYY-MM-DD HH:mm:ss" (local time, sent as is) */
 export type YazioDateTime = string;
 
-export interface ConsumedProductDto {
+interface ConsumedProductBase {
   id: string;
   product_id: string;
   date: YazioDateTime;
   daytime: Daytime;
+  /** In base units (g or ml); with a serving, the total of all servings */
   amount: number;
-  serving?: string;
-  serving_quantity?: number;
+}
+
+/** A serving and its quantity go together, or the amount is logged without a serving */
+export type ConsumedProductDto =
+  | (ConsumedProductBase & { serving: string; serving_quantity: number })
+  | (ConsumedProductBase & { serving?: undefined; serving_quantity?: undefined });
+
+export interface ConsumedRecipePortionDto {
+  id: string;
+  recipe_id: string;
+  date: YazioDateTime;
+  daytime: Daytime;
+  portion_count: number;
 }
 
 export interface ConsumedSimpleProductDto {
@@ -41,18 +53,18 @@ export interface ConsumedSimpleProductDto {
 export interface AddConsumedItemsDto {
   products?: ConsumedProductDto[];
   simple_products?: ConsumedSimpleProductDto[];
-  recipe_portions?: unknown[];
+  recipe_portions?: ConsumedRecipePortionDto[];
 }
 
 export interface CreateProductDto {
   id: string;
   name: string;
-  category: string;
+  category: z.infer<typeof S.ProductCategorySchema>;
   base_unit: 'g' | 'ml';
   is_private: boolean;
   /** Per 1 g/ml of the base unit */
   nutrients: Record<string, number>;
-  servings: { serving: string; amount: number }[];
+  servings: { serving: z.infer<typeof S.ServingNameSchema>; amount: number }[];
   producer: string | null;
 }
 
@@ -71,6 +83,8 @@ export interface WaterIntakeEntry {
 export interface ProductSearchOptions {
   query: string;
   sex?: 'male' | 'female';
+  /** Country codes, e.g. ["US", "DE"] */
   countries?: string[];
+  /** Locale codes, e.g. ["en_US"] */
   locales?: string[];
 }

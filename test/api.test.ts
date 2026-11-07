@@ -232,17 +232,14 @@ test('date queries are sent unchanged', async () => {
   );
 });
 
-test('product search applies the same defaults as the yazio package', async () => {
+test('product search sends lists comma-separated and leaves out unset options', async () => {
   const { api, apiCalls } = mockApi((c) => (c.url.includes('/products/search') ? json([]) : undefined));
-  assert.deepEqual(await api.searchProducts({ query: 'greek yogurt' }), []);
-  const url = new URL(apiCalls()[0].url);
-  assert.equal(url.pathname, '/v15/products/search');
-  assert.deepEqual(Object.fromEntries(url.searchParams), {
-    query: 'greek yogurt',
-    sex: 'male',
-    countries: 'DE,US',
-    locales: 'en_US,de_US',
-  });
+  assert.deepEqual(await api.searchProducts({ query: 'greek yogurt', countries: ['US', 'DE'], locales: ['en_US'] }), []);
+  await api.searchProducts({ query: 'apple' });
+  const [full, minimal] = apiCalls().map((c) => new URL(c.url));
+  assert.equal(full.pathname, '/v15/products/search');
+  assert.deepEqual(Object.fromEntries(full.searchParams), { query: 'greek yogurt', countries: 'US,DE', locales: 'en_US' });
+  assert.deepEqual(Object.fromEntries(minimal.searchParams), { query: 'apple' });
 });
 
 test('write bodies', async () => {

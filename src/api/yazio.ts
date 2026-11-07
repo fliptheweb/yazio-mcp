@@ -58,12 +58,7 @@ export class YazioApi {
 
   searchProducts = ({ query, sex, countries, locales }: ProductSearchOptions) =>
     this.http.request('GET', '/products/search', {
-      query: {
-        query,
-        sex: sex ?? 'male',
-        countries: (countries ?? ['DE', 'US']).join(','),
-        locales: (locales ?? ['en_US', 'de_US']).join(','),
-      },
+      query: { query, sex, countries: countries?.join(','), locales: locales?.join(',') },
       schema: S.ProductSearchResultsSchema,
     });
 

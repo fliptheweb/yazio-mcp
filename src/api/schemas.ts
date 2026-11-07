@@ -8,6 +8,17 @@ import * as z from 'zod';
 
 export const DaytimeSchema = z.enum(['breakfast', 'lunch', 'dinner', 'snack']);
 
+export const ProductCategorySchema = z.enum([
+  'babyfood', 'bakedgoods', 'bakingingredients', 'bread', 'candy', 'cerealproducts', 'cheese', 'chocolate',
+  'dishes', 'drinksalcoholic', 'drinksnonalcoholic', 'fastfood', 'fish', 'fruits', 'icecream', 'legumes',
+  'meat', 'milk', 'miscellaneous', 'nutritionalsupplements', 'oils', 'pasta', 'potatoproducts', 'poultry',
+  'riceproducts', 'sauces', 'seeds', 'soyproducts', 'spices', 'spreads', 'vegetables',
+]);
+
+export const ServingNameSchema = z.enum([
+  'bar', 'bottle', 'can', 'cup', 'each', 'glass', 'package', 'piece', 'portion', 'slice', 'tablespoon', 'tablet', 'teaspoon',
+]);
+
 export const NutrientsSchema = z.record(z.string(), z.number());
 
 export const BasicNutrientsSchema = z.looseObject({
