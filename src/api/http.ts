@@ -138,12 +138,14 @@ export class YazioHttp {
       // Don't echo the body: it can repeat the submitted credentials
       throw new YazioApiError('POST', '/oauth/token', response.status, response.statusText, '');
     }
-    const result = TokenResponseSchema.safeParse(await response.json());
+    const data: unknown = await response.json();
+    const result = TokenResponseSchema.safeParse(data);
     if (!result.success) {
-      throw new Error(`POST /oauth/token returned an unexpected response:\n${z.prettifyError(result.error)}`);
+      console.error(`⚠️ POST /oauth/token returned an unexpected response shape:\n${z.prettifyError(result.error)}`);
     }
-    const { token_type, access_token, refresh_token, expires_in } = result.data;
-    return { token_type, access_token, refresh_token, expires_in, expires_at: Date.now() + expires_in * 1000 };
+    const token = (result.success ? result.data : data) as Omit<Token, 'expires_at'>;
+    // Without a numeric expires_in the token counts as expired, so the next call logs in again
+    return { ...token, expires_at: Date.now() + Number(token.expires_in) * 1000 };
   }
 
   private send(method: string, url: string, token: Token, body: unknown): Promise<Response> {

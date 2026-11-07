@@ -49,9 +49,9 @@ export const ProductNutrientsSchema = BasicNutrientsSchema.extend({
 
 export const TokenResponseSchema = z.looseObject({
   token_type: z.string(),
-  access_token: z.string().min(1),
-  refresh_token: z.string().min(1),
-  expires_in: z.number().positive(),
+  access_token: z.string(),
+  refresh_token: z.string(),
+  expires_in: z.number(),
 });
 
 export const UserSchema = z.looseObject({
