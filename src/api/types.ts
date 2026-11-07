@@ -25,11 +25,9 @@ interface ConsumedProductBase {
   product_id: string;
   date: YazioDateTime;
   daytime: Daytime;
-  /** In base units (g or ml); with a serving, the total of all servings */
   amount: number;
 }
 
-/** A serving and its quantity go together, or the amount is logged without a serving */
 export type ConsumedProductDto =
   | (ConsumedProductBase & { serving: string; serving_quantity: number })
   | (ConsumedProductBase & { serving?: undefined; serving_quantity?: undefined });
@@ -83,8 +81,6 @@ export interface WaterIntakeEntry {
 export interface ProductSearchOptions {
   query: string;
   sex?: 'male' | 'female';
-  /** Country codes, e.g. ["US", "DE"] */
   countries?: string[];
-  /** Locale codes, e.g. ["en_US"] */
   locales?: string[];
 }

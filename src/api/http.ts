@@ -4,8 +4,7 @@ import { TokenResponseSchema } from './schemas.js';
 
 export const API_BASE_URL = 'https://yzapi.yazio.com/v15';
 
-// Default client id/secret of the Yazio apps, taken from juriadams/yazio
-// (https://github.com/juriadams/yazio/blob/main/src/utils/constants.ts).
+// From https://github.com/juriadams/yazio/blob/main/src/utils/constants.ts
 export const DEFAULT_CLIENT_ID = '1_4hiybetvfksgw40o0sog4s884kwc840wwso8go4k8c04goo4c';
 export const DEFAULT_CLIENT_SECRET = '6rok2m65xuskgkgogw40wkkk8sw0osg84s8cggsc4woos4s8o';
 
@@ -24,7 +23,7 @@ export interface Token {
   access_token: string;
   refresh_token: string;
   expires_in: number;
-  /** Epoch ms, computed locally from expires_in */
+  /** Epoch ms */
   expires_at: number;
 }
 
@@ -57,7 +56,6 @@ export class YazioApiError extends Error {
 export class YazioHttp {
   private readonly fetch: typeof fetch;
   private token: Token | null = null;
-  // Concurrent tool calls share one login/refresh instead of starting several
   private pendingToken: Promise<Token> | null = null;
   private readonly credentials: Credentials;
 
@@ -110,13 +108,13 @@ export class YazioHttp {
   }
 
   private async renewToken(): Promise<Token> {
-    if (this.token?.refresh_token) {
-      try {
-        this.token = await this.requestToken({ grant_type: 'refresh_token', refresh_token: this.token.refresh_token });
-        return this.token;
-      } catch {
-        // Expired or revoked: fall back to the password
-      }
+    const refreshToken = this.token?.refresh_token;
+    const refreshed = refreshToken
+      ? await this.requestToken({ grant_type: 'refresh_token', refresh_token: refreshToken }).catch(() => null)
+      : null;
+    if (refreshed) {
+      this.token = refreshed;
+      return refreshed;
     }
     this.token = await this.requestToken({
       grant_type: 'password',

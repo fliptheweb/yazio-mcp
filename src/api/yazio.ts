@@ -3,14 +3,12 @@ import { YazioHttp, type Credentials, type YazioHttpOptions } from './http.js';
 import * as S from './schemas.js';
 import type { AddConsumedItemsDto, CreateProductDto, Daytime, ProductSearchOptions, WaterIntakeEntry } from './types.js';
 
-/** Today as YYYY-MM-DD in local time */
 export const today = (): string => {
   const now = new Date();
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 };
 
-// Dates are sent unchanged: YYYY-MM-DD, or "YYYY-MM-DD HH:mm:ss" where the API takes a time
 export class YazioApi {
   readonly http: YazioHttp;
 
@@ -67,7 +65,7 @@ export class YazioApi {
 
   createProduct = (product: CreateProductDto) => this.http.request('POST', '/user/products', { body: product });
 
-  /** Any recipe: the user's own or a Yazio recipe (e.g. recipe_id of a consumed recipe portion) */
+  /** The user's own recipes and Yazio recipes */
   getRecipe = (id: string) =>
     this.http.request('GET', `/recipes/${encodeURIComponent(id)}`, { schema: S.RecipeSchema });
 

@@ -1,9 +1,4 @@
-// Adapted from the schemas in https://github.com/juriadams/yazio (master) by Juri Adams and its
-// contributors, which are tested against the live API. Changes:
-// - Objects are loose: fields the API adds later pass through.
-// - No format checks (uuid, email, url, length): they add nothing for this server and break on edge cases.
-// - Product minerals and vitamins are optional: custom products only have the nutrients they were created with.
-// - Fields only seen on v20 (type and is_ai_generated of recipe portions and simple products) are optional.
+// Adapted from the schemas in https://github.com/juriadams/yazio by Juri Adams and its contributors.
 import * as z from 'zod';
 
 export const DaytimeSchema = z.enum(['breakfast', 'lunch', 'dinner', 'snack']);

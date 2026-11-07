@@ -810,7 +810,6 @@ Example:
     const client = await this.ensureAuthenticated();
 
     try {
-      // The date is sent as is, so "YYYY-MM-DD HH:mm:ss" keeps the time of the entry
       const { serving, serving_quantity, ...item } = args;
       const product =
         serving !== undefined && serving_quantity !== undefined
