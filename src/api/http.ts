@@ -1,12 +1,12 @@
 // Based on https://github.com/juriadams/yazio by Juri Adams and its contributors,
-// who reverse-engineered the endpoints and the auth flow. Thank you!
+// who reverse-engineered the endpoints and the auth flow.
 import * as z from 'zod';
 import { TokenResponseSchema } from './schemas.js';
 
 export const API_BASE_URL = 'https://yzapi.yazio.com/v15';
 
 // Default client id/secret of the Yazio apps, taken from juriadams/yazio
-// (https://github.com/juriadams/yazio/blob/main/src/utils/constants.ts). Thanks!
+// (https://github.com/juriadams/yazio/blob/main/src/utils/constants.ts).
 export const DEFAULT_CLIENT_ID = '1_4hiybetvfksgw40o0sog4s884kwc840wwso8go4k8c04goo4c';
 export const DEFAULT_CLIENT_SECRET = '6rok2m65xuskgkgogw40wkkk8sw0osg84s8cggsc4woos4s8o';
 

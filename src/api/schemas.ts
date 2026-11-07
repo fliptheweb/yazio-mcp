@@ -1,5 +1,5 @@
 // Adapted from the schemas in https://github.com/juriadams/yazio (master) by Juri Adams and its
-// contributors, which are tested against the live API. Thank you! Changes:
+// contributors, which are tested against the live API. Changes:
 // - Objects are loose: fields the API adds later pass through.
 // - No format checks (uuid, email, url, length): they add nothing for this server and break on edge cases.
 // - Product nutrients are a record: custom products only have the nutrients they were created with.

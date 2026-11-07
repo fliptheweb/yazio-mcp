@@ -1,4 +1,4 @@
-// Endpoints are based on https://github.com/juriadams/yazio by Juri Adams and its contributors. Thank you!
+// Endpoints are based on https://github.com/juriadams/yazio by Juri Adams and its contributors.
 import { YazioHttp, type Credentials, type YazioHttpOptions } from './http.js';
 import * as S from './schemas.js';
 import type { AddConsumedItemsDto, CreateProductDto, Daytime, ProductSearchOptions, WaterIntakeEntry } from './types.js';
