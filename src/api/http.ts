@@ -141,8 +141,9 @@ export class YazioHttp {
       throw new YazioApiError('POST', '/oauth/token', response.status, response.statusText, '');
     }
     const result = TokenResponseSchema.safeParse(await response.json());
-    // Don't include the issues: they can contain the token values
-    if (!result.success) throw new Error('POST /oauth/token returned an unexpected response');
+    if (!result.success) {
+      throw new Error(`POST /oauth/token returned an unexpected response:\n${z.prettifyError(result.error)}`);
+    }
     const { token_type, access_token, refresh_token, expires_in } = result.data;
     return { token_type, access_token, refresh_token, expires_in, expires_at: Date.now() + expires_in * 1000 };
   }

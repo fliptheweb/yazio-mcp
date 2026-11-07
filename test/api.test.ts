@@ -172,11 +172,15 @@ test('login errors do not leak the response body', async () => {
   await assert.rejects(api.getUser(), (error: unknown) => error instanceof Error && !error.message.includes('user@example.com'));
 });
 
-test('a token response without access_token is rejected without echoing it', async () => {
+test('a token response without access_token names the field without echoing the tokens', async () => {
   const { api } = mockApi((c) =>
     c.url.endsWith('/oauth/token') ? json({ token_type: 'bearer', refresh_token: 'secret-refresh', expires_in: 3600 }) : undefined,
   );
-  await assert.rejects(api.getUser(), (error: unknown) => error instanceof Error && !error.message.includes('secret-refresh'));
+  await assert.rejects(
+    api.getUser(),
+    (error: unknown) =>
+      error instanceof Error && error.message.includes('access_token') && !error.message.includes('secret-refresh'),
+  );
 });
 
 test('responses are validated: extra fields pass, mismatches are logged and passed on', async () => {
