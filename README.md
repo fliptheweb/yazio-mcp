@@ -135,6 +135,13 @@ YAZIO_USERNAME='your_email' YAZIO_PASSWORD='your_password' npx yazio-mcp
 ```
 YAZIO_USERNAME=X YAZIO_PASSWORD=X npx -y @modelcontextprotocol/inspector npx <local-path>/yazio-mcp
 ```
+
+## Releasing
+
+Publishing a GitHub Release publishes the package. Release Drafter keeps a stable and a beta draft up to date.
+
+- **Beta:** publish the beta draft (tag `vX.Y.Z-beta.N`, marked as pre-release). It goes to npm `beta`: `npx yazio-mcp@beta`.
+- **Stable:** run `npm run release:prepare -- X.Y.Z`, commit and merge, then publish the stable draft with tag `vX.Y.Z`. It goes to npm `latest` and the MCP Registry.
 ---
 
 ## 📄 License
