@@ -2,7 +2,7 @@
 // contributors, which are tested against the live API. Changes:
 // - Objects are loose: fields the API adds later pass through.
 // - No format checks (uuid, email, url, length): they add nothing for this server and break on edge cases.
-// - Product nutrients are a record: custom products only have the nutrients they were created with.
+// - Product minerals and vitamins are optional: custom products only have the nutrients they were created with.
 // - Fields only seen on v20 (type and is_ai_generated of recipe portions and simple products) are optional.
 import * as z from 'zod';
 
@@ -15,6 +15,30 @@ export const BasicNutrientsSchema = z.looseObject({
   'nutrient.carb': z.number(),
   'nutrient.protein': z.number(),
   'nutrient.fat': z.number(),
+});
+
+// Values per 1 g/ml of the base unit
+export const ProductNutrientsSchema = BasicNutrientsSchema.extend({
+  'mineral.calcium': z.number().optional(),
+  'mineral.chlorine': z.number().optional(),
+  'mineral.copper': z.number().optional(),
+  'mineral.fluorine': z.number().optional(),
+  'mineral.iron': z.number().optional(),
+  'mineral.magnesium': z.number().optional(),
+  'mineral.manganese': z.number().optional(),
+  'mineral.phosphorus': z.number().optional(),
+  'mineral.potassium': z.number().optional(),
+  'mineral.sulfur': z.number().optional(),
+  'mineral.zinc': z.number().optional(),
+  'nutrient.dietaryfiber': z.number().optional(),
+  'nutrient.sugar': z.number().optional(),
+  'vitamin.a': z.number().optional(),
+  'vitamin.b1': z.number().optional(),
+  'vitamin.b12': z.number().optional(),
+  'vitamin.b2': z.number().optional(),
+  'vitamin.b6': z.number().optional(),
+  'vitamin.d': z.number().optional(),
+  'vitamin.e': z.number().optional(),
 });
 
 export const TokenResponseSchema = z.looseObject({
@@ -229,7 +253,7 @@ export const ProductSchema = z.looseObject({
   has_ean: z.boolean(),
   category: z.string(),
   producer: z.string().nullable(),
-  nutrients: NutrientsSchema,
+  nutrients: ProductNutrientsSchema,
   updated_at: z.string(),
   servings: z.array(z.looseObject({ serving: z.string(), amount: z.number() })),
   base_unit: z.string(),
