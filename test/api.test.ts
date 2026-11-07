@@ -1,7 +1,7 @@
 // Offline tests for src/api with a mocked fetch. Run: npm test
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { YazioApi, YazioApiError, API_BASE_URL } from '../src/api/index.js';
+import { YazioApi, YazioApiError, API_BASE_URL, DEFAULT_CLIENT_ID, DEFAULT_CLIENT_SECRET } from '../src/api/index.js';
 
 interface Call {
   method: string;
@@ -56,6 +56,34 @@ test('logs in with the password grant once and reuses the token', async () => {
     { grant_type: 'password', username: 'user@example.com', password: 'secret', client_id: undefined, client_secret: undefined },
   );
   assert.equal(apiCalls()[1].headers.Authorization, 'Bearer access-1');
+});
+
+test('login uses the default OAuth client unless one is given', async () => {
+  const defaults = mockApi();
+  await defaults.api.removeConsumedItems(['x']);
+  assert.deepEqual(
+    [(defaults.tokenCalls()[0].body as Record<string, string>).client_id, (defaults.tokenCalls()[0].body as Record<string, string>).client_secret],
+    [DEFAULT_CLIENT_ID, DEFAULT_CLIENT_SECRET],
+  );
+
+  const tokens: unknown[] = [];
+  const custom = new YazioApi(
+    { username: 'u', password: 'p', clientId: 'my-id', clientSecret: 'my-secret' },
+    {
+      fetch: (async (input: string | URL | Request, init: RequestInit = {}) => {
+        if (String(input).endsWith('/oauth/token')) {
+          tokens.push(JSON.parse(String(init.body)));
+          return tokenResponse(1);
+        }
+        return new Response(null, { status: 204 });
+      }) as typeof fetch,
+    },
+  );
+  await custom.removeConsumedItems(['x']);
+  assert.deepEqual(
+    [(tokens[0] as Record<string, string>).client_id, (tokens[0] as Record<string, string>).client_secret],
+    ['my-id', 'my-secret'],
+  );
 });
 
 test('concurrent requests share one login', async () => {

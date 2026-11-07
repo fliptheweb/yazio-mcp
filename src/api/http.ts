@@ -6,10 +6,11 @@ import { TokenResponseSchema } from './schemas.js';
 
 export const API_BASE_URL = 'https://yzapi.yazio.com/v15';
 
-// OAuth client id/secret of the Yazio apps, taken from juriadams/yazio
+// Default OAuth client id/secret of the Yazio apps, taken from juriadams/yazio
 // (https://github.com/juriadams/yazio/blob/main/src/utils/constants.ts). Thanks!
-const CLIENT_ID = '1_4hiybetvfksgw40o0sog4s884kwc840wwso8go4k8c04goo4c';
-const CLIENT_SECRET = '6rok2m65xuskgkgogw40wkkk8sw0osg84s8cggsc4woos4s8o';
+// The server lets YAZIO_CLIENT_ID / YAZIO_CLIENT_SECRET override them.
+export const DEFAULT_CLIENT_ID = '1_4hiybetvfksgw40o0sog4s884kwc840wwso8go4k8c04goo4c';
+export const DEFAULT_CLIENT_SECRET = '6rok2m65xuskgkgogw40wkkk8sw0osg84s8cggsc4woos4s8o';
 
 // Renew the token a bit before it expires, so a request doesn't race the expiry
 const EXPIRY_MARGIN_MS = 60_000;
@@ -18,6 +19,9 @@ const MAX_ERROR_BODY_LENGTH = 1000;
 export interface Credentials {
   username: string;
   password: string;
+  /** OAuth client of the Yazio app; defaults to DEFAULT_CLIENT_ID / DEFAULT_CLIENT_SECRET */
+  clientId?: string;
+  clientSecret?: string;
 }
 
 export interface Token {
@@ -134,7 +138,11 @@ export class YazioHttp {
     const response = await this.fetch(`${API_BASE_URL}/oauth/token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ client_id: CLIENT_ID, client_secret: CLIENT_SECRET, ...grant }),
+      body: JSON.stringify({
+        client_id: this.credentials.clientId ?? DEFAULT_CLIENT_ID,
+        client_secret: this.credentials.clientSecret ?? DEFAULT_CLIENT_SECRET,
+        ...grant,
+      }),
     });
     if (!response.ok) {
       // Don't echo the body: it can repeat the submitted credentials

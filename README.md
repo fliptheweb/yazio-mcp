@@ -116,6 +116,8 @@ Easily log meals you forgot to track in the Yazio app directly from Claude or Cu
 YAZIO_USERNAME='your_email' YAZIO_PASSWORD='your_password' npx yazio-mcp
 ```
 
+Optional: `YAZIO_CLIENT_ID` and `YAZIO_CLIENT_SECRET` override the OAuth client of the Yazio app. A built-in default is used when they're not set.
+
 ## ⚠️ Important Disclaimers
 
 - **Unofficial API**: This uses a [reverse-engineered API](https://github.com/juriadams/yazio) that may break
