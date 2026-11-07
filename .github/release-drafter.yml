@@ -1,0 +1,51 @@
+name-template: 'v$RESOLVED_VERSION'
+tag-template: 'v$RESOLVED_VERSION'
+change-template: '- $TITLE (#$NUMBER) $AUTHORS'
+change-title-escapes: '\<*_&'
+template: |
+  ## Changes
+
+  $CHANGES
+
+categories:
+  - title: '💥 Breaking Changes'
+    semver-increment: major
+    when:
+      label: 'breaking'
+  - title: '🚀 Features'
+    semver-increment: minor
+    when:
+      label: 'feature'
+  - title: '🐛 Fixes'
+    when:
+      label: 'fix'
+  - title: '📝 Documentation'
+    when:
+      label: 'documentation'
+  - title: '🧰 Maintenance'
+    when:
+      label: 'maintenance'
+  - type: 'pre-exclude'
+    when:
+      label: 'skip-changelog'
+  - type: 'version-resolver'
+    semver-increment: 'patch'
+
+# Labels from Conventional Commit PR titles, e.g. "feat: ...", "fix(api): ...", "refactor!: ..."
+sync-labels: true
+autolabeler:
+  - labels: ['breaking']
+    title:
+      - '/^[a-z]+(\([^)]*\))?!:/'
+  - labels: ['feature']
+    title:
+      - '/^feat(\([^)]*\))?!?:/'
+  - labels: ['fix']
+    title:
+      - '/^fix(\([^)]*\))?!?:/'
+  - labels: ['documentation']
+    title:
+      - '/^docs(\([^)]*\))?!?:/'
+  - labels: ['maintenance']
+    title:
+      - '/^(chore|refactor|perf|test|ci|build|style|revert)(\([^)]*\))?!?:/'

@@ -1,10 +1,10 @@
 name: Publish to NPM and MCP Registry
 
+# Publishing a GitHub Release publishes the package. Its tag (vX.Y.Z or vX.Y.Z-beta.N) is the version.
+# A pre-release goes to the npm `beta` dist-tag and skips the MCP Registry.
 on:
-  push:
-    tags:
-      - 'v*'
-  workflow_dispatch:
+  release:
+    types: [published]
 
 jobs:
   publish:
@@ -12,18 +12,53 @@ jobs:
     permissions:
       contents: write
       id-token: write
+    env:
+      TAG: ${{ github.event.release.tag_name }}
+      PRERELEASE: ${{ github.event.release.prerelease }}
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.release.tag_name }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: "24.x"
 
       - name: Install dependencies
         run: npm ci
+
+      # A stable release must be tagged on its release commit (npm run release:prepare -- X.Y.Z).
+      # A beta gets its version from the tag, without a commit.
+      - name: Check or set the version
+        run: |
+          VERSION="${TAG#v}"
+          if [ "$PRERELEASE" = "true" ]; then
+            if [[ "$VERSION" != *-* ]]; then
+              echo "::error::A pre-release needs a pre-release version like v1.2.3-beta.1, got $TAG"
+              exit 1
+            fi
+            # Also runs the "version" script, which copies the version into manifest.json and server.json
+            npm version "$VERSION" --no-git-tag-version --allow-same-version
+          else
+            if [[ "$VERSION" == *-* ]]; then
+              echo "::error::$TAG is a pre-release version; mark the GitHub Release as a pre-release"
+              exit 1
+            fi
+            for found in \
+              "package.json $(node -p 'require("./package.json").version')" \
+              "manifest.json $(node -p 'require("./manifest.json").version')" \
+              "server.json $(node -p 'require("./server.json").version')" \
+              "server.json(package) $(node -p 'require("./server.json").packages[0].version')"; do
+              if [ "${found#* }" != "$VERSION" ]; then
+                echo "::error::${found% *} has version ${found#* }, but the release is $TAG. Merge a release commit first: npm run release:prepare -- $VERSION"
+                exit 1
+              fi
+            done
+          fi
+
       - name: Run linting
         run: npm run lint
       - name: Run type check
@@ -34,30 +69,37 @@ jobs:
         run: npm run build
 
       - name: Publish to NPM
-        run: npm publish --access public --provenance
+        run: npm publish --access public --provenance --tag "${{ github.event.release.prerelease && 'beta' || 'latest' }}"
+
+      # Keeps `@beta` from staying on an older beta than the stable release.
+      # Trusted publishing may cover only `npm publish`; then run this by hand.
+      - name: Point the beta dist-tag at the stable release
+        if: ${{ !github.event.release.prerelease }}
+        continue-on-error: true
+        run: npm dist-tag add "$(node -p 'require("./package.json").name')@${TAG#v}" beta
 
       - name: Pack MCPB bundle
         run: npm run pack:mcpb
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          generate_release_notes: true
-          files: |
-            yazio-mcp.mcpb
-            yazio-mcp.zip
+      - name: Attach MCPB bundle to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$TAG" yazio-mcp.mcpb yazio-mcp.zip --clobber
 
       - name: Install MCP Publisher
+        if: ${{ !github.event.release.prerelease }}
         continue-on-error: true
         run: |
           curl -L "https://github.com/modelcontextprotocol/registry/releases/download/v1.7.9/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
 
       - name: Login to MCP Registry
+        if: ${{ !github.event.release.prerelease }}
         continue-on-error: true
         run: ./mcp-publisher login github-oidc
 
       # The registry rejects the publish until npm serves the new version, which takes a short time after npm publish.
       - name: Publish to MCP Registry
+        if: ${{ !github.event.release.prerelease }}
         continue-on-error: true
         uses: nick-fields/retry@v4
         with:

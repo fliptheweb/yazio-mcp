@@ -37,6 +37,7 @@
     "format": "prettier --write src/**/*.ts",
     "type-check": "tsc --noEmit",
     "test": "tsx --test test/*.test.ts",
+    "release:prepare": "npm version --no-git-tag-version",
     "version": "node scripts/bump-version.cjs && git add manifest.json server.json"
   },
   "keywords": [
