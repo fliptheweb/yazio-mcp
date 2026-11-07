@@ -1,5 +1,4 @@
-// Based on https://github.com/juriadams/yazio by Juri Adams and its contributors,
-// who reverse-engineered the endpoints and the auth flow.
+// Based on https://github.com/juriadams/yazio by Juri Adams and its contributors.
 import * as z from 'zod';
 import { TokenResponseSchema } from './schemas.js';
 
@@ -90,7 +89,6 @@ export class YazioHttp {
     const result = options.schema.safeParse(data);
     if (result.success) return result.data;
 
-    // The schemas are reverse-engineered: a mismatch shouldn't break the tool, so log it and pass the data on
     console.error(`⚠️ ${method} ${path} returned an unexpected response shape:\n${z.prettifyError(result.error)}`);
     return data as T;
   }
