@@ -15,7 +15,6 @@ export type YazioProductSearchResult = z.infer<typeof S.ProductSearchResultsSche
 export type YazioProduct = z.infer<typeof S.ProductSchema>;
 export type YazioRecipe = z.infer<typeof S.RecipeSchema>;
 
-
 export type Daytime = z.infer<typeof S.DaytimeSchema>;
 
 /** "YYYY-MM-DD" or "YYYY-MM-DD HH:mm:ss" (local time, sent as is) */
