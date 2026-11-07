@@ -1,5 +1,5 @@
 // Endpoints are based on https://github.com/juriadams/yazio by Juri Adams and its contributors.
-import { YazioHttp, type Credentials, type YazioHttpOptions } from './http.js';
+import { API_V20_BASE_URL, YazioHttp, type Credentials, type YazioHttpOptions } from './http.js';
 import * as S from './schemas.js';
 import type { AddConsumedItemsDto, CreateProductDto, Daytime, ProductSearchOptions, WaterIntakeEntry } from './types.js';
 
@@ -67,9 +67,11 @@ export class YazioApi {
 
   /** The user's own recipes and Yazio recipes */
   getRecipe = (id: string) =>
-    this.http.request('GET', `/recipes/${encodeURIComponent(id)}`, { schema: S.RecipeSchema });
+    this.http.request('GET', `/recipes/${encodeURIComponent(id)}`, { schema: S.RecipeSchema, baseUrl: API_V20_BASE_URL });
 
-  getUserRecipeIds = () => this.http.request('GET', '/user/recipes', { schema: S.RecipeIdsSchema });
+  getUserRecipeIds = () =>
+    this.http.request('GET', '/user/recipes', { schema: S.RecipeIdsSchema, baseUrl: API_V20_BASE_URL });
 
-  deleteUserRecipe = (id: string) => this.http.request('DELETE', `/user/recipes/${encodeURIComponent(id)}`);
+  deleteUserRecipe = (id: string) =>
+    this.http.request('DELETE', `/user/recipes/${encodeURIComponent(id)}`, { baseUrl: API_V20_BASE_URL });
 }

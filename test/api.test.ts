@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { YazioApi, YazioApiError, API_BASE_URL, DEFAULT_CLIENT_ID, DEFAULT_CLIENT_SECRET } from '../src/api/index.js';
+import { YazioApi, YazioApiError, API_BASE_URL, API_V20_BASE_URL, DEFAULT_CLIENT_ID, DEFAULT_CLIENT_SECRET } from '../src/api/index.js';
 
 interface Call {
   method: string;
@@ -83,6 +83,30 @@ test('login uses the default client id/secret unless one is given', async () => 
     [(tokens[0] as Record<string, string>).client_id, (tokens[0] as Record<string, string>).client_secret],
     ['my-id', 'my-secret'],
   );
+});
+
+test('recipe endpoints use v20 with the same token, everything else v15', async () => {
+  const { api, apiCalls, tokenCalls } = mockApi((c) => {
+    if (c.url.endsWith('/user/recipes')) return json([]);
+    if (c.url.includes('/recipes/')) return json({});
+    return undefined;
+  });
+  const consoleError = console.error;
+  console.error = () => {};
+  try {
+    await api.getUserRecipeIds();
+    await api.getRecipe('r1');
+    await api.removeConsumedItems(['x']);
+  } finally {
+    console.error = consoleError;
+  }
+  assert.deepEqual(
+    apiCalls().map((c) => c.url),
+    [`${API_V20_BASE_URL}/user/recipes`, `${API_V20_BASE_URL}/recipes/r1`, `${API_BASE_URL}/user/consumed-items`],
+  );
+  assert.equal(tokenCalls().length, 1);
+  assert.equal(tokenCalls()[0].url, `${API_BASE_URL}/oauth/token`);
+  assert.deepEqual(new Set(apiCalls().map((c) => c.headers.Authorization)), new Set(['Bearer access-1']));
 });
 
 test('concurrent requests share one login', async () => {
@@ -274,5 +298,5 @@ test('write bodies', async () => {
   assert.equal(water.url, `${API_BASE_URL}/user/water-intake`);
   assert.deepEqual(water.body, [{ date: '2026-11-06 12:00:00', water_intake: 750 }]);
   assert.equal(deleteRecipe.method, 'DELETE');
-  assert.equal(deleteRecipe.url, `${API_BASE_URL}/user/recipes/r1`);
+  assert.equal(deleteRecipe.url, `${API_V20_BASE_URL}/user/recipes/r1`);
 });
