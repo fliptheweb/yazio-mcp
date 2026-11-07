@@ -1,18 +1,21 @@
-// HTTP transport and OAuth for the Yazio API (unofficial).
-// Client id/secret are the public ones of the Yazio apps, same as in the `yazio` npm package.
+// Based on https://github.com/juriadams/yazio by Juri Adams and its contributors.
+import * as z from 'zod';
+import { TokenResponseSchema } from './schemas.js';
 
-export const YAZIO_API_BASE_URL = 'https://yzapi.yazio.com/v15';
+export const API_BASE_URL = 'https://yzapi.yazio.com/v15';
 
-const CLIENT_ID = '1_4hiybetvfksgw40o0sog4s884kwc840wwso8go4k8c04goo4c';
-const CLIENT_SECRET = '6rok2m65xuskgkgogw40wkkk8sw0osg84s8cggsc4woos4s8o';
+// From https://github.com/juriadams/yazio/blob/main/src/utils/constants.ts
+export const DEFAULT_CLIENT_ID = '1_4hiybetvfksgw40o0sog4s884kwc840wwso8go4k8c04goo4c';
+export const DEFAULT_CLIENT_SECRET = '6rok2m65xuskgkgogw40wkkk8sw0osg84s8cggsc4woos4s8o';
 
-// Renew the token a bit before it expires, so a request doesn't race the expiry
 const EXPIRY_MARGIN_MS = 60_000;
 const MAX_ERROR_BODY_LENGTH = 1000;
 
 export interface Credentials {
   username: string;
   password: string;
+  clientId?: string;
+  clientSecret?: string;
 }
 
 export interface Token {
@@ -20,19 +23,19 @@ export interface Token {
   access_token: string;
   refresh_token: string;
   expires_in: number;
-  /** Epoch ms, computed locally from expires_in */
+  /** Epoch ms */
   expires_at: number;
 }
 
 export type QueryValue = string | number | boolean | undefined;
 
-export interface RequestOptions {
+export interface RequestOptions<T> {
   query?: Record<string, QueryValue>;
   body?: unknown;
+  schema?: z.ZodType<T>;
 }
 
 export interface YazioHttpOptions {
-  baseUrl?: string;
   fetch?: typeof fetch;
 }
 
@@ -51,20 +54,17 @@ export class YazioApiError extends Error {
 }
 
 export class YazioHttp {
-  private readonly baseUrl: string;
   private readonly fetch: typeof fetch;
   private token: Token | null = null;
-  // Concurrent tool calls share one login/refresh instead of starting several
   private pendingToken: Promise<Token> | null = null;
   private readonly credentials: Credentials;
 
   constructor(credentials: Credentials, options: YazioHttpOptions = {}) {
     this.credentials = credentials;
-    this.baseUrl = options.baseUrl ?? YAZIO_API_BASE_URL;
     this.fetch = options.fetch ?? globalThis.fetch;
   }
 
-  async request<T>(method: string, path: string, options: RequestOptions = {}): Promise<T> {
+  async request<T = void>(method: string, path: string, options: RequestOptions<T> = {}): Promise<T> {
     const url = this.buildUrl(path, options.query);
     let token = await this.authenticate();
     let response = await this.send(method, url, token, options.body);
@@ -80,9 +80,15 @@ export class YazioHttp {
       throw new YazioApiError(method, path, response.status, response.statusText, await response.text());
     }
 
-    // Writes answer with 204 or an empty body
+    if (!options.schema) return undefined as T;
+
     const text = await response.text();
-    return (text ? JSON.parse(text) : undefined) as T;
+    const data: unknown = text ? JSON.parse(text) : undefined;
+    const result = options.schema.safeParse(data);
+    if (result.success) return result.data;
+
+    console.error(`⚠️ ${method} ${path} returned an unexpected response shape:\n${z.prettifyError(result.error)}`);
+    return data as T;
   }
 
   async authenticate(): Promise<Token> {
@@ -102,13 +108,13 @@ export class YazioHttp {
   }
 
   private async renewToken(): Promise<Token> {
-    if (this.token?.refresh_token) {
-      try {
-        this.token = await this.requestToken({ grant_type: 'refresh_token', refresh_token: this.token.refresh_token });
-        return this.token;
-      } catch {
-        // Refresh token expired or revoked: log in with the password below
-      }
+    const refreshToken = this.token?.refresh_token;
+    const refreshed = refreshToken
+      ? await this.requestToken({ grant_type: 'refresh_token', refresh_token: refreshToken }).catch(() => null)
+      : null;
+    if (refreshed) {
+      this.token = refreshed;
+      return refreshed;
     }
     this.token = await this.requestToken({
       grant_type: 'password',
@@ -119,17 +125,27 @@ export class YazioHttp {
   }
 
   private async requestToken(grant: Record<string, string>): Promise<Token> {
-    const response = await this.fetch(`${this.baseUrl}/oauth/token`, {
+    const response = await this.fetch(`${API_BASE_URL}/oauth/token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ client_id: CLIENT_ID, client_secret: CLIENT_SECRET, ...grant }),
+      body: JSON.stringify({
+        client_id: this.credentials.clientId ?? DEFAULT_CLIENT_ID,
+        client_secret: this.credentials.clientSecret ?? DEFAULT_CLIENT_SECRET,
+        ...grant,
+      }),
     });
     if (!response.ok) {
       // Don't echo the body: it can repeat the submitted credentials
       throw new YazioApiError('POST', '/oauth/token', response.status, response.statusText, '');
     }
-    const token = (await response.json()) as Omit<Token, 'expires_at'>;
-    return { ...token, expires_at: Date.now() + token.expires_in * 1000 };
+    const data: unknown = await response.json();
+    const result = TokenResponseSchema.safeParse(data);
+    if (!result.success) {
+      console.error(`⚠️ POST /oauth/token returned an unexpected response shape:\n${z.prettifyError(result.error)}`);
+    }
+    const token = (result.success ? result.data : data) as Omit<Token, 'expires_at'>;
+    // Without a numeric expires_in the token counts as expired, so the next call logs in again
+    return { ...token, expires_at: Date.now() + Number(token.expires_in) * 1000 };
   }
 
   private send(method: string, url: string, token: Token, body: unknown): Promise<Response> {
@@ -143,7 +159,7 @@ export class YazioHttp {
   }
 
   private buildUrl(path: string, query?: Record<string, QueryValue>): string {
-    const url = new URL(`${this.baseUrl}${path}`);
+    const url = new URL(`${API_BASE_URL}${path}`);
     for (const [key, value] of Object.entries(query ?? {})) {
       if (value !== undefined) url.searchParams.set(key, String(value));
     }

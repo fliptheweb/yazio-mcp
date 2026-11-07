@@ -13,6 +13,9 @@ import {
   GetWaterIntakeInputSchema,
   SearchProductsInputSchema,
   GetProductInputSchema,
+  GetRecipeInputSchema,
+  GetUserRecipesInputSchema,
+  DeleteUserRecipeInputSchema,
   GetUserExercisesInputSchema,
   GetUserSettingsInputSchema,
   GetUserSuggestedProductsInputSchema,
@@ -28,6 +31,8 @@ import {
   type GetWaterIntakeInput,
   type SearchProductsInput,
   type GetProductInput,
+  type GetRecipeInput,
+  type DeleteUserRecipeInput,
   type GetUserExercisesInput,
   type GetUserSuggestedProductsInput,
   type AddConsumedItemInput,
@@ -68,7 +73,12 @@ class YazioMcpServer {
     }
 
     try {
-      this.yazioClient = new YazioApi({ username, password });
+      this.yazioClient = new YazioApi({
+        username,
+        password,
+        clientId: process.env.YAZIO_CLIENT_ID || undefined,
+        clientSecret: process.env.YAZIO_CLIENT_SECRET || undefined,
+      });
       // Test the connection
       await this.yazioClient.getUser();
       console.error('✅ Successfully authenticated with Yazio using environment variables');
@@ -268,6 +278,52 @@ class YazioMcpServer {
       },
       async (args: GetProductInput) => {
         return await this.getProduct(args);
+      }
+    );
+
+    this.server.registerTool(
+      'get_recipe',
+      {
+        description: 'Get a recipe by ID with its ingredients, portion count and nutrients per portion. Use it to resolve recipe_id of recipe portions in get_user_consumed_items.',
+        inputSchema: GetRecipeInputSchema,
+        annotations: {
+          readOnlyHint: true,
+          idempotentHint: true,
+        },
+      },
+      async (args: GetRecipeInput) => {
+        return await this.getRecipe(args);
+      }
+    );
+
+    this.server.registerTool(
+      'get_user_recipes',
+      {
+        description: "Get the user's own recipes with their ingredients and nutrients",
+        inputSchema: GetUserRecipesInputSchema,
+        annotations: {
+          readOnlyHint: true,
+          idempotentHint: true,
+        },
+      },
+      async () => {
+        return await this.getUserRecipes();
+      }
+    );
+
+    this.server.registerTool(
+      'delete_user_recipe',
+      {
+        description: "Permanently delete one of the user's own recipes. It can't be restored or recreated through this server, so confirm with the user first.",
+        inputSchema: DeleteUserRecipeInputSchema,
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: true,
+          idempotentHint: true,
+        },
+      },
+      async (args: DeleteUserRecipeInput) => {
+        return await this.deleteUserRecipe(args);
       }
     );
 
@@ -633,6 +689,65 @@ Example:
     }
   }
 
+  private async getRecipe(args: GetRecipeInput) {
+    const client = await this.ensureAuthenticated();
+
+    try {
+      const recipe = await client.getRecipe(args.id);
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Recipe "${recipe.name}":\n\n${JSON.stringify(recipe, null, 2)}`,
+          },
+        ],
+      };
+    } catch (error) {
+      throw new Error(`Failed to get recipe: ${error}`);
+    }
+  }
+
+  private async getUserRecipes() {
+    const client = await this.ensureAuthenticated();
+
+    try {
+      // The API only lists IDs, so load each recipe
+      const ids = await client.getUserRecipeIds();
+      const recipes = await Promise.all(ids.map((id) => client.getRecipe(id)));
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `User recipes (${recipes.length}):\n\n${JSON.stringify(recipes, null, 2)}`,
+          },
+        ],
+      };
+    } catch (error) {
+      throw new Error(`Failed to get user recipes: ${error}`);
+    }
+  }
+
+  private async deleteUserRecipe(args: DeleteUserRecipeInput) {
+    const client = await this.ensureAuthenticated();
+
+    try {
+      await client.deleteUserRecipe(args.id);
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Successfully deleted recipe with ID: ${args.id}`,
+          },
+        ],
+      };
+    } catch (error) {
+      throw new Error(`Failed to delete recipe: ${error}`);
+    }
+  }
+
   private async getUserExercises(args: GetUserExercisesInput) {
     const client = await this.ensureAuthenticated();
 
@@ -695,8 +810,12 @@ Example:
     const client = await this.ensureAuthenticated();
 
     try {
-      // The date is sent as is, so "YYYY-MM-DD HH:mm:ss" keeps the time of the entry
-      await client.addConsumedItems({ products: [{ ...args, id: uuidv4() }] });
+      const { serving, serving_quantity, ...item } = args;
+      const product =
+        serving !== undefined && serving_quantity !== undefined
+          ? { ...item, id: uuidv4(), serving, serving_quantity }
+          : { ...item, id: uuidv4() };
+      await client.addConsumedItems({ products: [product] });
 
       return {
         content: [
@@ -801,7 +920,7 @@ Example:
 
     try {
       await client.addWaterIntake([{
-        date: args.date, // Already in "YYYY-MM-DD HH:mm:ss" format
+        date: args.date,
         water_intake: args.water_intake,
       }]);
 

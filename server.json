@@ -28,6 +28,20 @@
           "format": "string",
           "isSecret": true,
           "name": "YAZIO_PASSWORD"
+        },
+        {
+          "description": "Client id of the Yazio app (optional, a built-in default is used)",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": true,
+          "name": "YAZIO_CLIENT_ID"
+        },
+        {
+          "description": "Client secret of the Yazio app (optional, a built-in default is used)",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": true,
+          "name": "YAZIO_CLIENT_SECRET"
         }
       ]
     }
