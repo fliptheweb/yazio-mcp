@@ -46,7 +46,7 @@ export class YazioApi {
       body: { products: [], simple_products: [], recipe_portions: [], ...items },
     });
 
-  /** Works for products, simple products and recipe portions */
+  /** Verified for products and simple products; presumably the same for recipe portions */
   removeConsumedItems = (ids: string[]) => this.http.request('DELETE', '/user/consumed-items', { body: ids });
 
   getWaterIntake = (date: string) =>

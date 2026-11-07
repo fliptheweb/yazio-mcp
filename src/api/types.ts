@@ -35,6 +35,7 @@ export type ConsumedProductDto =
   | (ConsumedProductBase & { serving: string; serving_quantity: number })
   | (ConsumedProductBase & { serving?: undefined; serving_quantity?: undefined });
 
+// Inferred: products and simple products are sent with the fields GET /user/consumed-items returns
 export interface ConsumedRecipePortionDto {
   id: string;
   recipe_id: string;

@@ -38,7 +38,8 @@
     { "name": "add_user_water_intake", "description": "Add water intake entry" },
     { "name": "remove_user_consumed_item", "description": "Remove food from log" },
     { "name": "create_product", "description": "Create a custom product" },
-    { "name": "add_quick_entry", "description": "Log a quick entry with total nutrition, without a product" }
+    { "name": "add_quick_entry", "description": "Log a quick entry with total nutrition, without a product" },
+    { "name": "add_user_consumed_recipe", "description": "Log portions of a recipe" }
   ],
   "user_config": {
     "YAZIO_USERNAME": {

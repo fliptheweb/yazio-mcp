@@ -258,10 +258,18 @@ test('write bodies', async () => {
     simple_products: [{ id: 'q1', date: '2026-11-06 12:30:00', daytime: 'lunch', name: 'Soup', nutrients: { 'energy.energy': 200 } }],
   });
   await api.removeConsumedItems(['q1']);
+  await api.addConsumedItems({
+    recipe_portions: [{ id: 'p1', recipe_id: 'r1', date: '2026-11-06 19:00:00', daytime: 'dinner', portion_count: 0.5 }],
+  });
   await api.addWaterIntake([{ date: '2026-11-06 12:00:00', water_intake: 750 }]);
   await api.deleteUserRecipe('r1');
 
-  const [add, remove, water, deleteRecipe] = apiCalls();
+  const [add, remove, addRecipe, water, deleteRecipe] = apiCalls();
+  assert.deepEqual(addRecipe.body, {
+    products: [],
+    simple_products: [],
+    recipe_portions: [{ id: 'p1', recipe_id: 'r1', date: '2026-11-06 19:00:00', daytime: 'dinner', portion_count: 0.5 }],
+  });
   assert.equal(add.method, 'POST');
   assert.deepEqual(add.body, {
     products: [],
