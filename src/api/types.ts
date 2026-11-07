@@ -23,17 +23,15 @@ export type YazioDateTime = string;
 /** "YYYY-MM-DD HH:mm:ss" */
 export type DateTimeString = `${string}-${string}-${string} ${string}:${string}:${string}`;
 
-interface ConsumedProductBase {
+export interface ConsumedProductDto {
   id: string;
   product_id: string;
   date: YazioDateTime;
   daytime: Daytime;
   amount: number;
+  serving?: string;
+  serving_quantity?: number;
 }
-
-export type ConsumedProductDto =
-  | (ConsumedProductBase & { serving: string; serving_quantity: number })
-  | (ConsumedProductBase & { serving?: undefined; serving_quantity?: undefined });
 
 export interface ConsumedRecipePortionDto {
   id: string;
