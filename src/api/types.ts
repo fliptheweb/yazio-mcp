@@ -15,7 +15,6 @@ export type YazioProductSearchResult = z.infer<typeof S.ProductSearchResultsSche
 export type YazioProduct = z.infer<typeof S.ProductSchema>;
 export type YazioRecipe = z.infer<typeof S.RecipeSchema>;
 
-// Request bodies follow the API models of the Yazio Android app.
 
 export type Daytime = z.infer<typeof S.DaytimeSchema>;
 
