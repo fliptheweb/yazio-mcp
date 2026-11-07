@@ -1,5 +1,13 @@
 import * as z from "zod";
-import { DaytimeSchema, ProductCategorySchema, ServingNameSchema } from './api/schemas.js';
+import {
+  DailySummarySchema,
+  DaytimeSchema,
+  GoalsSchema,
+  ProductCategorySchema,
+  ProductSchema,
+  ProductSearchResultsSchema,
+  ServingNameSchema,
+} from './api/schemas.js';
 import type { DateTimeString } from './api/types.js';
 
 export { DaytimeSchema, ProductCategorySchema, ServingNameSchema };
@@ -36,22 +44,27 @@ export const GetUserWeightInputSchema = z.object({
 });
 export const GetWaterIntakeInputSchema = DateInputSchema;
 export const SearchProductsInputSchema = QueryInputSchema;
-export const SearchProductsOutputSchema = z.object({
-  products: z.array(z.object({
-    score: z.number(),
-    name: z.string(),
-    product_id: ProductIdSchema,
-    serving: ServingTypeSchema,
-    serving_quantity: z.number(),
-    amount: z.number(),
-    base_unit: z.enum(['g', 'ml']).describe('Base unit: grams (g) or milliliters (ml)'),
-    producer: z.string().nullable().describe('Producer name'),
-    is_verified: z.boolean(),
-    nutrients: z.record(z.string(), z.number()).describe('Nutrients object with keys like energy.energy, nutrient.carb, etc.'),
-    countries: z.array(z.string()).describe('Array of country codes (e.g. ["US", "DE"])'),
-    language: z.string().describe('Language code (e.g. "en", "de")'),
-  })),
-});
+// The SDK fails a tool call whose structuredContent doesn't match its outputSchema, while API
+// responses that don't match their schema are only logged. Output schemas therefore accept any field
+// as missing or null and enums as any string.
+function lenient(schema: z.ZodType): z.ZodType {
+  if (schema instanceof z.ZodOptional || schema instanceof z.ZodNullable) return lenient(schema.unwrap() as z.ZodType);
+  if (schema instanceof z.ZodObject) {
+    const shape = Object.fromEntries(
+      Object.entries(schema.shape as Record<string, z.ZodType>).map(([key, field]) => [key, lenient(field).nullish()]),
+    );
+    return z.looseObject(shape);
+  }
+  if (schema instanceof z.ZodArray) return z.array(lenient(schema.element as z.ZodType));
+  if (schema instanceof z.ZodRecord) return z.record(z.string(), lenient(schema.valueType as z.ZodType).nullish());
+  if (schema instanceof z.ZodEnum) return z.string();
+  return schema;
+}
+
+export const SearchProductsOutputSchema = z.object({ products: lenient(ProductSearchResultsSchema) });
+export const GetProductOutputSchema = lenient(ProductSchema);
+export const GetUserGoalsOutputSchema = lenient(GoalsSchema);
+export const GetUserDailySummaryOutputSchema = lenient(DailySummarySchema);
 export const GetProductInputSchema = z.object({
   id: ProductIdSchema.describe('Product ID to get details for')
 });
@@ -94,7 +107,10 @@ export const RemoveConsumedItemInputSchema = z.object({
 });
 export const AddWaterIntakeInputSchema = z.object({
   date: DateTimeStringSchema.describe('Date and time in format "YYYY-MM-DD HH:mm:ss" (e.g., "2025-12-18 12:00:00"); a date without time is rejected by the API'),
-  water_intake: z.number().int().nonnegative().describe('Cumulative water intake in milliliters (ml)')
+  add_ml: z.number().int().positive().optional().describe('Amount of water to add, in ml. The server reads the current daily total and adds this to it. Preferred. Provide this or water_intake.'),
+  water_intake: z.number().int().nonnegative().optional().describe('Absolute daily total in ml. Use it to correct the day\'s total, e.g. after a wrong entry (0 is allowed). Provide this or add_ml.'),
+}).refine((args) => (args.add_ml === undefined) !== (args.water_intake === undefined), {
+  message: 'Provide either add_ml or water_intake',
 });
 const ExtraNutrientsSchema = z
   .record(z.string().regex(/^(nutrient|mineral|vitamin)\.[a-z0-9]+$/), z.number().nonnegative())
