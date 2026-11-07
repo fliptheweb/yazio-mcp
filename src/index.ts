@@ -810,7 +810,12 @@ Example:
     const client = await this.ensureAuthenticated();
 
     try {
-      await client.addConsumedItems({ products: [{ ...args, id: uuidv4() }] });
+      const { serving, serving_quantity, ...item } = args;
+      const product =
+        serving !== undefined && serving_quantity !== undefined
+          ? { ...item, id: uuidv4(), serving, serving_quantity }
+          : { ...item, id: uuidv4() };
+      await client.addConsumedItems({ products: [product] });
 
       return {
         content: [

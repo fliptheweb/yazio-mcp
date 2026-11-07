@@ -84,6 +84,8 @@ export const AddConsumedItemInputSchema = z.object({
   amount: z.number().describe('Amount of the product consumed in base units (g or ml)'),
   serving: ServingTypeSchema.optional(),
   serving_quantity: z.number().optional().describe('Quantity of servings')
+}).refine((args) => (args.serving === undefined) === (args.serving_quantity === undefined), {
+  message: 'Pass serving and serving_quantity together, or neither',
 });
 export const RemoveConsumedItemInputSchema = z.object({
   itemId: ItemIdSchema.describe('ID of the consumed item to remove')
