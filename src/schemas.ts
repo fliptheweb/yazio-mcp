@@ -108,7 +108,7 @@ export const RemoveConsumedItemInputSchema = z.object({
 export const AddWaterIntakeInputSchema = z.object({
   date: DateTimeStringSchema.describe('Date and time in format "YYYY-MM-DD HH:mm:ss" (e.g., "2025-12-18 12:00:00"); a date without time is rejected by the API'),
   add_ml: z.number().int().positive().optional().describe('Amount of water to add, in ml. The server reads the current daily total and adds this to it. Preferred. Provide this or water_intake.'),
-  water_intake: z.number().int().nonnegative().optional().describe('Absolute daily total in ml, when the exact new total is known. Provide this or add_ml.'),
+  water_intake: z.number().int().nonnegative().optional().describe('Absolute daily total in ml. Use it to correct the day\'s total, e.g. after a wrong entry (0 is allowed). Provide this or add_ml.'),
 }).refine((args) => (args.add_ml === undefined) !== (args.water_intake === undefined), {
   message: 'Provide either add_ml or water_intake',
 });

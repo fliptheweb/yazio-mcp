@@ -416,7 +416,7 @@ class YazioMcpServer {
       'add_user_water_intake',
       {
         title: 'Add Water Intake',
-        description: 'Log water intake at a date and time ("YYYY-MM-DD HH:mm:ss"). Pass add_ml (the amount drunk): the server reads the current daily total and adds to it. Or pass water_intake as the new absolute daily total in ml.',
+        description: 'Log water intake at a date and time ("YYYY-MM-DD HH:mm:ss"). Pass add_ml (the amount drunk): the server reads the current daily total and adds to it. To correct the day\'s total, pass water_intake as the corrected absolute total in ml.',
         inputSchema: AddWaterIntakeInputSchema,
         annotations: {
           readOnlyHint: false,
@@ -624,7 +624,7 @@ Example:
 
 The server reads the day's current total and adds \`add_ml\` to it, so there is no need to fetch or compute the total yourself.
 
-If the exact new daily total is known, pass \`water_intake\` (the absolute total in ml) instead of \`add_ml\`. Provide one of the two, not both.
+To correct the day's total, e.g. after a wrong entry, pass \`water_intake\` with the corrected absolute total in ml (0 is allowed) instead of \`add_ml\`. Provide one of the two, not both.
 
 **Example**: the user says "I drank 250ml of water" → \`{ date: "2025-12-18 12:00:00", add_ml: 250 }\`. If the day's total was 500 ml, it becomes 750 ml.`
               }
