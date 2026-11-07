@@ -34,6 +34,8 @@ import {
   type GetRecipeInput,
   type DeleteUserRecipeInput,
   type GetUserExercisesInput,
+  type GetUserGoalsInput,
+  type GetUserWeightInput,
   type GetUserSuggestedProductsInput,
   type AddConsumedItemInput,
   type RemoveConsumedItemInput,
@@ -167,8 +169,8 @@ class YazioMcpServer {
           idempotentHint: true,
         },
       },
-      async () => {
-        return await this.getUserGoals();
+      async (args: GetUserGoalsInput) => {
+        return await this.getUserGoals(args);
       }
     );
 
@@ -228,8 +230,8 @@ class YazioMcpServer {
           idempotentHint: true,
         },
       },
-      async () => {
-        return await this.getUserWeight();
+      async (args: GetUserWeightInput) => {
+        return await this.getUserWeight(args);
       }
     );
 
@@ -611,12 +613,12 @@ Example:
     }
   }
 
-  private async getUserWeight() {
+  private async getUserWeight(args: GetUserWeightInput) {
     const client = await this.ensureAuthenticated();
 
     try {
       // The API returns the last weight entry up to a date, not a range
-      const weight = await client.getLastWeight();
+      const weight = await client.getLastWeight(args.date);
 
       return {
         content: [
@@ -956,11 +958,11 @@ Example:
     }
   }
 
-  private async getUserGoals() {
+  private async getUserGoals(args: GetUserGoalsInput) {
     const client = await this.ensureAuthenticated();
 
     try {
-      const goals = await client.getGoals();
+      const goals = await client.getGoals(args.date);
 
       return {
         content: [

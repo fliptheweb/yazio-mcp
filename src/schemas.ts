@@ -31,7 +31,9 @@ export const EmptyInputSchema = z.object({});
 export const GetFoodEntriesInputSchema = DateInputSchema;
 export const GetDailySummaryInputSchema = DateInputSchema;
 export const GetUserInfoInputSchema = EmptyInputSchema;
-export const GetUserWeightInputSchema = EmptyInputSchema; // Yazio getWeight doesn't accept parameters
+export const GetUserWeightInputSchema = z.object({
+  date: DateStringSchema.optional().describe('Returns the last weight entry up to this date (defaults to today)')
+});
 export const GetWaterIntakeInputSchema = DateInputSchema;
 export const SearchProductsInputSchema = QueryInputSchema;
 export const SearchProductsOutputSchema = z.object({
@@ -129,7 +131,9 @@ export const AddQuickEntryInputSchema = z.object({
   extra_nutrients: ExtraNutrientsSchema,
 });
 export const GetDietaryPreferencesInputSchema = EmptyInputSchema;
-export const GetUserGoalsInputSchema = EmptyInputSchema;
+export const GetUserGoalsInputSchema = z.object({
+  date: DateStringSchema.optional().describe('Date to get the goals for (defaults to today)')
+});
 
 export type Daytime = z.infer<typeof DaytimeSchema>;
 export type GetFoodEntriesInput = z.infer<typeof GetFoodEntriesInputSchema>;
