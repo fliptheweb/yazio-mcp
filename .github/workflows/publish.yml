@@ -30,19 +30,34 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Set version from the release tag
+      # A stable release must be tagged on its release commit (npm run release:prepare -- X.Y.Z).
+      # A beta gets its version from the tag, without a commit.
+      - name: Check or set the version
         run: |
           VERSION="${TAG#v}"
-          if [ "$PRERELEASE" = "true" ] && [[ "$VERSION" != *-* ]]; then
-            echo "::error::A pre-release needs a pre-release version like v1.2.3-beta.1, got $TAG"
-            exit 1
+          if [ "$PRERELEASE" = "true" ]; then
+            if [[ "$VERSION" != *-* ]]; then
+              echo "::error::A pre-release needs a pre-release version like v1.2.3-beta.1, got $TAG"
+              exit 1
+            fi
+            # Also runs the "version" script, which copies the version into manifest.json and server.json
+            npm version "$VERSION" --no-git-tag-version --allow-same-version
+          else
+            if [[ "$VERSION" == *-* ]]; then
+              echo "::error::$TAG is a pre-release version; mark the GitHub Release as a pre-release"
+              exit 1
+            fi
+            for found in \
+              "package.json $(node -p 'require("./package.json").version')" \
+              "manifest.json $(node -p 'require("./manifest.json").version')" \
+              "server.json $(node -p 'require("./server.json").version')" \
+              "server.json(package) $(node -p 'require("./server.json").packages[0].version')"; do
+              if [ "${found#* }" != "$VERSION" ]; then
+                echo "::error::${found% *} has version ${found#* }, but the release is $TAG. Merge a release commit first: npm run release:prepare -- $VERSION"
+                exit 1
+              fi
+            done
           fi
-          if [ "$PRERELEASE" != "true" ] && [[ "$VERSION" == *-* ]]; then
-            echo "::error::$TAG is a pre-release version; mark the GitHub Release as a pre-release"
-            exit 1
-          fi
-          # Also runs the "version" script, which copies the version into manifest.json and server.json
-          npm version "$VERSION" --no-git-tag-version --allow-same-version
 
       - name: Run linting
         run: npm run lint
