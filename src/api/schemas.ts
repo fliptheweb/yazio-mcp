@@ -1,7 +1,6 @@
-// Zod schemas for Yazio API responses (v15).
 // Adapted from the schemas in https://github.com/juriadams/yazio (master) by Juri Adams and its
 // contributors, which are tested against the live API. Thank you! Changes:
-// - Objects are loose: fields the API adds later pass through instead of failing the call.
+// - Objects are loose: fields the API adds later pass through.
 // - No format checks (uuid, email, url, length): they add nothing for this server and break on edge cases.
 // - Product nutrients are a record: custom products only have the nutrients they were created with.
 // - Fields only seen on v20 (type and is_ai_generated of recipe portions and simple products) are optional.
@@ -9,7 +8,6 @@ import * as z from 'zod';
 
 export const DaytimeSchema = z.enum(['breakfast', 'lunch', 'dinner', 'snack']);
 
-/** Nutrient values keyed by Yazio nutrient key, e.g. "energy.energy", "nutrient.protein" */
 export const NutrientsSchema = z.record(z.string(), z.number());
 
 export const BasicNutrientsSchema = z.looseObject({
@@ -19,16 +17,12 @@ export const BasicNutrientsSchema = z.looseObject({
   'nutrient.fat': z.number(),
 });
 
-// Auth
-
 export const TokenResponseSchema = z.looseObject({
   token_type: z.string(),
   access_token: z.string().min(1),
   refresh_token: z.string().min(1),
   expires_in: z.number().positive(),
 });
-
-// User
 
 export const UserSchema = z.looseObject({
   diet: z
@@ -173,8 +167,6 @@ export const WaterIntakeSchema = z.looseObject({
   source: z.string().nullable(),
 });
 
-// Diary
-
 const ConsumedProductSchema = z.looseObject({
   id: z.string(),
   date: z.string(),
@@ -211,8 +203,6 @@ export const ConsumedItemsSchema = z.looseObject({
   simple_products: z.array(ConsumedSimpleProductSchema),
 });
 
-// Products
-
 export const ProductSearchResultsSchema = z.array(
   z.looseObject({
     score: z.number(),
@@ -247,8 +237,6 @@ export const ProductSchema = z.looseObject({
   language: z.string(),
   countries: z.array(z.string()),
 });
-
-// Recipes
 
 export const RecipeSchema = z.looseObject({
   id: z.string(),

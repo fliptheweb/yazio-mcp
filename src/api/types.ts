@@ -1,4 +1,3 @@
-// Types of Yazio API responses (inferred from ./schemas.ts) and request bodies.
 import type * as z from 'zod';
 import type * as S from './schemas.js';
 
@@ -16,7 +15,7 @@ export type YazioProductSearchResult = z.infer<typeof S.ProductSearchResultsSche
 export type YazioProduct = z.infer<typeof S.ProductSchema>;
 export type YazioRecipe = z.infer<typeof S.RecipeSchema>;
 
-// Request bodies. Shapes follow the API models of the Yazio Android app.
+// Request bodies follow the API models of the Yazio Android app.
 
 export type Daytime = z.infer<typeof S.DaytimeSchema>;
 
@@ -59,9 +58,16 @@ export interface CreateProductDto {
   producer: string | null;
 }
 
+/**
+ * POST /user/water-intake, found in https://github.com/juriadams/yazio/issues/3:
+ * - the body is a bare array of entries, not wrapped in an object;
+ * - `date` must include the time ("YYYY-MM-DD HH:mm:ss"), a date alone is rejected;
+ * - `water_intake` is a number in ml (not "250ml") and cumulative: the day's total at that time,
+ *   so the last entry of a day is its total.
+ */
 export interface WaterIntakeEntry {
-  date: string; // "YYYY-MM-DD HH:mm:ss"
-  water_intake: number; // Cumulative water intake of the day in ml
+  date: string;
+  water_intake: number;
 }
 
 export interface ProductSearchOptions {

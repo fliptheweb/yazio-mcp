@@ -76,7 +76,6 @@ class YazioMcpServer {
       this.yazioClient = new YazioApi({
         username,
         password,
-        // Optional: override the OAuth client of the Yazio app (empty means default)
         clientId: process.env.YAZIO_CLIENT_ID || undefined,
         clientSecret: process.env.YAZIO_CLIENT_SECRET || undefined,
       });

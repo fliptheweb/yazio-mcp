@@ -1,4 +1,3 @@
-// HTTP transport and OAuth for the Yazio API (unofficial).
 // Based on https://github.com/juriadams/yazio by Juri Adams and its contributors,
 // who reverse-engineered the endpoints and the auth flow. Thank you!
 import * as z from 'zod';
@@ -8,18 +7,15 @@ export const API_BASE_URL = 'https://yzapi.yazio.com/v15';
 
 // Default OAuth client id/secret of the Yazio apps, taken from juriadams/yazio
 // (https://github.com/juriadams/yazio/blob/main/src/utils/constants.ts). Thanks!
-// The server lets YAZIO_CLIENT_ID / YAZIO_CLIENT_SECRET override them.
 export const DEFAULT_CLIENT_ID = '1_4hiybetvfksgw40o0sog4s884kwc840wwso8go4k8c04goo4c';
 export const DEFAULT_CLIENT_SECRET = '6rok2m65xuskgkgogw40wkkk8sw0osg84s8cggsc4woos4s8o';
 
-// Renew the token a bit before it expires, so a request doesn't race the expiry
 const EXPIRY_MARGIN_MS = 60_000;
 const MAX_ERROR_BODY_LENGTH = 1000;
 
 export interface Credentials {
   username: string;
   password: string;
-  /** OAuth client of the Yazio app; defaults to DEFAULT_CLIENT_ID / DEFAULT_CLIENT_SECRET */
   clientId?: string;
   clientSecret?: string;
 }
@@ -38,12 +34,10 @@ export type QueryValue = string | number | boolean | undefined;
 export interface RequestOptions<T> {
   query?: Record<string, QueryValue>;
   body?: unknown;
-  /** Expected shape of the JSON response; requests without a schema return nothing */
   schema?: z.ZodType<T>;
 }
 
 export interface YazioHttpOptions {
-  /** Replaces the global fetch, for tests */
   fetch?: typeof fetch;
 }
 
@@ -123,7 +117,7 @@ export class YazioHttp {
         this.token = await this.requestToken({ grant_type: 'refresh_token', refresh_token: this.token.refresh_token });
         return this.token;
       } catch {
-        // Refresh token expired or revoked: log in with the password below
+        // Expired or revoked: fall back to the password
       }
     }
     this.token = await this.requestToken({

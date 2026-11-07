@@ -1,4 +1,3 @@
-// Offline tests for src/api with a mocked fetch. Run: npm test
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { YazioApi, YazioApiError, API_BASE_URL, DEFAULT_CLIENT_ID, DEFAULT_CLIENT_SECRET } from '../src/api/index.js';

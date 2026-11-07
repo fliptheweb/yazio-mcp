@@ -1,4 +1,3 @@
-// Yazio API client: one typed method per endpoint.
 // Endpoints are based on https://github.com/juriadams/yazio by Juri Adams and its contributors. Thank you!
 import { YazioHttp, type Credentials, type YazioHttpOptions } from './http.js';
 import * as S from './schemas.js';
@@ -11,18 +10,13 @@ export const today = (): string => {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 };
 
-/**
- * Typed wrapper for the Yazio API endpoints this server uses.
- * Dates are passed as YYYY-MM-DD (or "YYYY-MM-DD HH:mm:ss" where the API takes a time) and sent unchanged.
- */
+// Dates are sent unchanged: YYYY-MM-DD, or "YYYY-MM-DD HH:mm:ss" where the API takes a time
 export class YazioApi {
   readonly http: YazioHttp;
 
   constructor(credentials: Credentials, options?: YazioHttpOptions) {
     this.http = new YazioHttp(credentials, options);
   }
-
-  // User
 
   getUser = () => this.http.request('GET', '/user', { schema: S.UserSchema });
 
@@ -46,8 +40,6 @@ export class YazioApi {
   getSuggestedProducts = (daytime: Daytime, date = today()) =>
     this.http.request('GET', '/user/products/suggested', { query: { date, daytime }, schema: S.SuggestedProductsSchema });
 
-  // Diary
-
   getConsumedItems = (date: string) =>
     this.http.request('GET', '/user/consumed-items', { query: { date }, schema: S.ConsumedItemsSchema });
 
@@ -59,15 +51,10 @@ export class YazioApi {
   /** Works for products, simple products and recipe portions */
   removeConsumedItems = (ids: string[]) => this.http.request('DELETE', '/user/consumed-items', { body: ids });
 
-  // Water
-
   getWaterIntake = (date: string) =>
     this.http.request('GET', '/user/water-intake', { query: { date }, schema: S.WaterIntakeSchema });
 
-  /** Each entry is the cumulative total of the day at that time */
   addWaterIntake = (entries: WaterIntakeEntry[]) => this.http.request('POST', '/user/water-intake', { body: entries });
-
-  // Products
 
   searchProducts = ({ query, sex, countries, locales }: ProductSearchOptions) =>
     this.http.request('GET', '/products/search', {
@@ -85,13 +72,10 @@ export class YazioApi {
 
   createProduct = (product: CreateProductDto) => this.http.request('POST', '/user/products', { body: product });
 
-  // Recipes
-
   /** Any recipe: the user's own or a Yazio recipe (e.g. recipe_id of a consumed recipe portion) */
   getRecipe = (id: string) =>
     this.http.request('GET', `/recipes/${encodeURIComponent(id)}`, { schema: S.RecipeSchema });
 
-  /** IDs of the user's own recipes */
   getUserRecipeIds = () => this.http.request('GET', '/user/recipes', { schema: S.RecipeIdsSchema });
 
   deleteUserRecipe = (id: string) => this.http.request('DELETE', `/user/recipes/${encodeURIComponent(id)}`);

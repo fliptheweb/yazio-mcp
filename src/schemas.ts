@@ -66,8 +66,9 @@ export const GetUserSuggestedProductsInputSchema = z.object({
   limit: LimitSchema
 });
 // Consumption time: "YYYY-MM-DD HH:mm:ss" keeps the time, date only logs it at 00:00
+const DateTimeStringSchema = z.string().regex(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
 const ConsumedAtSchema = z
-  .union([DateStringSchema, z.string().regex(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)])
+  .union([DateStringSchema, DateTimeStringSchema])
   .describe('Date and time when the food was consumed in "YYYY-MM-DD HH:mm:ss" format (e.g., "2025-12-18 12:30:00"), or date only in YYYY-MM-DD format');
 
 export const AddConsumedItemInputSchema = z.object({
@@ -83,7 +84,7 @@ export const RemoveConsumedItemInputSchema = z.object({
   itemId: ItemIdSchema.describe('ID of the consumed item to remove')
 });
 export const AddWaterIntakeInputSchema = z.object({
-  date: z.string().describe('Date and time in format "YYYY-MM-DD HH:mm:ss" (e.g., "2025-12-18 12:00:00")'),
+  date: DateTimeStringSchema.describe('Date and time in format "YYYY-MM-DD HH:mm:ss" (e.g., "2025-12-18 12:00:00"); a date without time is rejected by the API'),
   water_intake: z.number().describe('Cumulative water intake in milliliters (ml)')
 });
 export const ProductCategorySchema = z.enum([
