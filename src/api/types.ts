@@ -20,6 +20,9 @@ export type Daytime = z.infer<typeof S.DaytimeSchema>;
 /** "YYYY-MM-DD" or "YYYY-MM-DD HH:mm:ss" (local time, sent as is) */
 export type YazioDateTime = string;
 
+/** "YYYY-MM-DD HH:mm:ss" */
+export type DateTimeString = `${string}-${string}-${string} ${string}:${string}:${string}`;
+
 interface ConsumedProductBase {
   id: string;
   product_id: string;
@@ -74,7 +77,7 @@ export interface CreateProductDto {
  *   so the last entry of a day is its total.
  */
 export interface WaterIntakeEntry {
-  date: string;
+  date: DateTimeString;
   water_intake: number;
 }
 

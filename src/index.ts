@@ -920,7 +920,7 @@ Example:
 
     try {
       await client.addWaterIntake([{
-        date: args.date, // Already in "YYYY-MM-DD HH:mm:ss" format
+        date: args.date,
         water_intake: args.water_intake,
       }]);
 
