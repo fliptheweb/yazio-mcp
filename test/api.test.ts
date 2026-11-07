@@ -57,7 +57,7 @@ test('logs in with the password grant once and reuses the token', async () => {
   assert.equal(apiCalls()[1].headers.Authorization, 'Bearer access-1');
 });
 
-test('login uses the default OAuth client unless one is given', async () => {
+test('login uses the default client id/secret unless one is given', async () => {
   const defaults = mockApi();
   await defaults.api.removeConsumedItems(['x']);
   assert.deepEqual(

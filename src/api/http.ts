@@ -5,7 +5,7 @@ import { TokenResponseSchema } from './schemas.js';
 
 export const API_BASE_URL = 'https://yzapi.yazio.com/v15';
 
-// Default OAuth client id/secret of the Yazio apps, taken from juriadams/yazio
+// Default client id/secret of the Yazio apps, taken from juriadams/yazio
 // (https://github.com/juriadams/yazio/blob/main/src/utils/constants.ts). Thanks!
 export const DEFAULT_CLIENT_ID = '1_4hiybetvfksgw40o0sog4s884kwc840wwso8go4k8c04goo4c';
 export const DEFAULT_CLIENT_SECRET = '6rok2m65xuskgkgogw40wkkk8sw0osg84s8cggsc4woos4s8o';
