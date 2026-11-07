@@ -3,8 +3,6 @@ import * as z from 'zod';
 import { TokenResponseSchema } from './schemas.js';
 
 export const API_BASE_URL = 'https://yzapi.yazio.com/v15';
-// For endpoints only known from v20; assumes the token from the v15 login is accepted there
-export const API_V20_BASE_URL = 'https://yzapi.yazio.com/v20';
 
 // From https://github.com/juriadams/yazio/blob/main/src/utils/constants.ts
 export const DEFAULT_CLIENT_ID = '1_4hiybetvfksgw40o0sog4s884kwc840wwso8go4k8c04goo4c';
@@ -35,7 +33,6 @@ export interface RequestOptions<T> {
   query?: Record<string, QueryValue>;
   body?: unknown;
   schema?: z.ZodType<T>;
-  baseUrl?: typeof API_BASE_URL | typeof API_V20_BASE_URL;
 }
 
 export interface YazioHttpOptions {
@@ -68,7 +65,7 @@ export class YazioHttp {
   }
 
   async request<T = void>(method: string, path: string, options: RequestOptions<T> = {}): Promise<T> {
-    const url = this.buildUrl(options.baseUrl ?? API_BASE_URL, path, options.query);
+    const url = this.buildUrl(path, options.query);
     let token = await this.authenticate();
     let response = await this.send(method, url, token, options.body);
 
@@ -161,8 +158,8 @@ export class YazioHttp {
     });
   }
 
-  private buildUrl(baseUrl: string, path: string, query?: Record<string, QueryValue>): string {
-    const url = new URL(`${baseUrl}${path}`);
+  private buildUrl(path: string, query?: Record<string, QueryValue>): string {
+    const url = new URL(`${API_BASE_URL}${path}`);
     for (const [key, value] of Object.entries(query ?? {})) {
       if (value !== undefined) url.searchParams.set(key, String(value));
     }
