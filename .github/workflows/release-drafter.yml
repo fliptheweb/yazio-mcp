@@ -1,0 +1,42 @@
+name: Release Drafter
+
+on:
+  push:
+    branches:
+      - master
+  # pull_request_target so that pull requests from forks get labels too. It doesn't check out the PR's code.
+  pull_request_target:
+    types: [opened, reopened, synchronize, edited]
+
+permissions:
+  contents: read
+
+jobs:
+  update_release_draft:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
+    steps:
+      - uses: release-drafter/release-drafter@v7
+
+  update_beta_release_draft:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
+    steps:
+      - uses: release-drafter/release-drafter@v7
+        with:
+          prerelease: true
+          prerelease-identifier: beta
+
+  auto_label:
+    if: github.event_name == 'pull_request_target'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: release-drafter/release-drafter/autolabeler@v7
