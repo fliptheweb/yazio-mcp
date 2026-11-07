@@ -120,6 +120,12 @@ export const CreateProductInputSchema = z.object({
     .describe('Named servings, e.g. [{"serving": "slice", "amount": 25}]'),
   is_private: z.boolean().default(true).describe('Private products are visible only to this user'),
 });
+export const AddConsumedRecipeInputSchema = z.object({
+  recipe_id: z.uuid().describe('Recipe ID from get_user_recipes, or recipe_id of an earlier recipe portion in get_user_consumed_items'),
+  date: ConsumedAtSchema,
+  daytime: DaytimeSchema.describe('Type of meal (breakfast, lunch, dinner, snack)'),
+  portion_count: z.number().positive().describe('Number of portions eaten, e.g. 1 or 0.5'),
+});
 export const AddQuickEntryInputSchema = z.object({
   name: z.string().min(1).describe('Entry name, e.g. "Тартин Pinch"'),
   date: ConsumedAtSchema,
@@ -155,3 +161,4 @@ export type GetDietaryPreferencesInput = z.infer<typeof GetDietaryPreferencesInp
 export type GetUserGoalsInput = z.infer<typeof GetUserGoalsInputSchema>;
 export type CreateProductInput = z.infer<typeof CreateProductInputSchema>;
 export type AddQuickEntryInput = z.infer<typeof AddQuickEntryInputSchema>;
+export type AddConsumedRecipeInput = z.infer<typeof AddConsumedRecipeInputSchema>;

@@ -35,6 +35,15 @@ export type ConsumedProductDto =
   | (ConsumedProductBase & { serving: string; serving_quantity: number })
   | (ConsumedProductBase & { serving?: undefined; serving_quantity?: undefined });
 
+// Inferred: products and simple products are sent with the fields GET /user/consumed-items returns
+export interface ConsumedRecipePortionDto {
+  id: string;
+  recipe_id: string;
+  date: YazioDateTime;
+  daytime: Daytime;
+  portion_count: number;
+}
+
 export interface ConsumedSimpleProductDto {
   id: string;
   date: YazioDateTime;
@@ -46,7 +55,7 @@ export interface ConsumedSimpleProductDto {
 export interface AddConsumedItemsDto {
   products?: ConsumedProductDto[];
   simple_products?: ConsumedSimpleProductDto[];
-  recipe_portions?: unknown[];
+  recipe_portions?: ConsumedRecipePortionDto[];
 }
 
 export interface CreateProductDto {

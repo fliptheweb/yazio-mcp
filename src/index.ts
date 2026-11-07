@@ -26,6 +26,7 @@ import {
   GetUserGoalsInputSchema,
   CreateProductInputSchema,
   AddQuickEntryInputSchema,
+  AddConsumedRecipeInputSchema,
   type GetFoodEntriesInput,
   type GetDailySummaryInput,
   type GetWaterIntakeInput,
@@ -42,6 +43,7 @@ import {
   type AddWaterIntakeInput,
   type CreateProductInput,
   type AddQuickEntryInput,
+  type AddConsumedRecipeInput,
 } from './schemas.js';
 import { YazioApi } from './api/index.js';
 
@@ -406,6 +408,22 @@ class YazioMcpServer {
       },
       async (args: AddQuickEntryInput) => {
         return await this.addQuickEntry(args);
+      }
+    );
+
+    this.server.registerTool(
+      'add_user_consumed_recipe',
+      {
+        description: 'Log portions of a recipe to the diary. Shows up in get_user_consumed_items as recipe_portions. Use get_recipe for the nutrients per portion.',
+        inputSchema: AddConsumedRecipeInputSchema,
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: false,
+          idempotentHint: false,
+        },
+      },
+      async (args: AddConsumedRecipeInput) => {
+        return await this.addUserConsumedRecipe(args);
       }
     );
   }
@@ -895,6 +913,26 @@ Example:
       };
     } catch (error) {
       throw new Error(`Failed to add quick entry: ${error}`);
+    }
+  }
+
+  private async addUserConsumedRecipe(args: AddConsumedRecipeInput) {
+    const client = await this.ensureAuthenticated();
+
+    try {
+      const id = uuidv4();
+      await client.addConsumedItems({ recipe_portions: [{ ...args, id }] });
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Successfully added ${args.portion_count} portion(s) of recipe ${args.recipe_id} with id: ${id}`,
+          },
+        ],
+      };
+    } catch (error) {
+      throw new Error(`Failed to add recipe portion: ${error}`);
     }
   }
 
