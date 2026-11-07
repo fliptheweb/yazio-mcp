@@ -71,6 +71,13 @@ jobs:
       - name: Publish to NPM
         run: npm publish --access public --provenance --tag "${{ github.event.release.prerelease && 'beta' || 'latest' }}"
 
+      # Keeps `@beta` from staying on an older beta than the stable release.
+      # Trusted publishing may cover only `npm publish`; then run this by hand.
+      - name: Point the beta dist-tag at the stable release
+        if: ${{ !github.event.release.prerelease }}
+        continue-on-error: true
+        run: npm dist-tag add "$(node -p 'require("./package.json").name')@${TAG#v}" beta
+
       - name: Pack MCPB bundle
         run: npm run pack:mcpb
 
