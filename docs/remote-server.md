@@ -40,7 +40,65 @@ The remote server is one more entry point next to `src/index.ts`. It calls the s
 
 5. Build the remote server as a second esbuild entry point, for example `dist/remote.js`. Keep it out of `dist/index.js`, so the stdio package that users install with `npx` does not get bigger.
 
-6. Add a `Dockerfile` that runs `node dist/remote.js`, and a section in the README about deployment: the public URL, the port, the storage path and the environment variables. Put a reverse proxy with TLS in front of the server.
+6. Add a `Dockerfile` that runs `node dist/remote.js`, and a GitHub Actions job that publishes the image to `ghcr.io/fliptheweb/yazio-mcp-remote` on each release. The next section describes what a self-hoster must be able to do with that image.
+
+## Running it on your own infrastructure
+
+This is the target setup for a person who hosts the server for themselves, or for their family or team. The remote server must support it with no code changes. Write this section into the README when the server is released.
+
+### Requirements
+
+- A machine that can run Docker: a small VPS, a home server, or a container platform such as Fly.io or Railway.
+- A domain name with HTTPS, for example `https://yazio.example.com`. claude.ai connects only to HTTPS URLs that the internet can reach.
+- A persistent volume for the session data.
+
+### Configuration
+
+| Variable | Required | Meaning |
+|---|---|---|
+| `PUBLIC_URL` | Yes | The HTTPS URL that clients use, for example `https://yazio.example.com`. The OAuth metadata and redirects use it. |
+| `PORT` | No | The port inside the container. The default is `3000`. |
+| `DATA_DIR` | No | The directory for sessions and tokens. The default is `/data`. Mount a volume here. |
+| `SESSION_SECRET` | Yes | A random string that encrypts the stored Yazio tokens. Make one with `openssl rand -hex 32`. Keep it the same between restarts. |
+| `YAZIO_CLIENT_ID`, `YAZIO_CLIENT_SECRET` | No | The same optional overrides as the stdio server. |
+
+The server does not need a Yazio username or password in its configuration. Each user types their own Yazio login on the sign-in page.
+
+### Start the container
+
+```bash
+docker run -d --name yazio-mcp \
+  -p 127.0.0.1:3000:3000 \
+  -v yazio-mcp-data:/data \
+  -e PUBLIC_URL=https://yazio.example.com \
+  -e SESSION_SECRET="$(openssl rand -hex 32)" \
+  --restart unless-stopped \
+  ghcr.io/fliptheweb/yazio-mcp-remote:latest
+```
+
+The container listens on `127.0.0.1` only. Put a reverse proxy with TLS in front of it. For example, a Caddy configuration of two lines gets a certificate automatically:
+
+```
+yazio.example.com {
+  reverse_proxy 127.0.0.1:3000
+}
+```
+
+On a container platform, set the variables in the platform, attach a volume at `/data`, and use the HTTPS domain that the platform gives you as `PUBLIC_URL`.
+
+### Connect a client
+
+1. In claude.ai, open **Settings**, then **Connectors**, and add a custom connector with the URL `https://yazio.example.com/mcp`.
+2. Click **Connect**. The server shows its sign-in page.
+3. Type your Yazio email and password. The server exchanges them for a Yazio token and does not store the password.
+
+The connector then works in claude.ai, in Claude Desktop and in the mobile apps. Other MCP clients that support OAuth connect to the same URL.
+
+### Updates and data
+
+- To update, pull the new image and start the container again with the same volume and the same `SESSION_SECRET`. Users stay signed in.
+- To sign out all users, delete the volume.
+- Anyone who can reach the URL can sign in with a Yazio account. The server stores only the tokens of the users who sign in, and each user sees only their own data.
 
 ## Dependencies
 
@@ -54,4 +112,4 @@ If the remote server needs a library that esbuild cannot bundle (for example a n
 
 ## Publishing
 
-The remote server is a service that you deploy. Users connect to its URL, and they do not install it. So it does not need an npm package or an MCP Registry entry. Publish it only if self-hosters ask for an `npx` command, for example as a second `bin` in `yazio-mcp`.
+The remote server is a service that people deploy, so the Docker image is its release artifact. It does not need an npm package or an MCP Registry entry. Publish it to npm only if self-hosters ask for an `npx` command, for example as a second `bin` in `yazio-mcp`.

@@ -150,8 +150,6 @@ YAZIO_USERNAME='your_email' YAZIO_PASSWORD='your_password' npx yazio-mcp
 YAZIO_USERNAME=X YAZIO_PASSWORD=X npx -y @modelcontextprotocol/inspector npx <local-path>/yazio-mcp
 ```
 
-Tools, resources and prompts live in `src/server.ts` (`createServer`), and the stdio entry point is `src/index.ts`. To add a remote (HTTP) server, see [docs/remote-server.md](docs/remote-server.md).
-
 ## Releasing
 
 Publishing a GitHub Release publishes the package. Release Drafter keeps a stable and a beta draft up to date.
