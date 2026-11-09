@@ -1,7 +1,15 @@
 // Endpoints are based on https://github.com/juriadams/yazio by Juri Adams and its contributors.
 import { YazioHttp, type Credentials, type YazioHttpOptions } from './http.js';
 import * as S from './schemas.js';
-import type { AddConsumedItemsDto, CreateProductDto, Daytime, ProductSearchOptions, WaterIntakeEntry } from './types.js';
+import type {
+  AddConsumedItemsDto,
+  CreateProductDto,
+  CreateUserRecipeDto,
+  Daytime,
+  ProductSearchOptions,
+  WaterIntakeEntry,
+  YazioFeeling,
+} from './types.js';
 
 export const today = (): string => {
   const now = new Date();
@@ -72,4 +80,13 @@ export class YazioApi {
   getUserRecipeIds = () => this.http.request('GET', '/user/recipes', { schema: S.RecipeIdsSchema });
 
   deleteUserRecipe = (id: string) => this.http.request('DELETE', `/user/recipes/${encodeURIComponent(id)}`);
+
+  createUserRecipe = (recipe: CreateUserRecipeDto) => this.http.request('POST', '/user/recipes', { body: recipe });
+
+  /** The diary note and feeling tags of a day */
+  getFeeling = (date: string) => this.http.request('GET', '/user/feeling', { query: { date }, schema: S.FeelingSchema });
+
+  /** Replaces the day's note and tags; the API ignores a date in the body */
+  setFeeling = (date: string, feeling: YazioFeeling) =>
+    this.http.request('PUT', '/user/feeling', { query: { date }, body: feeling });
 }

@@ -14,6 +14,7 @@ export type YazioConsumedItems = z.infer<typeof S.ConsumedItemsSchema>;
 export type YazioProductSearchResult = z.infer<typeof S.ProductSearchResultsSchema>[number];
 export type YazioProduct = z.infer<typeof S.ProductSchema>;
 export type YazioRecipe = z.infer<typeof S.RecipeSchema>;
+export type YazioFeeling = z.infer<typeof S.FeelingSchema>;
 
 export type Daytime = z.infer<typeof S.DaytimeSchema>;
 
@@ -68,6 +69,25 @@ export interface CreateProductDto {
   nutrients: Record<string, number>;
   servings: { serving: z.infer<typeof S.ServingNameSchema>; amount: number }[];
   producer: string | null;
+}
+
+export interface CreateUserRecipeDto {
+  id: string;
+  name: string;
+  portion_count: number;
+  /** Per portion; energy.energy, nutrient.fat, nutrient.protein and nutrient.carb are required */
+  nutrients: Record<string, number>;
+  /** At least 2 */
+  servings: {
+    product_id: string;
+    name: string;
+    producer: string | null;
+    amount: number;
+    base_unit: string;
+    serving: string | null;
+    serving_quantity: number | null;
+  }[];
+  instructions: string[];
 }
 
 /**

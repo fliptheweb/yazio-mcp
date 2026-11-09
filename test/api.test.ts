@@ -284,3 +284,38 @@ test('write bodies', async () => {
   assert.equal(deleteRecipe.method, 'DELETE');
   assert.equal(deleteRecipe.url, `${API_BASE_URL}/user/recipes/r1`);
 });
+
+test('the diary note is read and replaced by date in the query', async () => {
+  const { api, apiCalls } = mockApi((c) => (c.method === 'GET' ? json({ note: 'bloated', tags: ['headache'] }) : undefined));
+
+  assert.deepEqual(await api.getFeeling('2026-11-09'), { note: 'bloated', tags: ['headache'] });
+  await api.setFeeling('2026-11-09', { note: null, tags: [] });
+
+  const [get, put] = apiCalls();
+  assert.equal(get.url, `${API_BASE_URL}/user/feeling?date=2026-11-09`);
+  assert.equal(put.method, 'PUT');
+  assert.equal(put.url, `${API_BASE_URL}/user/feeling?date=2026-11-09`);
+  assert.deepEqual(put.body, { note: null, tags: [] });
+});
+
+test('a user recipe is created with a client id', async () => {
+  const { api, apiCalls } = mockApi();
+  const recipe = {
+    id: 'r1',
+    name: 'Shake',
+    portion_count: 2,
+    nutrients: { 'energy.energy': 100, 'nutrient.fat': 1, 'nutrient.protein': 10, 'nutrient.carb': 5 },
+    servings: [
+      { product_id: 'p1', name: 'Milk', producer: null, amount: 300, base_unit: 'ml', serving: 'glass', serving_quantity: 1 },
+      { product_id: 'p2', name: 'Whey', producer: 'Bahs', amount: 30, base_unit: 'g', serving: null, serving_quantity: null },
+    ],
+    instructions: [],
+  };
+
+  await api.createUserRecipe(recipe);
+
+  const [create] = apiCalls();
+  assert.equal(create.method, 'POST');
+  assert.equal(create.url, `${API_BASE_URL}/user/recipes`);
+  assert.deepEqual(create.body, recipe);
+});

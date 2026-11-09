@@ -27,6 +27,9 @@ import {
   CreateProductInputSchema,
   AddQuickEntryInputSchema,
   AddConsumedRecipeInputSchema,
+  CreateUserRecipeInputSchema,
+  GetUserNoteInputSchema,
+  SetUserNoteInputSchema,
   SearchProductsOutputSchema,
   GetProductOutputSchema,
   GetUserGoalsOutputSchema,
@@ -48,6 +51,9 @@ import {
   type CreateProductInput,
   type AddQuickEntryInput,
   type AddConsumedRecipeInput,
+  type CreateUserRecipeInput,
+  type GetUserNoteInput,
+  type SetUserNoteInput,
 } from './schemas.js';
 import { YazioApi } from './api/index.js';
 
@@ -59,11 +65,13 @@ const SERVER_INSTRUCTIONS = `Access to the signed-in user's Yazio nutrition and 
 Conventions:
 - Dates are YYYY-MM-DD; diary and water entries also take "YYYY-MM-DD HH:mm:ss". Amounts are in base units, grams (g) or milliliters (ml).
 - daytime (meal) is one of: breakfast, lunch, dinner, snack.
-- get_* and search_products only read. add_*, create_product, remove_user_consumed_item and delete_user_recipe change the user's data.
+- get_* and search_products only read. add_*, create_*, set_user_note, remove_user_consumed_item and delete_user_recipe change the user's data.
 
 Logging food: search_products, then get_product for its servings and base unit, then add_user_consumed_item. For food that isn't in the database, use add_quick_entry for a one-off entry or create_product for something eaten again. For a recipe, use add_user_consumed_recipe.
 
 Water: add_user_water_intake with add_ml adds to the day's total.
+
+Notes: get_user_note reads the day's diary note and feeling tags, set_user_note changes them.
 
 Removing a diary entry: get_user_consumed_items gives the entry's id (not its product_id) for remove_user_consumed_item.`;
 
@@ -365,7 +373,7 @@ class YazioMcpServer {
       'delete_user_recipe',
       {
         title: 'Delete Recipe',
-        description: "Permanently delete one of the user's own recipes. It can't be restored or recreated through this server, so confirm with the user first.",
+        description: "Permanently delete one of the user's own recipes. It can't be restored, so confirm with the user first.",
         inputSchema: DeleteUserRecipeInputSchema,
         annotations: {
           readOnlyHint: false,
@@ -477,6 +485,56 @@ class YazioMcpServer {
       },
       async (args: AddConsumedRecipeInput) => {
         return await this.addUserConsumedRecipe(args);
+      }
+    );
+
+    server.registerTool(
+      'create_user_recipe',
+      {
+        title: 'Create Recipe',
+        description: 'Create a recipe from products and their amounts in the whole recipe. The nutrients per portion are calculated from the products. Returns the recipe ID for add_user_consumed_recipe.',
+        inputSchema: CreateUserRecipeInputSchema,
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: false,
+          idempotentHint: false,
+        },
+      },
+      async (args: CreateUserRecipeInput) => {
+        return await this.createUserRecipe(args);
+      }
+    );
+
+    server.registerTool(
+      'get_user_note',
+      {
+        title: 'Get Note',
+        description: "Get the user's diary note and feeling tags for a date (the Notes card in the Yazio diary)",
+        inputSchema: GetUserNoteInputSchema,
+        annotations: {
+          readOnlyHint: true,
+          idempotentHint: true,
+        },
+      },
+      async (args: GetUserNoteInput) => {
+        return await this.getUserNote(args);
+      }
+    );
+
+    server.registerTool(
+      'set_user_note',
+      {
+        title: 'Set Note',
+        description: "Set the user's diary note and/or feeling tags for a date. Fields you leave out keep their current value; the note text replaces the old text, so include it to append.",
+        inputSchema: SetUserNoteInputSchema,
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: true,
+          idempotentHint: true,
+        },
+      },
+      async (args: SetUserNoteInput) => {
+        return await this.setUserNote(args);
       }
     );
   }
@@ -1005,6 +1063,94 @@ To correct the day's total, e.g. after a wrong entry, pass \`water_intake\` with
       };
     } catch (error) {
       throw new Error(`Failed to add recipe portion: ${error}`);
+    }
+  }
+
+  private async createUserRecipe(args: CreateUserRecipeInput) {
+    const client = await this.ensureAuthenticated();
+
+    try {
+      const products = await Promise.all(args.ingredients.map((item) => client.getProduct(item.product_id)));
+      const totals: Record<string, number> = {};
+      products.forEach((product, i) => {
+        for (const [key, value] of Object.entries(product.nutrients)) {
+          if (typeof value === 'number') totals[key] = (totals[key] ?? 0) + value * args.ingredients[i].amount;
+        }
+      });
+      const nutrients = Object.fromEntries(Object.entries(totals).map(([key, value]) => [key, value / args.portion_count]));
+      const id = uuidv4();
+
+      await client.createUserRecipe({
+        id,
+        name: args.name,
+        portion_count: args.portion_count,
+        nutrients,
+        servings: args.ingredients.map((item, i) => ({
+          product_id: item.product_id,
+          name: products[i].name,
+          producer: products[i].producer,
+          amount: item.amount,
+          base_unit: products[i].base_unit,
+          serving: item.serving ?? null,
+          serving_quantity: item.serving_quantity ?? null,
+        })),
+        instructions: args.instructions ?? [],
+      });
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Successfully created recipe "${args.name}" with id: ${id}\n\nNutrients per portion:\n${JSON.stringify(nutrients, null, 2)}`,
+          },
+        ],
+      };
+    } catch (error) {
+      throw new Error(`Failed to create recipe: ${error}`);
+    }
+  }
+
+  private async getUserNote(args: GetUserNoteInput) {
+    const client = await this.ensureAuthenticated();
+
+    try {
+      const feeling = await client.getFeeling(args.date);
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Note for ${args.date}:\n\n${JSON.stringify(feeling, null, 2)}`,
+          },
+        ],
+      };
+    } catch (error) {
+      throw new Error(`Failed to get note: ${error}`);
+    }
+  }
+
+  private async setUserNote(args: SetUserNoteInput) {
+    const client = await this.ensureAuthenticated();
+
+    try {
+      // The API replaces the whole day, so keep what the caller left out
+      const current = await client.getFeeling(args.date);
+      const feeling = {
+        note: args.note === undefined ? current.note : args.note,
+        tags: args.tags ?? current.tags,
+      };
+      await client.setFeeling(args.date, feeling);
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Successfully set the note for ${args.date}:\n\n${JSON.stringify(feeling, null, 2)}`,
+          },
+        ],
+      };
+    } catch (error) {
+      throw new Error(`Failed to set note: ${error}`);
     }
   }
 

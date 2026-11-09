@@ -39,7 +39,10 @@
     { "name": "remove_user_consumed_item", "description": "Remove food from log" },
     { "name": "create_product", "description": "Create a custom product" },
     { "name": "add_quick_entry", "description": "Log a quick entry with total nutrition, without a product" },
-    { "name": "add_user_consumed_recipe", "description": "Log portions of a recipe" }
+    { "name": "add_user_consumed_recipe", "description": "Log portions of a recipe" },
+    { "name": "create_user_recipe", "description": "Create a recipe from products" },
+    { "name": "get_user_note", "description": "Get the diary note and feeling tags for a date" },
+    { "name": "set_user_note", "description": "Set the diary note and feeling tags for a date" }
   ],
   "prompts_generated": true,
   "compatibility": {

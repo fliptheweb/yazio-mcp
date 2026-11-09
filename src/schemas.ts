@@ -152,6 +152,33 @@ export const AddQuickEntryInputSchema = z.object({
   carb: z.number().nonnegative().optional().describe('Total carbohydrates in g'),
   extra_nutrients: ExtraNutrientsSchema,
 });
+export const CreateUserRecipeInputSchema = z.object({
+  name: z.string().min(1).describe('Recipe name'),
+  portion_count: z.number().int().positive().describe('Number of portions the recipe makes'),
+  ingredients: z
+    .array(z.object({
+      product_id: ProductIdSchema.describe('Product ID from search_products or create_product'),
+      amount: z.number().positive().describe('Amount of the product in the whole recipe, in its base unit (g or ml)'),
+      serving: ServingTypeSchema.optional(),
+      serving_quantity: z.number().positive().optional().describe('Quantity of servings'),
+    }).refine((item) => (item.serving === undefined) === (item.serving_quantity === undefined), {
+      message: 'Pass serving and serving_quantity together, or neither',
+    }))
+    .min(2)
+    .describe('Products in the whole recipe; Yazio requires at least 2'),
+  instructions: z.array(z.string().min(1)).optional().describe('Preparation steps'),
+});
+export const GetUserNoteInputSchema = DateInputSchema;
+export const SetUserNoteInputSchema = z.object({
+  date: DateStringSchema,
+  note: z.string().nullable().optional().describe('Note text for the day; null clears it; leave out to keep the current note'),
+  tags: z
+    .array(z.string())
+    .optional()
+    .describe('Feeling tags as in the Yazio app, e.g. ["happy", "motivated", "headache"]; the API rejects unknown tags. [] clears them; leave out to keep the current tags'),
+}).refine((args) => args.note !== undefined || args.tags !== undefined, {
+  message: 'Provide note, tags or both',
+});
 export const GetDietaryPreferencesInputSchema = EmptyInputSchema;
 export const GetUserGoalsInputSchema = z.object({
   date: DateStringSchema.optional().describe('Date to get the goals for (defaults to today)')
@@ -178,3 +205,6 @@ export type GetUserGoalsInput = z.infer<typeof GetUserGoalsInputSchema>;
 export type CreateProductInput = z.infer<typeof CreateProductInputSchema>;
 export type AddQuickEntryInput = z.infer<typeof AddQuickEntryInputSchema>;
 export type AddConsumedRecipeInput = z.infer<typeof AddConsumedRecipeInputSchema>;
+export type CreateUserRecipeInput = z.infer<typeof CreateUserRecipeInputSchema>;
+export type GetUserNoteInput = z.infer<typeof GetUserNoteInputSchema>;
+export type SetUserNoteInput = z.infer<typeof SetUserNoteInputSchema>;

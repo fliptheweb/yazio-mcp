@@ -15,6 +15,8 @@ An MCP (Model Context Protocol) server that connects Claude/Cursor to your Yazio
 - 📊 **Nutrition Analysis** - Get comprehensive diet data and insights
 - 🍎 **Food Tracking** - Search, add, and manage food entries
 - 🏃‍♂️ **Fitness Data** - Track exercises and water intake
+- 📓 **Diary Notes** - Read and write daily notes and feeling tags
+- 🥣 **Recipes** - Create, log, and delete your own recipes
 - ⚖️ **Weight Monitoring** - View weight history and trends
 - 🎯 **Goal Management** - Access and manage nutrition goals
 - 🔍 **Product Search** - Search Yazio's extensive [food database](https://www.yazio.com/en/foods)
@@ -109,6 +111,9 @@ Easily log meals you forgot to track in the Yazio app directly from Claude or Cu
 | `create_product` | Create a custom product from label values per 100 g/ml | `name`, `category`, `energy_per_100`, `protein_per_100`, `fat_per_100`, `carb_per_100` |
 | `add_quick_entry` | Log a one-off entry with total nutrition, without a product ("quick add") | `name`, `date`, `daytime`, `energy` |
 | `add_user_consumed_recipe` | Log portions of a recipe | `recipe_id`, `portion_count`, `date`, `daytime` |
+| `create_user_recipe` | Create a recipe from products; nutrients per portion are calculated | `name`, `portion_count`, `ingredients` |
+| `get_user_note` | Get the diary note and feeling tags for a date | `date` |
+| `set_user_note` | Set the diary note and/or feeling tags for a date | `date`, `note`, `tags` |
 
 ## Test Connection
 
