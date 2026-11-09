@@ -70,10 +70,10 @@ export const UserSchema = z.looseObject({
     })
     .nullable(),
   email: z.string(),
-  premium_type: z.string(),
+  premium_type: z.string().nullable(),
   sex: z.enum(['male', 'female', 'other']),
   first_name: z.string(),
-  last_name: z.string(),
+  last_name: z.string().nullable(),
   city: z.string(),
   country: z.string(),
   weight_change_per_week: z.number(),
