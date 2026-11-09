@@ -20,6 +20,14 @@ export const ServingNameSchema = z.enum([
   'bar', 'bottle', 'can', 'cup', 'each', 'glass', 'package', 'piece', 'portion', 'slice', 'tablespoon', 'tablet', 'teaspoon',
 ]);
 
+// Verified against POST /user/exercises; the API knows more names than these
+export const TrainingNameSchema = z.enum([
+  'badminton', 'baseball', 'basketball', 'bowling', 'canoeing', 'climbing', 'cycling', 'darts', 'football',
+  'frisbee', 'golf', 'gymnastics', 'handball', 'hiit', 'hiking', 'hockey', 'hunting', 'kayaking', 'pilates',
+  'rowing', 'rugby', 'running', 'skiing', 'snowboarding', 'soccer', 'squash', 'stretching', 'surfing',
+  'swimming', 'tennis', 'trampoline', 'treadmill', 'volleyball', 'walking', 'yoga', 'zumba',
+]);
+
 export const NutrientsSchema = z.record(z.string(), z.number());
 
 export const BasicNutrientsSchema = z.looseObject({
@@ -307,3 +315,30 @@ export const FeelingSchema = z.looseObject({
   note: z.string().nullable(),
   tags: z.array(z.string()),
 });
+
+const MealProductSchema = z.looseObject({
+  product_id: z.string(),
+  amount: z.number(),
+  serving: z.string().nullable(),
+  serving_quantity: z.number().nullable(),
+});
+
+const MealSimpleProductSchema = z.looseObject({
+  name: z.string(),
+  nutrients: NutrientsSchema,
+});
+
+const MealRecipePortionSchema = z.looseObject({
+  recipe_id: z.string(),
+  portion_count: z.number(),
+});
+
+export const MealsSchema = z.array(
+  z.looseObject({
+    id: z.string(),
+    name: z.string(),
+    products: z.array(MealProductSchema),
+    simple_products: z.array(MealSimpleProductSchema),
+    recipe_portions: z.array(MealRecipePortionSchema),
+  }),
+);

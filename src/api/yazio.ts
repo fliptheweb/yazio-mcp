@@ -3,11 +3,14 @@ import { YazioHttp, type Credentials, type YazioHttpOptions } from './http.js';
 import * as S from './schemas.js';
 import type {
   AddConsumedItemsDto,
+  AddExercisesDto,
+  CreateMealDto,
   CreateProductDto,
   CreateUserRecipeDto,
   Daytime,
   ProductSearchOptions,
   WaterIntakeEntry,
+  WeightDto,
   YazioFeeling,
 } from './types.js';
 
@@ -44,8 +47,19 @@ export class YazioApi {
   getWeightHistory = (start: string, end = today()) =>
     this.http.request('GET', '/user/bodyvalues/weight', { query: { start, end }, schema: S.WeightHistorySchema });
 
+  /** The body is keyed by value type; v15 accepts only weight */
+  addWeights = (entries: WeightDto[]) => this.http.request('POST', '/user/bodyvalues', { body: { weight: entries } });
+
+  /** Any body value IDs */
+  deleteBodyValues = (ids: string[]) => this.http.request('DELETE', '/user/bodyvalues', { body: ids });
+
   getExercises = (date = today()) =>
     this.http.request('GET', '/user/exercises', { query: { date }, schema: S.ExercisesSchema });
+
+  addExercises = (exercises: AddExercisesDto) => this.http.request('POST', '/user/exercises', { body: exercises });
+
+  /** Trainings and custom trainings alike */
+  deleteExercises = (ids: string[]) => this.http.request('DELETE', '/user/exercises/trainings', { body: ids });
 
   getSuggestedProducts = (daytime: Daytime, date = today()) =>
     this.http.request('GET', '/user/products/suggested', { query: { date, daytime }, schema: S.SuggestedProductsSchema });
@@ -93,4 +107,11 @@ export class YazioApi {
   /** Replaces the day's note and tags; the API ignores a date in the body */
   setFeeling = (date: string, feeling: YazioFeeling) =>
     this.http.request('PUT', '/user/feeling', { query: { date }, body: feeling });
+
+  /** Saved meals: named sets of foods that are logged together */
+  getMeals = () => this.http.request('GET', '/user/meals', { schema: S.MealsSchema });
+
+  createMeal = (meal: CreateMealDto) => this.http.request('POST', '/user/meals', { body: meal });
+
+  deleteMeal = (id: string) => this.http.request('DELETE', `/user/meals/${encodeURIComponent(id)}`);
 }

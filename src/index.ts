@@ -31,6 +31,14 @@ import {
   CreateUserRecipeInputSchema,
   GetUserNoteInputSchema,
   SetUserNoteInputSchema,
+  GetUserMealsInputSchema,
+  CreateUserMealInputSchema,
+  DeleteUserMealInputSchema,
+  AddConsumedMealInputSchema,
+  AddUserWeightInputSchema,
+  DeleteUserWeightInputSchema,
+  AddUserExerciseInputSchema,
+  DeleteUserExerciseInputSchema,
   SearchProductsOutputSchema,
   GetProductOutputSchema,
   GetUserGoalsOutputSchema,
@@ -56,6 +64,13 @@ import {
   type CreateUserRecipeInput,
   type GetUserNoteInput,
   type SetUserNoteInput,
+  type CreateUserMealInput,
+  type DeleteUserMealInput,
+  type AddConsumedMealInput,
+  type AddUserWeightInput,
+  type DeleteUserWeightInput,
+  type AddUserExerciseInput,
+  type DeleteUserExerciseInput,
 } from './schemas.js';
 import { YazioApi } from './api/index.js';
 
@@ -67,13 +82,15 @@ const SERVER_INSTRUCTIONS = `Access to the signed-in user's Yazio nutrition and 
 Conventions:
 - Dates are YYYY-MM-DD; diary and water entries also take "YYYY-MM-DD HH:mm:ss". Amounts are in base units, grams (g) or milliliters (ml).
 - daytime (meal) is one of: breakfast, lunch, dinner, snack.
-- get_* and search_products only read. add_*, create_*, set_user_note, remove_user_consumed_item and delete_user_recipe change the user's data.
+- get_* and search_products only read. add_*, create_*, delete_*, set_user_note and remove_user_consumed_item change the user's data.
 
-Logging food: search_products, then get_product for its servings and base unit, then add_user_consumed_item. For food that isn't in the database, use add_quick_entry for a one-off entry or create_product for something eaten again. For a recipe, use add_user_consumed_recipe.
+Logging food: search_products, then get_product for its servings and base unit, then add_user_consumed_item. For food that isn't in the database, use add_quick_entry for a one-off entry or create_product for something eaten again. For a recipe, use add_user_consumed_recipe. For a saved meal (get_user_meals), use add_user_consumed_meal.
 
 Water: add_user_water_intake with add_ml adds to the day's total.
 
 Notes: get_user_note reads the day's diary note and feeling tags, set_user_note changes them.
+
+Weight and exercises: add_user_weight and add_user_exercise log them; delete_user_weight and delete_user_exercise remove them by id.
 
 Removing a diary entry: get_user_consumed_items gives the entry's id (not its product_id) for remove_user_consumed_item.`;
 
@@ -553,6 +570,141 @@ class YazioMcpServer {
       },
       async (args: SetUserNoteInput) => {
         return await this.setUserNote(args);
+      }
+    );
+
+    server.registerTool(
+      'get_user_meals',
+      {
+        title: 'Get Saved Meals',
+        description: "Get the user's saved meals: named sets of foods that are logged together",
+        inputSchema: GetUserMealsInputSchema,
+        annotations: {
+          readOnlyHint: true,
+          idempotentHint: true,
+        },
+      },
+      async () => {
+        return await this.getUserMeals();
+      }
+    );
+
+    server.registerTool(
+      'create_user_meal',
+      {
+        title: 'Create Saved Meal',
+        description: 'Save a set of products as a meal to log it again later with add_user_consumed_meal. Returns the meal ID.',
+        inputSchema: CreateUserMealInputSchema,
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: false,
+          idempotentHint: false,
+        },
+      },
+      async (args: CreateUserMealInput) => {
+        return await this.createUserMeal(args);
+      }
+    );
+
+    server.registerTool(
+      'delete_user_meal',
+      {
+        title: 'Delete Saved Meal',
+        description: "Permanently delete one of the user's saved meals. Diary entries logged from it stay. It can't be restored, so confirm with the user first.",
+        inputSchema: DeleteUserMealInputSchema,
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: true,
+          idempotentHint: true,
+        },
+      },
+      async (args: DeleteUserMealInput) => {
+        return await this.deleteUserMeal(args);
+      }
+    );
+
+    server.registerTool(
+      'add_user_consumed_meal',
+      {
+        title: 'Add Saved Meal',
+        description: 'Log all items of a saved meal to the diary. Each item shows up in get_user_consumed_items as a separate entry.',
+        inputSchema: AddConsumedMealInputSchema,
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: false,
+          idempotentHint: false,
+        },
+      },
+      async (args: AddConsumedMealInput) => {
+        return await this.addUserConsumedMeal(args);
+      }
+    );
+
+    server.registerTool(
+      'add_user_weight',
+      {
+        title: 'Add Weight',
+        description: 'Log a weight measurement in kg. Returns the entry ID for delete_user_weight.',
+        inputSchema: AddUserWeightInputSchema,
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: false,
+          idempotentHint: false,
+        },
+      },
+      async (args: AddUserWeightInput) => {
+        return await this.addUserWeight(args);
+      }
+    );
+
+    server.registerTool(
+      'delete_user_weight',
+      {
+        title: 'Delete Weight',
+        description: 'Delete a weight entry by its ID, from add_user_weight or get_user_weight.',
+        inputSchema: DeleteUserWeightInputSchema,
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: true,
+          idempotentHint: true,
+        },
+      },
+      async (args: DeleteUserWeightInput) => {
+        return await this.deleteUserWeight(args);
+      }
+    );
+
+    server.registerTool(
+      'add_user_exercise',
+      {
+        title: 'Add Exercise',
+        description: 'Log an exercise: a Yazio training (e.g. running) or, with custom: true, an exercise with any name. Pass the burned energy, because Yazio does not calculate it. Returns the entry ID.',
+        inputSchema: AddUserExerciseInputSchema,
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: false,
+          idempotentHint: false,
+        },
+      },
+      async (args: AddUserExerciseInput) => {
+        return await this.addUserExercise(args);
+      }
+    );
+
+    server.registerTool(
+      'delete_user_exercise',
+      {
+        title: 'Delete Exercise',
+        description: 'Delete an exercise entry by its ID from get_user_exercises or add_user_exercise.',
+        inputSchema: DeleteUserExerciseInputSchema,
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: true,
+          idempotentHint: true,
+        },
+      },
+      async (args: DeleteUserExerciseInput) => {
+        return await this.deleteUserExercise(args);
       }
     );
   }
@@ -1187,6 +1339,186 @@ To correct the day's total, e.g. after a wrong entry, pass \`water_intake\` with
       };
     } catch (error) {
       throw new Error(`Failed to set note: ${error}`);
+    }
+  }
+
+  private async getUserMeals() {
+    const client = await this.ensureAuthenticated();
+
+    try {
+      const meals = await client.getMeals();
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Saved meals (${meals.length}):\n\n${JSON.stringify(meals, null, 2)}`,
+          },
+        ],
+      };
+    } catch (error) {
+      throw new Error(`Failed to get saved meals: ${error}`);
+    }
+  }
+
+  private async createUserMeal(args: CreateUserMealInput) {
+    const client = await this.ensureAuthenticated();
+
+    try {
+      const id = uuidv4();
+      await client.createMeal({
+        id,
+        name: args.name,
+        products: args.products.map((item) => ({
+          product_id: item.product_id,
+          amount: item.amount,
+          serving: item.serving ?? null,
+          serving_quantity: item.serving_quantity ?? null,
+        })),
+        simple_products: [],
+        recipe_portions: [],
+      });
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Successfully created meal "${args.name}" with id: ${id}`,
+          },
+        ],
+      };
+    } catch (error) {
+      throw new Error(`Failed to create meal: ${error}`);
+    }
+  }
+
+  private async deleteUserMeal(args: DeleteUserMealInput) {
+    const client = await this.ensureAuthenticated();
+
+    try {
+      await client.deleteMeal(args.id);
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Successfully deleted meal with ID: ${args.id}`,
+          },
+        ],
+      };
+    } catch (error) {
+      throw new Error(`Failed to delete meal: ${error}`);
+    }
+  }
+
+  private async addUserConsumedMeal(args: AddConsumedMealInput) {
+    const client = await this.ensureAuthenticated();
+
+    try {
+      const meal = (await client.getMeals()).find((item) => item.id === args.meal_id);
+      if (!meal) throw new Error(`No saved meal with ID ${args.meal_id}`);
+      const { date, daytime } = args;
+
+      await client.addConsumedItems({
+        products: meal.products.map((item) =>
+          item.serving !== null && item.serving_quantity !== null
+            ? { id: uuidv4(), date, daytime, product_id: item.product_id, amount: item.amount, serving: item.serving, serving_quantity: item.serving_quantity }
+            : { id: uuidv4(), date, daytime, product_id: item.product_id, amount: item.amount },
+        ),
+        simple_products: meal.simple_products.map((item) => ({ id: uuidv4(), date, daytime, name: item.name, nutrients: item.nutrients })),
+        recipe_portions: meal.recipe_portions.map((item) => ({ id: uuidv4(), date, daytime, recipe_id: item.recipe_id, portion_count: item.portion_count })),
+      });
+      const count = meal.products.length + meal.simple_products.length + meal.recipe_portions.length;
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Successfully logged meal "${meal.name}" (${count} items) for ${daytime}`,
+          },
+        ],
+      };
+    } catch (error) {
+      throw new Error(`Failed to log meal: ${error}`);
+    }
+  }
+
+  private async addUserWeight(args: AddUserWeightInput) {
+    const client = await this.ensureAuthenticated();
+
+    try {
+      const id = uuidv4();
+      await client.addWeights([{ id, date: args.date, value: args.weight }]);
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Successfully logged ${args.weight} kg with id: ${id}`,
+          },
+        ],
+      };
+    } catch (error) {
+      throw new Error(`Failed to add weight: ${error}`);
+    }
+  }
+
+  private async deleteUserWeight(args: DeleteUserWeightInput) {
+    const client = await this.ensureAuthenticated();
+
+    try {
+      await client.deleteBodyValues([args.id]);
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Successfully deleted weight entry with ID: ${args.id}`,
+          },
+        ],
+      };
+    } catch (error) {
+      throw new Error(`Failed to delete weight: ${error}`);
+    }
+  }
+
+  private async addUserExercise(args: AddUserExerciseInput) {
+    const client = await this.ensureAuthenticated();
+
+    try {
+      const id = uuidv4();
+      const { custom, ...exercise } = args;
+      await client.addExercises({ [custom ? 'custom_training' : 'training']: [{ ...exercise, id }] });
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Successfully logged ${args.name} (${args.duration} min, ${args.energy} kcal) with id: ${id}`,
+          },
+        ],
+      };
+    } catch (error) {
+      throw new Error(`Failed to add exercise: ${error}`);
+    }
+  }
+
+  private async deleteUserExercise(args: DeleteUserExerciseInput) {
+    const client = await this.ensureAuthenticated();
+
+    try {
+      await client.deleteExercises([args.id]);
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Successfully deleted exercise with ID: ${args.id}`,
+          },
+        ],
+      };
+    } catch (error) {
+      throw new Error(`Failed to delete exercise: ${error}`);
     }
   }
 
