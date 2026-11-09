@@ -16,7 +16,7 @@ The remote server is one more entry point next to `src/index.ts`. It calls the s
 
 - The remote server is one Web-standard `fetch` handler: `export default { fetch(request: Request): Promise<Response> }`. It routes by path: `/mcp`, the OAuth endpoints and `/.well-known/*`. The same handler runs as a Vercel Function and as a Node process.
 - The handler keeps no state in memory between requests. A serverless platform can start a new instance for any request, and it stops idle instances. All sessions and tokens live in Redis.
-- No Docker image is necessary. Vercel builds the function from the repository, and a VPS runs `node dist/remote.js`.
+- No Docker image is necessary. Vercel builds the function from the repository, and Railway or a VPS runs `node dist/remote.js`.
 
 ## Steps
 
@@ -48,7 +48,9 @@ The remote server is one more entry point next to `src/index.ts`. It calls the s
 
 3. Let `YazioHttp` (`src/api/http.ts`) start from a saved `Token` and report a renewed token through a callback, so that the server can write it back to Redis. Today `Credentials` requires `username` and `password`, and the client keeps the token in memory only.
 
-4. Store the sessions in Redis: the OAuth clients, the authorization codes, the MCP access and refresh tokens, and the Yazio token for each user. Read the connection from `REDIS_URL` (`redis://` or `rediss://`) with a TCP client such as `redis`. This works with a Redis store from the Vercel Marketplace, with Upstash, and with a local Redis. Encrypt the Yazio tokens with `SESSION_SECRET`.
+4. Store the sessions in Redis: the OAuth clients, the authorization codes, the MCP access and refresh tokens, and the Yazio token for each user. Read the connection from `REDIS_URL` (`redis://` or `rediss://`) with a TCP client such as `redis`. This works on Railway, on a VPS and with any hosted Redis. Encrypt the Yazio tokens with `SESSION_SECRET`.
+
+   Before you write the storage code, run `vercel install upstash` on a test project and look at the variables it adds. Third-party guides say that it adds only REST variables (`UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`, or `KV_REST_API_URL` and `KV_REST_API_TOKEN`). If Vercel gives no TCP URL, use the Upstash REST client (`@upstash/redis`) on every host instead, with Upstash as the only supported Redis. Do not support both clients.
 
 5. Add the Vercel entry file `api/index.ts`, which only re-exports `src/remote.ts`, and a `vercel.json` that sends every path to it:
 
@@ -63,6 +65,10 @@ The remote server is one more entry point next to `src/index.ts`. It calls the s
 
 6. Build `dist/remote.js` as a second esbuild entry point for Node hosts. It starts an HTTP server on `PORT` with the same `fetch` handler, through a small adapter such as `srvx` or `@hono/node-server`. Keep it out of `dist/index.js`, so the stdio package that users install with `npx` does not get bigger.
 
+7. Take `PUBLIC_URL` from the configuration when it is set. When it is not set, use the origin of the request (`new URL(request.url).origin`). Then Vercel and most VPS setups need no value.
+
+8. Add the deploy buttons (see [Deploy buttons](#deploy-buttons)).
+
 ## Running it on your own infrastructure
 
 This is the target setup for a person who hosts the server for themselves, or for their family or team. The remote server must support it with no code changes. Write this section into the README when the server is released.
@@ -71,7 +77,7 @@ This is the target setup for a person who hosts the server for themselves, or fo
 
 | Variable | Required | Meaning |
 |---|---|---|
-| `PUBLIC_URL` | Yes | The HTTPS URL that clients use, for example `https://yazio.example.com`. The OAuth metadata and redirects use it. |
+| `PUBLIC_URL` | No | The HTTPS URL that clients use, for example `https://yazio.example.com`. The OAuth metadata and redirects use it. The default is the origin of the request. Set it if a proxy changes the host name. |
 | `REDIS_URL` | Yes | The Redis connection URL for sessions and tokens. |
 | `SESSION_SECRET` | Yes | A random string that encrypts the stored Yazio tokens. Make one with `openssl rand -hex 32`. Keep it the same between deploys. |
 | `PORT` | No | Node hosts only. The default is `3000`. |
@@ -79,12 +85,22 @@ This is the target setup for a person who hosts the server for themselves, or fo
 
 The server does not need a Yazio username or password in its configuration. Each user types their own Yazio login on the sign-in page.
 
+### On Railway
+
+1. Click **Deploy on Railway** in the README.
+2. Wait for the deploy to finish. The template creates the server and a Redis service, generates `SESSION_SECRET`, and sets `PUBLIC_URL` to the Railway domain.
+3. Copy the domain of the server service. You need it to connect a client.
+
+The Hobby plan is sufficient for one person. The server runs all the time, so the first request is fast.
+
 ### On Vercel
 
-1. Fork the repository and import it as a new Vercel project. Vercel finds `api/index.ts` and `vercel.json`, so no framework preset is necessary.
-2. Add a Redis store from the Vercel Marketplace (for example `vercel install upstash`) and connect it to the project. Make sure that the project has `REDIS_URL`. If the store sets the URL under a different name, copy it into `REDIS_URL`.
-3. Set `SESSION_SECRET`, and set `PUBLIC_URL` to the production domain (`https://<project>.vercel.app` or your own domain).
-4. Deploy. The free plan is sufficient for one person: each tool call is one short request, far below the 300-second function limit.
+1. Click **Deploy with Vercel** in the README. Vercel forks the repository into your account and creates the project.
+2. Accept the Redis store that the button adds.
+3. Type a value for `SESSION_SECRET`. Make one with `openssl rand -hex 32`. Vercel cannot generate it for you.
+4. Deploy, then copy the production domain (`https://<project>.vercel.app`, or your own domain).
+
+The Hobby plan is free, but only for non-commercial use. Each tool call is one short request, far below the 300-second function limit.
 
 Vercel Deployment Protection blocks clients that are not signed in to Vercel. Keep the production domain public, or claude.ai cannot connect.
 
@@ -111,9 +127,46 @@ The connector then works in claude.ai, in Claude Desktop and in the mobile apps.
 
 ### Updates and data
 
-- To update on Vercel, sync the fork, and Vercel deploys it. On a VPS, pull, build and restart. Users stay signed in when `REDIS_URL` and `SESSION_SECRET` stay the same.
+- To update on Railway, open the service and accept the template update, or redeploy from the latest commit. To update on Vercel, sync the fork, and Vercel deploys it. On a VPS, pull, build and restart. Users stay signed in when `REDIS_URL` and `SESSION_SECRET` stay the same.
 - To sign out all users, clear the Redis database.
 - Anyone who can reach the URL can sign in with a Yazio account. The server stores only the tokens of the users who sign in, and each user sees only their own data.
+
+## Deploy buttons
+
+Each button goes in the README when the remote server is released. A button is useful only when it creates the server, the Redis, the secret and the URL with as little user input as possible.
+
+### Railway template
+
+The maintainer creates the template once in the Railway dashboard, from this repository, and publishes it. The template has two services:
+
+- `redis`: the Railway Redis service.
+- `yazio-mcp`: this repository, with the start command `node dist/remote.js`, a generated domain, and these variables:
+
+  ```
+  REDIS_URL=${{redis.REDIS_URL}}
+  SESSION_SECRET=${{secret(64, "0123456789abcdef")}}
+  PUBLIC_URL=https://${{RAILWAY_PUBLIC_DOMAIN}}
+  ```
+
+Railway runs `secret()` once for each deploy of the template, so each user gets a different secret. The README button links to `https://railway.com/deploy/<template-code>`.
+
+### Vercel button
+
+The repository needs only `api/index.ts` and `vercel.json`. The button is a link to `https://vercel.com/new/clone` with these URL-encoded parameters:
+
+- `repository-url`: `https://github.com/fliptheweb/yazio-mcp`
+- `env`: `SESSION_SECRET`
+- `envDescription`: a short text that tells the user to run `openssl rand -hex 32`
+- `envLink`: a link to this document
+- `stores`: a JSON array that adds the Upstash Redis store, for example `[{"type":"integration","integrationSlug":"upstash","productSlug":"upstash-kv","protocol":"storage"}]`. Read the current slugs from the Upstash page in the Vercel Marketplace.
+
+The Vercel docs do not allow secret values in the URL, so the user must type `SESSION_SECRET`.
+
+### Options that we do not support now
+
+- **Render** (`render.yaml` and `render.com/deploy?repo=…`): a Blueprint can create Redis (`type: keyvalue`) and generate the secret (`generateValue: true`). But a free web service stops after 15 minutes without traffic, and the free Key Value store has persistence off, so a restart signs users out. Add it if users ask for it.
+- **Cloudflare Workers** (`deploy.workers.cloudflare.com/?url=…`): it has a good free plan and creates KV namespaces automatically. But it gives KV, not Redis, so it needs a second storage implementation.
+- **One shared instance run by the maintainer**: this is the easiest for users. But the maintainer then holds the Yazio tokens of every user for an unofficial API and pays for the hosting. Self-hosting with buttons avoids both problems.
 
 ## Dependencies
 
