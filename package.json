@@ -55,16 +55,16 @@
   "devDependencies": {
     "@anthropic-ai/mcpb": "^2.1.2",
     "@modelcontextprotocol/server": "^2.4.0",
-    "@types/node": "^20.0.0",
+    "@types/node": "^26.6.5",
     "@typescript-eslint/eslint-plugin": "^8.44.1",
     "@typescript-eslint/parser": "^8.44.1",
     "esbuild": "^0.28.0",
-    "eslint": "^9.36.0",
-    "globals": "^16.4.0",
+    "eslint": "^10.13.0",
+    "globals": "^17.13.0",
     "prettier": "^3.6.2",
     "tsx": "^4.0.0",
-    "typescript": "^5.0.0",
-    "uuid": "^13.0.0",
+    "typescript": "^7.0.2",
+    "uuid": "^14.0.3",
     "zod": "^4.2.1"
   }
 }
