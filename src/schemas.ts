@@ -1,6 +1,7 @@
 import * as z from "zod";
 import {
   DailySummarySchema,
+  DateTimeStringSchema,
   DaytimeSchema,
   GoalsSchema,
   ProductCategorySchema,
@@ -8,7 +9,6 @@ import {
   ProductSearchResultsSchema,
   ServingNameSchema,
 } from './api/schemas.js';
-import type { DateTimeString } from './api/types.js';
 
 export { DaytimeSchema, ProductCategorySchema, ServingNameSchema };
 export const DateStringSchema = z.iso.date().describe('Date in YYYY-MM-DD format');
@@ -87,10 +87,6 @@ export const GetUserSuggestedProductsInputSchema = z.object({
   limit: LimitSchema
 });
 // Consumption time: "YYYY-MM-DD HH:mm:ss" keeps the time, date only logs it at 00:00
-const DateTimeStringSchema = z
-  .string()
-  .regex(/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01]) ([01]\d|2[0-3]):[0-5]\d:[0-5]\d$/)
-  .transform((value) => value as DateTimeString);
 const ConsumedAtSchema = z
   .union([DateStringSchema, DateTimeStringSchema])
   .describe('Date and time when the food was consumed in "YYYY-MM-DD HH:mm:ss" format (e.g., "2025-12-18 12:30:00"), or date only in YYYY-MM-DD format');
