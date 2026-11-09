@@ -259,7 +259,6 @@ export const ProductSearchResultsSchema = z.array(
 );
 
 export const ProductSchema = z.looseObject({
-  id: z.string(),
   name: z.string(),
   is_verified: z.boolean(),
   is_private: z.boolean(),
