@@ -10,6 +10,10 @@ updates:
     cooldown:
       default-days: 7
       semver-major-days: 14
+    ignore:
+      # Match the minimum Node version in engines
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
     groups:
       nodejs:
         patterns:
