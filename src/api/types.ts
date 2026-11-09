@@ -16,8 +16,10 @@ export type YazioProductSearchResult = z.infer<typeof S.ProductSearchResultsSche
 export type YazioProduct = z.infer<typeof S.ProductSchema>;
 export type YazioRecipe = z.infer<typeof S.RecipeSchema>;
 export type YazioFeeling = z.infer<typeof S.FeelingSchema>;
+export type YazioMeal = z.infer<typeof S.MealsSchema>[number];
 
 export type Daytime = z.infer<typeof S.DaytimeSchema>;
+export type TrainingName = z.infer<typeof S.TrainingNameSchema>;
 
 /** "YYYY-MM-DD" or "YYYY-MM-DD HH:mm:ss" (local time, sent as is) */
 export type YazioDateTime = string;
@@ -89,6 +91,39 @@ export interface CreateUserRecipeDto {
     serving_quantity: number | null;
   }[];
   instructions: string[];
+}
+
+export interface CreateMealDto {
+  id: string;
+  name: string;
+  products: { product_id: string; amount: number; serving: string | null; serving_quantity: number | null }[];
+  simple_products: { name: string; nutrients: Record<string, number> }[];
+  recipe_portions: { recipe_id: string; portion_count: number }[];
+}
+
+/** Weight in kg */
+export interface WeightDto {
+  id: string;
+  date: YazioDateTime;
+  value: number;
+}
+
+/** The API stores 0 kcal when `energy` is missing */
+export interface ExerciseDto<Name extends string = string> {
+  id: string;
+  date: DateTimeString;
+  name: Name;
+  /** Minutes */
+  duration: number;
+  /** kcal */
+  energy: number;
+  note?: string;
+}
+
+export interface AddExercisesDto {
+  /** The API rejects a name outside its own list, which is longer than TrainingName */
+  training?: ExerciseDto<TrainingName | (string & {})>[];
+  custom_training?: ExerciseDto[];
 }
 
 /**

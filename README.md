@@ -16,8 +16,8 @@ An MCP (Model Context Protocol) server that connects Claude/Cursor to your Yazio
 - 🍎 **Food Tracking** - Search, add, and manage food entries
 - 🏃‍♂️ **Fitness Data** - Track exercises and water intake
 - 📓 **Diary Notes** - Read and write daily notes and feeling tags
-- 🥣 **Recipes** - Create, log, and delete your own recipes
-- ⚖️ **Weight Monitoring** - View weight history and trends
+- 🥣 **Recipes and Meals** - Create, log, and delete your own recipes and saved meals
+- ⚖️ **Weight Monitoring** - Log weight and view its history and trends
 - 🎯 **Goal Management** - Access and manage nutrition goals
 - 🔍 **Product Search** - Search Yazio's extensive [food database](https://www.yazio.com/en/foods)
 
@@ -115,6 +115,14 @@ Easily log meals you forgot to track in the Yazio app directly from Claude or Cu
 | `create_user_recipe` | Create a recipe from products; nutrients per portion are calculated | `name`, `portion_count`, `ingredients` |
 | `get_user_note` | Get the diary note and feeling tags for a date | `date` |
 | `set_user_note` | Set the diary note and/or feeling tags for a date | `date`, `note`, `tags` |
+| `get_user_meals` | Get your saved meals | - |
+| `create_user_meal` | Save a set of products as a meal | `name`, `products` |
+| `delete_user_meal` | Delete a saved meal | `id` |
+| `add_user_consumed_meal` | Log all items of a saved meal | `meal_id`, `date`, `daytime` |
+| `add_user_weight` | Log a weight measurement in kg | `date`, `weight` |
+| `delete_user_weight` | Delete a weight entry | `id` |
+| `add_user_exercise` | Log a Yazio training or a custom exercise | `date`, `name`, `duration`, `energy` |
+| `delete_user_exercise` | Delete an exercise entry | `id` |
 
 ## Test Connection
 

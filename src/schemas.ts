@@ -8,6 +8,7 @@ import {
   ProductSchema,
   ProductSearchResultsSchema,
   ServingNameSchema,
+  TrainingNameSchema,
 } from './api/schemas.js';
 
 export { DaytimeSchema, ProductCategorySchema, ServingNameSchema };
@@ -179,6 +180,49 @@ export const SetUserNoteInputSchema = z.object({
 }).refine((args) => args.note !== undefined || args.tags !== undefined, {
   message: 'Provide note, tags or both',
 });
+export const GetUserMealsInputSchema = EmptyInputSchema;
+export const CreateUserMealInputSchema = z.object({
+  name: z.string().min(1).describe('Meal name, e.g. "Usual breakfast"'),
+  products: z
+    .array(z.object({
+      product_id: ProductIdSchema.describe('Product ID from search_products or create_product'),
+      amount: z.number().positive().describe('Amount in the product\'s base unit (g or ml)'),
+      serving: ServingTypeSchema.optional(),
+      serving_quantity: z.number().positive().optional().describe('Quantity of servings'),
+    }).refine((item) => (item.serving === undefined) === (item.serving_quantity === undefined), {
+      message: 'Pass serving and serving_quantity together, or neither',
+    }))
+    .min(1)
+    .describe('Products in the meal'),
+});
+export const DeleteUserMealInputSchema = z.object({
+  id: z.uuid().describe('Meal ID from get_user_meals'),
+});
+export const AddConsumedMealInputSchema = z.object({
+  meal_id: z.uuid().describe('Meal ID from get_user_meals'),
+  date: ConsumedAtSchema,
+  daytime: DaytimeSchema.describe('Type of meal (breakfast, lunch, dinner, snack)'),
+});
+export const AddUserWeightInputSchema = z.object({
+  date: DateTimeStringSchema.describe('Date and time of the measurement in "YYYY-MM-DD HH:mm:ss" format'),
+  weight: z.number().positive().describe('Weight in kg'),
+});
+export const DeleteUserWeightInputSchema = z.object({
+  id: z.uuid().describe('Weight entry ID from add_user_weight or get_user_weight'),
+});
+export const AddUserExerciseInputSchema = z.object({
+  date: DateTimeStringSchema.describe('Start date and time in "YYYY-MM-DD HH:mm:ss" format'),
+  name: z
+    .union([TrainingNameSchema, z.string().min(1)])
+    .describe('A Yazio training: one of the listed names, or another training name, which the API may reject. With custom: true, any name'),
+  custom: z.boolean().default(false).describe('Log a custom exercise with a free name instead of a Yazio training'),
+  duration: z.number().int().positive().describe('Duration in minutes'),
+  energy: z.number().nonnegative().describe('Burned energy in kcal; Yazio does not calculate it'),
+  note: z.string().optional(),
+});
+export const DeleteUserExerciseInputSchema = z.object({
+  id: z.uuid().describe('Exercise ID from get_user_exercises or add_user_exercise'),
+});
 export const GetDietaryPreferencesInputSchema = EmptyInputSchema;
 export const GetUserGoalsInputSchema = z.object({
   date: DateStringSchema.optional().describe('Date to get the goals for (defaults to today)')
@@ -209,3 +253,10 @@ export type AddConsumedRecipeInput = z.infer<typeof AddConsumedRecipeInputSchema
 export type CreateUserRecipeInput = z.infer<typeof CreateUserRecipeInputSchema>;
 export type GetUserNoteInput = z.infer<typeof GetUserNoteInputSchema>;
 export type SetUserNoteInput = z.infer<typeof SetUserNoteInputSchema>;
+export type CreateUserMealInput = z.infer<typeof CreateUserMealInputSchema>;
+export type DeleteUserMealInput = z.infer<typeof DeleteUserMealInputSchema>;
+export type AddConsumedMealInput = z.infer<typeof AddConsumedMealInputSchema>;
+export type AddUserWeightInput = z.infer<typeof AddUserWeightInputSchema>;
+export type DeleteUserWeightInput = z.infer<typeof DeleteUserWeightInputSchema>;
+export type AddUserExerciseInput = z.infer<typeof AddUserExerciseInputSchema>;
+export type DeleteUserExerciseInput = z.infer<typeof DeleteUserExerciseInputSchema>;
