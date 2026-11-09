@@ -1,0 +1,13 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript"],
+  "categories": { "correctness": "error" },
+  "env": { "node": true },
+  "rules": {
+    "no-unused-vars": "error",
+    "typescript/no-explicit-any": "warn",
+    "prefer-const": "error",
+    "no-var": "error"
+  },
+  "ignorePatterns": ["dist/"]
+}
