@@ -10,6 +10,7 @@ import {
   GetDailySummaryInputSchema,
   GetUserInfoInputSchema,
   GetUserWeightInputSchema,
+  GetUserWeightHistoryInputSchema,
   GetWaterIntakeInputSchema,
   SearchProductsInputSchema,
   GetProductInputSchema,
@@ -44,6 +45,7 @@ import {
   type GetUserExercisesInput,
   type GetUserGoalsInput,
   type GetUserWeightInput,
+  type GetUserWeightHistoryInput,
   type GetUserSuggestedProductsInput,
   type AddConsumedItemInput,
   type RemoveConsumedItemInput,
@@ -271,7 +273,7 @@ class YazioMcpServer {
       'get_user_weight',
       {
         title: 'Get Weight',
-        description: 'Get user weight data',
+        description: 'Get the last weight entry up to a date. Use get_user_weight_history for all entries in a date range.',
         inputSchema: GetUserWeightInputSchema,
         annotations: {
           readOnlyHint: true,
@@ -280,6 +282,22 @@ class YazioMcpServer {
       },
       async (args: GetUserWeightInput) => {
         return await this.getUserWeight(args);
+      }
+    );
+
+    server.registerTool(
+      'get_user_weight_history',
+      {
+        title: 'Get Weight History',
+        description: 'Get all weight entries between two dates in one call, e.g. for trends. A day can have several entries at different times.',
+        inputSchema: GetUserWeightHistoryInputSchema,
+        annotations: {
+          readOnlyHint: true,
+          idempotentHint: true,
+        },
+      },
+      async (args: GetUserWeightHistoryInput) => {
+        return await this.getUserWeightHistory(args);
       }
     );
 
@@ -763,7 +781,6 @@ To correct the day's total, e.g. after a wrong entry, pass \`water_intake\` with
     const client = await this.ensureAuthenticated();
 
     try {
-      // The API returns the last weight entry up to a date, not a range
       const weight = await client.getLastWeight(args.date);
 
       return {
@@ -776,6 +793,25 @@ To correct the day's total, e.g. after a wrong entry, pass \`water_intake\` with
       };
     } catch (error) {
       throw new Error(`Failed to get user weight: ${error}`);
+    }
+  }
+
+  private async getUserWeightHistory(args: GetUserWeightHistoryInput) {
+    const client = await this.ensureAuthenticated();
+
+    try {
+      const entries = await client.getWeightHistory(args.start, args.end);
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Weight entries (${entries.length}):\n\n${JSON.stringify(entries, null, 2)}`,
+          },
+        ],
+      };
+    } catch (error) {
+      throw new Error(`Failed to get weight history: ${error}`);
     }
   }
 

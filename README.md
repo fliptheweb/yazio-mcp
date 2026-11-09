@@ -93,7 +93,8 @@ Easily log meals you forgot to track in the Yazio app directly from Claude or Cu
 | `get_user` | Get user profile | - |
 | `get_user_daily_summary` | Get daily nutrition summary | `date` |
 | `get_user_consumed_items` | Get food entries for a date | `date` |
-| `get_user_weight` | Get weight data | `date` (optional) |
+| `get_user_weight` | Get the last weight entry up to a date | `date` (optional) |
+| `get_user_weight_history` | Get all weight entries in a date range | `start`, `end` (optional) |
 | `get_user_exercises` | Get exercise data | `date` |
 | `get_user_water_intake` | Get water intake | `date` |
 | `get_user_goals` | Get nutrition goals | `date` (optional) |

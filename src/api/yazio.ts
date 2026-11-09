@@ -40,6 +40,10 @@ export class YazioApi {
   getLastWeight = (date = today()) =>
     this.http.request('GET', '/user/bodyvalues/weight/last', { query: { date }, schema: S.WeightEntrySchema.nullable() });
 
+  /** Every entry between the dates, both included; a day can have several */
+  getWeightHistory = (start: string, end = today()) =>
+    this.http.request('GET', '/user/bodyvalues/weight', { query: { start, end }, schema: S.WeightHistorySchema });
+
   getExercises = (date = today()) =>
     this.http.request('GET', '/user/exercises', { query: { date }, schema: S.ExercisesSchema });
 

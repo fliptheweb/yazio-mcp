@@ -1,5 +1,11 @@
 // Adapted from the schemas in https://github.com/juriadams/yazio by Juri Adams and its contributors.
 import * as z from 'zod';
+import type { DateTimeString } from './types.js';
+
+export const DateTimeStringSchema = z
+  .string()
+  .regex(/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01]) ([01]\d|2[0-3]):[0-5]\d:[0-5]\d$/)
+  .transform((value) => value as DateTimeString);
 
 export const DaytimeSchema = z.enum(['breakfast', 'lunch', 'dinner', 'snack']);
 
@@ -64,10 +70,10 @@ export const UserSchema = z.looseObject({
     })
     .nullable(),
   email: z.string(),
-  premium_type: z.string(),
+  premium_type: z.string().nullable(),
   sex: z.enum(['male', 'female', 'other']),
   first_name: z.string(),
-  last_name: z.string(),
+  last_name: z.string().nullable(),
   city: z.string(),
   country: z.string(),
   weight_change_per_week: z.number(),
@@ -154,9 +160,11 @@ export const DailySummarySchema = z.looseObject({
   active_fasting_countdown_template_key: z.string().nullable(),
 });
 
+export const WeightHistorySchema = z.array(z.looseObject({ date: DateTimeStringSchema, value: z.number() }));
+
 export const WeightEntrySchema = z.looseObject({
   id: z.string(),
-  date: z.string(),
+  date: DateTimeStringSchema,
   value: z.number().nullable(),
   external_id: z.string().nullable(),
   gateway: z.string().nullable(),
@@ -199,7 +207,7 @@ export const WaterIntakeSchema = z.looseObject({
 
 const ConsumedProductSchema = z.looseObject({
   id: z.string(),
-  date: z.string(),
+  date: DateTimeStringSchema,
   daytime: DaytimeSchema,
   type: z.string(),
   product_id: z.string(),
@@ -210,7 +218,7 @@ const ConsumedProductSchema = z.looseObject({
 
 const ConsumedRecipePortionSchema = z.looseObject({
   id: z.string(),
-  date: z.string(),
+  date: DateTimeStringSchema,
   daytime: DaytimeSchema,
   type: z.string().optional(),
   recipe_id: z.string(),
@@ -219,7 +227,7 @@ const ConsumedRecipePortionSchema = z.looseObject({
 
 const ConsumedSimpleProductSchema = z.looseObject({
   id: z.string(),
-  date: z.string(),
+  date: DateTimeStringSchema,
   daytime: DaytimeSchema,
   type: z.string().optional(),
   name: z.string(),
