@@ -25,6 +25,9 @@ categories:
   - title: '🧰 Maintenance'
     when:
       label: 'maintenance'
+  - title: '⬆️ Dependencies'
+    when:
+      label: 'dependencies'
   - type: 'pre-exclude'
     when:
       label: 'skip-changelog'
