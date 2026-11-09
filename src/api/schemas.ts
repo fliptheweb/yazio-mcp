@@ -295,3 +295,8 @@ export const RecipeSchema = z.looseObject({
 });
 
 export const RecipeIdsSchema = z.array(z.string());
+
+export const FeelingSchema = z.looseObject({
+  note: z.string().nullable(),
+  tags: z.array(z.string()),
+});
