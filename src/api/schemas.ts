@@ -154,6 +154,8 @@ export const DailySummarySchema = z.looseObject({
   active_fasting_countdown_template_key: z.string().nullable(),
 });
 
+export const WeightHistorySchema = z.array(z.looseObject({ date: z.string(), value: z.number() }));
+
 export const WeightEntrySchema = z.looseObject({
   id: z.string(),
   date: z.string(),

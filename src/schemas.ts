@@ -42,6 +42,10 @@ export const GetUserInfoInputSchema = EmptyInputSchema;
 export const GetUserWeightInputSchema = z.object({
   date: DateStringSchema.optional().describe('Returns the last weight entry up to this date (defaults to today)')
 });
+export const GetUserWeightHistoryInputSchema = z.object({
+  start: DateStringSchema.describe('First date, included'),
+  end: DateStringSchema.optional().describe('Last date, included (defaults to today)'),
+});
 export const GetWaterIntakeInputSchema = DateInputSchema;
 export const SearchProductsInputSchema = QueryInputSchema;
 // The SDK fails a tool call whose structuredContent doesn't match its outputSchema, while API
@@ -189,6 +193,7 @@ export type GetFoodEntriesInput = z.infer<typeof GetFoodEntriesInputSchema>;
 export type GetDailySummaryInput = z.infer<typeof GetDailySummaryInputSchema>;
 export type GetUserInfoInput = z.infer<typeof GetUserInfoInputSchema>;
 export type GetUserWeightInput = z.infer<typeof GetUserWeightInputSchema>;
+export type GetUserWeightHistoryInput = z.infer<typeof GetUserWeightHistoryInputSchema>;
 export type GetWaterIntakeInput = z.infer<typeof GetWaterIntakeInputSchema>;
 export type SearchProductsInput = z.infer<typeof SearchProductsInputSchema>;
 export type GetProductInput = z.infer<typeof GetProductInputSchema>;

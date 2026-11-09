@@ -7,6 +7,7 @@ export type YazioDietaryPreferences = z.infer<typeof S.DietaryPreferencesSchema>
 export type YazioGoals = z.infer<typeof S.GoalsSchema>;
 export type YazioDailySummary = z.infer<typeof S.DailySummarySchema>;
 export type YazioWeightEntry = z.infer<typeof S.WeightEntrySchema>;
+export type YazioWeightHistory = z.infer<typeof S.WeightHistorySchema>;
 export type YazioExercises = z.infer<typeof S.ExercisesSchema>;
 export type YazioSuggestedProduct = z.infer<typeof S.SuggestedProductsSchema>[number];
 export type YazioWaterIntake = z.infer<typeof S.WaterIntakeSchema>;

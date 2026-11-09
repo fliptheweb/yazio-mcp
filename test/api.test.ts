@@ -225,6 +225,7 @@ test('date queries are sent unchanged', async () => {
     await api.getWaterIntake('2026-11-06');
     await api.getSuggestedProducts('dinner', '2026-11-06');
     await api.getGoals('2026-11-06');
+    await api.getWeightHistory('2026-01-01', '2026-11-06');
   } finally {
     console.error = consoleError;
   }
@@ -237,6 +238,7 @@ test('date queries are sent unchanged', async () => {
       '/user/water-intake?date=2026-11-06',
       '/user/products/suggested?date=2026-11-06&daytime=dinner',
       '/user/goals/unmodified?date=2026-11-06',
+      '/user/bodyvalues/weight?start=2026-01-01&end=2026-11-06',
     ],
   );
 });
