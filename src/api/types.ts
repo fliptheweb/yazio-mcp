@@ -9,6 +9,8 @@ export type YazioDailySummary = z.infer<typeof S.DailySummarySchema>;
 export type YazioWeightEntry = z.infer<typeof S.WeightEntrySchema>;
 export type YazioWeightHistory = z.infer<typeof S.WeightHistorySchema>;
 export type YazioExercises = z.infer<typeof S.ExercisesSchema>;
+export type YazioBodyValues = z.infer<typeof S.BodyValuesSchema>;
+export type BodyValueType = z.infer<typeof S.BodyValueTypeSchema>;
 export type YazioSuggestedProduct = z.infer<typeof S.SuggestedProductsSchema>[number];
 export type YazioWaterIntake = z.infer<typeof S.WaterIntakeSchema>;
 export type YazioConsumedItems = z.infer<typeof S.ConsumedItemsSchema>;
@@ -101,12 +103,15 @@ export interface CreateMealDto {
   recipe_portions: { recipe_id: string; portion_count: number }[];
 }
 
-/** Weight in kg */
-export interface WeightDto {
+/** Always metric, whatever units the app shows: kg, % (ratio.*), mg/dL (glucoselevel) or cm (circumference.*) */
+export interface BodyValueDto {
   id: string;
   date: YazioDateTime;
   value: number;
 }
+
+/** Weight in kg */
+export type WeightDto = BodyValueDto;
 
 /** The API stores 0 kcal when `energy` is missing */
 export interface ExerciseDto<Name extends string = string> {

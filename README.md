@@ -121,6 +121,9 @@ Easily log meals you forgot to track in the Yazio app directly from Claude or Cu
 | `add_user_consumed_meal` | Log all items of a saved meal | `meal_id`, `date`, `daytime` |
 | `add_user_weight` | Log a weight measurement in kg | `date`, `weight` |
 | `delete_user_weight` | Delete a weight entry | `id` |
+| `get_user_body_values` | Get every body value of a day | `date` (optional) |
+| `add_user_body_value` | Log body fat, muscle, blood glucose or a circumference, in metric units | `type`, `date`, `value` |
+| `delete_user_body_value` | Delete a body value entry | `id` |
 | `add_user_exercise` | Log a Yazio training or a custom exercise | `date`, `name`, `duration`, `energy` |
 | `delete_user_exercise` | Delete an exercise entry | `id` |
 

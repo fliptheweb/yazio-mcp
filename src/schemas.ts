@@ -9,6 +9,7 @@ import {
   ProductSearchResultsSchema,
   ServingNameSchema,
   TrainingNameSchema,
+  BodyValueTypeSchema,
 } from './api/schemas.js';
 
 export { DaytimeSchema, ProductCategorySchema, ServingNameSchema };
@@ -210,6 +211,21 @@ export const AddUserWeightInputSchema = z.object({
 export const DeleteUserWeightInputSchema = z.object({
   id: z.uuid().describe('Weight entry ID from add_user_weight or get_user_weight'),
 });
+/** Weight has its own tools; these are the other types */
+const OtherBodyValueTypeSchema = BodyValueTypeSchema.exclude(['weight']);
+export const GetUserBodyValuesInputSchema = z.object({
+  date: DateStringSchema.optional().describe('The day to read (defaults to today)'),
+});
+export const AddUserBodyValueInputSchema = z.object({
+  type: OtherBodyValueTypeSchema.describe(
+    'ratio.fat and ratio.muscle in %, glucoselevel in mg/dL, circumference.* in cm. Always these units, whatever units the app shows'
+  ),
+  date: DateTimeStringSchema.describe('Date and time of the measurement in "YYYY-MM-DD HH:mm:ss" format'),
+  value: z.number().positive(),
+});
+export const DeleteUserBodyValueInputSchema = z.object({
+  id: z.uuid().describe('Entry ID from add_user_body_value or get_user_body_values'),
+});
 export const AddUserExerciseInputSchema = z.object({
   date: DateTimeStringSchema.describe('Start date and time in "YYYY-MM-DD HH:mm:ss" format'),
   name: z
@@ -258,5 +274,8 @@ export type DeleteUserMealInput = z.infer<typeof DeleteUserMealInputSchema>;
 export type AddConsumedMealInput = z.infer<typeof AddConsumedMealInputSchema>;
 export type AddUserWeightInput = z.infer<typeof AddUserWeightInputSchema>;
 export type DeleteUserWeightInput = z.infer<typeof DeleteUserWeightInputSchema>;
+export type GetUserBodyValuesInput = z.infer<typeof GetUserBodyValuesInputSchema>;
+export type AddUserBodyValueInput = z.infer<typeof AddUserBodyValueInputSchema>;
+export type DeleteUserBodyValueInput = z.infer<typeof DeleteUserBodyValueInputSchema>;
 export type AddUserExerciseInput = z.infer<typeof AddUserExerciseInputSchema>;
 export type DeleteUserExerciseInput = z.infer<typeof DeleteUserExerciseInputSchema>;
