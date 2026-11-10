@@ -50,6 +50,9 @@
     { "name": "add_user_consumed_meal", "description": "Log a saved meal to the diary" },
     { "name": "add_user_weight", "description": "Log a weight measurement" },
     { "name": "delete_user_weight", "description": "Delete a weight entry" },
+    { "name": "get_user_body_values", "description": "Get every body value of a day" },
+    { "name": "add_user_body_value", "description": "Log body fat, muscle, blood glucose or a circumference" },
+    { "name": "delete_user_body_value", "description": "Delete a body value entry" },
     { "name": "add_user_exercise", "description": "Log an exercise" },
     { "name": "delete_user_exercise", "description": "Delete an exercise entry" }
   ],

@@ -321,3 +321,21 @@ test('a user recipe is created with a client id', async () => {
   assert.equal(create.url, `${API_BASE_URL}/user/recipes`);
   assert.deepEqual(create.body, recipe);
 });
+
+test('body values are read by day and written keyed by type', async () => {
+  const day = { 'ratio.fat': [{ id: 'b1', date: '2026-11-06 08:00:00', value: 21.5 }] };
+  const { api, apiCalls } = mockApi((c) => (c.method === 'GET' && c.url.includes('/user/bodyvalues') ? json(day) : undefined));
+
+  assert.deepEqual(await api.getBodyValues('2026-11-06'), day);
+  await api.addBodyValues('circumference.waist', [{ id: 'b2', date: '2026-11-06 08:00:00', value: 84 }]);
+  await api.addWeights([{ id: 'b3', date: '2026-11-06 08:00:00', value: 80 }]);
+  await api.deleteBodyValues(['b2']);
+
+  const [read, add, weight, remove] = apiCalls();
+  assert.equal(read.url.replace(API_BASE_URL, ''), '/user/bodyvalues?date=2026-11-06');
+  assert.equal(add.method, 'POST');
+  assert.deepEqual(add.body, { 'circumference.waist': [{ id: 'b2', date: '2026-11-06 08:00:00', value: 84 }] });
+  assert.deepEqual(weight.body, { weight: [{ id: 'b3', date: '2026-11-06 08:00:00', value: 80 }] });
+  assert.equal(remove.method, 'DELETE');
+  assert.deepEqual(remove.body, ['b2']);
+});

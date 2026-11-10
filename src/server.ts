@@ -34,6 +34,9 @@ import {
   AddConsumedMealInputSchema,
   AddUserWeightInputSchema,
   DeleteUserWeightInputSchema,
+  GetUserBodyValuesInputSchema,
+  AddUserBodyValueInputSchema,
+  DeleteUserBodyValueInputSchema,
   AddUserExerciseInputSchema,
   DeleteUserExerciseInputSchema,
   SearchProductsOutputSchema,
@@ -66,6 +69,9 @@ import {
   type AddConsumedMealInput,
   type AddUserWeightInput,
   type DeleteUserWeightInput,
+  type GetUserBodyValuesInput,
+  type AddUserBodyValueInput,
+  type DeleteUserBodyValueInput,
   type AddUserExerciseInput,
   type DeleteUserExerciseInput,
 } from './schemas.js';
@@ -88,6 +94,8 @@ Water: add_user_water_intake with add_ml adds to the day's total.
 Notes: get_user_note reads the day's diary note and feeling tags, set_user_note changes them.
 
 Weight and exercises: add_user_weight and add_user_exercise log them; delete_user_weight and delete_user_exercise remove them by id.
+
+Other body values (body fat, muscle, blood glucose, circumferences): get_user_body_values reads a day, add_user_body_value logs one, delete_user_body_value removes one by id. Values are always metric, whatever units the app shows.
 
 Removing a diary entry: get_user_consumed_items gives the entry's id (not its product_id) for remove_user_consumed_item.`;
 
@@ -631,6 +639,57 @@ class YazioMcpServer {
       },
       async (args: DeleteUserWeightInput) => {
         return await this.deleteUserWeight(args);
+      }
+    );
+
+    server.registerTool(
+      'get_user_body_values',
+      {
+        title: 'Get Body Values',
+        description: 'Get every body value of a day, by type: weight in kg, body fat and muscle in %, blood glucose in mg/dL, circumferences in cm. Always metric, whatever units the app shows.',
+        inputSchema: GetUserBodyValuesInputSchema,
+        annotations: {
+          readOnlyHint: true,
+          destructiveHint: false,
+          idempotentHint: true,
+        },
+      },
+      async (args: GetUserBodyValuesInput) => {
+        return await this.getUserBodyValues(args);
+      }
+    );
+
+    server.registerTool(
+      'add_user_body_value',
+      {
+        title: 'Add Body Value',
+        description: 'Log a body fat or muscle percentage, a blood glucose level or a circumference. Convert to the metric unit first: Yazio stores metric whatever units the app shows. For weight use add_user_weight. Yazio may refuse these types for accounts without PRO. Returns the entry ID for delete_user_body_value.',
+        inputSchema: AddUserBodyValueInputSchema,
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: false,
+          idempotentHint: false,
+        },
+      },
+      async (args: AddUserBodyValueInput) => {
+        return await this.addUserBodyValue(args);
+      }
+    );
+
+    server.registerTool(
+      'delete_user_body_value',
+      {
+        title: 'Delete Body Value',
+        description: 'Delete a body value entry by its ID, from add_user_body_value or get_user_body_values.',
+        inputSchema: DeleteUserBodyValueInputSchema,
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: true,
+          idempotentHint: true,
+        },
+      },
+      async (args: DeleteUserBodyValueInput) => {
+        return await this.deleteUserBodyValue(args);
       }
     );
 
@@ -1431,6 +1490,64 @@ To correct the day's total, e.g. after a wrong entry, pass \`water_intake\` with
       };
     } catch (error) {
       throw new Error(`Failed to delete weight: ${error}`);
+    }
+  }
+
+  private async getUserBodyValues(args: GetUserBodyValuesInput) {
+    const client = this.client;
+
+    try {
+      const values = await client.getBodyValues(args.date);
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Body values:\n\n${JSON.stringify(values, null, 2)}`,
+          },
+        ],
+      };
+    } catch (error) {
+      throw new Error(`Failed to get body values: ${error}`);
+    }
+  }
+
+  private async addUserBodyValue(args: AddUserBodyValueInput) {
+    const client = this.client;
+
+    try {
+      const id = uuidv4();
+      await client.addBodyValues(args.type, [{ id, date: args.date, value: args.value }]);
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Successfully logged ${args.type} = ${args.value} with id: ${id}`,
+          },
+        ],
+      };
+    } catch (error) {
+      throw new Error(`Failed to add body value: ${error}`);
+    }
+  }
+
+  private async deleteUserBodyValue(args: DeleteUserBodyValueInput) {
+    const client = this.client;
+
+    try {
+      await client.deleteBodyValues([args.id]);
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Successfully deleted body value entry with ID: ${args.id}`,
+          },
+        ],
+      };
+    } catch (error) {
+      throw new Error(`Failed to delete body value: ${error}`);
     }
   }
 

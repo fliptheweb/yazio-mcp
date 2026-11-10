@@ -4,6 +4,8 @@ import * as S from './schemas.js';
 import type {
   AddConsumedItemsDto,
   AddExercisesDto,
+  BodyValueDto,
+  BodyValueType,
   CreateMealDto,
   CreateProductDto,
   CreateUserRecipeDto,
@@ -47,8 +49,15 @@ export class YazioApi {
   getWeightHistory = (start: string, end = today()) =>
     this.http.request('GET', '/user/bodyvalues/weight', { query: { start, end }, schema: S.WeightHistorySchema });
 
-  /** The body is keyed by value type; v15 accepts only weight */
-  addWeights = (entries: WeightDto[]) => this.http.request('POST', '/user/bodyvalues', { body: { weight: entries } });
+  /** Every body value of a day, by type */
+  getBodyValues = (date = today()) =>
+    this.http.request('GET', '/user/bodyvalues', { query: { date }, schema: S.BodyValuesSchema });
+
+  addWeights = (entries: WeightDto[]) => this.addBodyValues('weight', entries);
+
+  /** The body is keyed by value type. Types other than weight seem to need a PRO account */
+  addBodyValues = (type: BodyValueType, entries: BodyValueDto[]) =>
+    this.http.request('POST', '/user/bodyvalues', { body: { [type]: entries } });
 
   /** Any body value IDs */
   deleteBodyValues = (ids: string[]) => this.http.request('DELETE', '/user/bodyvalues', { body: ids });
