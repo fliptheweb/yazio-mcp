@@ -25,7 +25,10 @@ The code must run without changes on these hosts:
 | Host | What the code must give |
 |---|---|
 | Vercel | `api/index.ts` and `vercel.json`. Each request must finish within 300 seconds. The local disk does not persist, so the storage must be a network service. |
-| Railway, Render, a VPS | `node dist/remote.js`, which listens on `PORT` |
+| Railway, Render, a VPS | `node dist/remote.js`, which listens on `HOST` and `PORT`. The platform sets `HOST=0.0.0.0`. |
+| A Raspberry Pi or another home server | `node dist/remote.js` on `127.0.0.1`, behind a tunnel or a TLS proxy (Cloudflare Tunnel, Caddy, nginx). A file on the local disk works as storage. |
+
+Keep the code generic: it must not depend on one host. A setup such as the Raspberry Pi deployment in [dm807cam/yazio-mcp](https://github.com/dm807cam/yazio-mcp) (a systemd unit, Cloudflare Tunnel and automatic updates) must be able to run `dist/remote.js` with only environment variables. Host-specific scripts stay outside this repository.
 
 On every host:
 
@@ -76,7 +79,7 @@ On every host:
 
    Test on a preview deployment that `request.url` in the function still shows the original path (`/mcp`, `/token`). The Vercel docs do not say that for a rewrite. If it does not, give each path its own rewrite with a query parameter.
 
-6. Build `dist/remote.js` as a second build entry point for Node hosts. It starts an HTTP server on `PORT` with the same `fetch` handler, through a small adapter such as `srvx` or `@hono/node-server`. Keep it out of `dist/index.js`, so the stdio package that users install with `npx` does not get bigger.
+6. Build `dist/remote.js` as a second build entry point for Node hosts. It starts an HTTP server on `HOST` and `PORT` with the same `fetch` handler, through a small adapter such as `srvx` or `@hono/node-server`. Keep it out of `dist/index.js`, so the stdio package that users install with `npx` does not get bigger.
 
 7. Take `PUBLIC_URL` from the configuration when it is set. When it is not set, use the origin of the request (`new URL(request.url).origin`). Then Vercel and most VPS setups need no value.
 
@@ -87,6 +90,7 @@ On every host:
 | The storage connection, for example `REDIS_URL`, `DATABASE_URL` or `DATA_DIR` | Yes | Where the server keeps sessions and tokens. The name depends on the storage. |
 | `SESSION_SECRET` | Yes | A random string that encrypts the stored Yazio tokens. It must stay the same between deploys. |
 | `PUBLIC_URL` | No | The HTTPS URL that clients use. The OAuth metadata and redirects use it. The default is the origin of the request. |
+| `HOST` | No | `dist/remote.js` only. The listen address. The default is `127.0.0.1`. Set `0.0.0.0` on a platform that connects to the process from outside, such as Railway or Render. |
 | `PORT` | No | `dist/remote.js` only. The default is `3000`. |
 | `YAZIO_CLIENT_ID`, `YAZIO_CLIENT_SECRET` | No | The same optional overrides as the stdio server. |
 
