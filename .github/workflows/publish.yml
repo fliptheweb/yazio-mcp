@@ -85,7 +85,6 @@ jobs:
       # Keeps `@beta` from staying on an older beta than the stable release.
       - name: Point the beta dist-tag at the stable release
         if: ${{ !github.event.release.prerelease }}
-        continue-on-error: true
         run: npm dist-tag add "$(node -p 'require("./package.json").name')@${TAG#v}" beta
 
       - name: Pack MCPB bundle
