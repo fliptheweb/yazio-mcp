@@ -393,7 +393,7 @@ class YazioMcpServer {
       'add_user_consumed_item',
       {
         title: 'Add Consumed Item',
-        description: 'Add a food item to user consumption log. Pass date with time ("YYYY-MM-DD HH:mm:ss") to keep the time of the entry; date only (YYYY-MM-DD) logs it at 00:00.',
+        description: 'Add a food item to user consumption log. Pass date with time ("YYYY-MM-DD HH:mm:ss") to keep the time of the entry; date only (YYYY-MM-DD) logs it at 00:00. Returns the entry ID for remove_user_consumed_item.',
         inputSchema: AddConsumedItemInputSchema,
         annotations: {
           readOnlyHint: false,
@@ -595,7 +595,7 @@ class YazioMcpServer {
       'add_user_consumed_meal',
       {
         title: 'Add Saved Meal',
-        description: 'Log all items of a saved meal to the diary. Each item shows up in get_user_consumed_items as a separate entry.',
+        description: 'Log all items of a saved meal to the diary. Each item shows up in get_user_consumed_items as a separate entry. Returns the entry IDs for remove_user_consumed_item.',
         inputSchema: AddConsumedMealInputSchema,
         annotations: {
           readOnlyHint: false,
@@ -1160,17 +1160,18 @@ To correct the day's total, e.g. after a wrong entry, pass \`water_intake\` with
 
     try {
       const { serving, serving_quantity, ...item } = args;
+      const id = uuidv4();
       const product =
         serving !== undefined && serving_quantity !== undefined
-          ? { ...item, id: uuidv4(), serving, serving_quantity }
-          : { ...item, id: uuidv4() };
+          ? { ...item, id, serving, serving_quantity }
+          : { ...item, id };
       await client.addConsumedItems({ products: [product] });
 
       return {
         content: [
           {
             type: 'text' as const,
-            text: `Successfully added consumed item`,
+            text: `Successfully added consumed item with id: ${id}`,
           },
         ],
       };
@@ -1430,7 +1431,7 @@ To correct the day's total, e.g. after a wrong entry, pass \`water_intake\` with
       if (!meal) throw new Error(`No saved meal with ID ${args.meal_id}`);
       const { date, daytime } = args;
 
-      await client.addConsumedItems({
+      const entries = {
         products: meal.products.map((item) =>
           item.serving !== null && item.serving_quantity !== null
             ? { id: uuidv4(), date, daytime, product_id: item.product_id, amount: item.amount, serving: item.serving, serving_quantity: item.serving_quantity }
@@ -1438,14 +1439,16 @@ To correct the day's total, e.g. after a wrong entry, pass \`water_intake\` with
         ),
         simple_products: meal.simple_products.map((item) => ({ id: uuidv4(), date, daytime, name: item.name, nutrients: item.nutrients })),
         recipe_portions: meal.recipe_portions.map((item) => ({ id: uuidv4(), date, daytime, recipe_id: item.recipe_id, portion_count: item.portion_count })),
-      });
-      const count = meal.products.length + meal.simple_products.length + meal.recipe_portions.length;
+      };
+      await client.addConsumedItems(entries);
+      // Each item is its own diary entry: these IDs let remove_user_consumed_item undo the meal
+      const ids = [...entries.products, ...entries.simple_products, ...entries.recipe_portions].map((entry) => entry.id);
 
       return {
         content: [
           {
             type: 'text' as const,
-            text: `Successfully logged meal "${meal.name}" (${count} items) for ${daytime}`,
+            text: `Successfully logged meal "${meal.name}" (${ids.length} items) for ${daytime} with ids: ${ids.join(', ')}`,
           },
         ],
       };
