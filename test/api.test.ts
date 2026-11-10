@@ -381,3 +381,116 @@ test('endpoints from the yazio-community specification', async () => {
     ],
   );
 });
+
+// --- starting from a saved token (the remote server keeps a token, never a password) ---
+
+const savedToken = (n: number, expiresAt = Date.now() + 3600_000) => ({
+  token_type: 'bearer',
+  access_token: `access-${n}`,
+  refresh_token: `refresh-${n}`,
+  expires_in: 3600,
+  expires_at: expiresAt,
+});
+
+function tokenApi(options: { expiresAt?: number; handler?: Handler; onToken?: (token: { access_token: string }) => unknown }) {
+  const calls: Call[] = [];
+  let tokens = 1;
+  const fetchMock = async (input: string | URL | Request, init: RequestInit = {}) => {
+    const call: Call = {
+      method: init.method ?? 'GET',
+      url: String(input),
+      headers: (init.headers ?? {}) as Record<string, string>,
+      body: typeof init.body === 'string' ? JSON.parse(init.body) : undefined,
+    };
+    calls.push(call);
+    const handled = options.handler?.(call);
+    if (handled) return handled;
+    if (call.url.endsWith('/oauth/token')) return tokenResponse(++tokens);
+    return new Response(null, { status: 204 });
+  };
+  const api = new YazioApi(
+    { username: '' },
+    { fetch: fetchMock as typeof fetch, token: savedToken(1, options.expiresAt), onToken: options.onToken as never },
+  );
+  const grants = () => calls.filter((c) => c.url.endsWith('/oauth/token')).map((c) => (c.body as Record<string, string>).grant_type);
+  return { api, calls, grants };
+}
+
+test('a saved token is used without a login', async () => {
+  const { api, calls, grants } = tokenApi({});
+  await api.removeConsumedItems(['x']);
+  assert.deepEqual(grants(), []);
+  assert.equal(calls[0].headers.Authorization, 'Bearer access-1');
+});
+
+test('a renewed token is reported, and the request waits until it is saved', async () => {
+  const order: string[] = [];
+  const { api, calls, grants } = tokenApi({
+    expiresAt: 0,
+    onToken: async (token) => {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      order.push(`saved ${token.access_token}`);
+    },
+    handler: (c) => {
+      if (!c.url.endsWith('/oauth/token')) order.push('request');
+      return undefined;
+    },
+  });
+  await api.removeConsumedItems(['x']);
+  assert.deepEqual(grants(), ['refresh_token']);
+  assert.deepEqual(order, ['saved access-2', 'request']);
+  assert.equal(calls.at(-1)?.headers.Authorization, 'Bearer access-2');
+});
+
+test('a token that cannot be saved is still used', async () => {
+  const { api, calls } = tokenApi({
+    expiresAt: 0,
+    onToken: () => {
+      throw new RangeError('disk full: access-2');
+    },
+  });
+  const logged: string[] = [];
+  const consoleError = console.error;
+  console.error = (message: string) => logged.push(message);
+  try {
+    await api.removeConsumedItems(['x']);
+  } finally {
+    console.error = consoleError;
+  }
+  assert.equal(calls.at(-1)?.headers.Authorization, 'Bearer access-2');
+  assert.equal(logged.length, 1);
+  assert.match(logged[0], /RangeError/);
+  assert.doesNotMatch(logged[0], /access-2/);
+});
+
+test('without a password a refused refresh is reported and no password login is tried', async () => {
+  const { api, grants } = tokenApi({
+    expiresAt: 0,
+    handler: (c) => (c.url.endsWith('/oauth/token') ? json({ error: 'invalid_grant' }, 400) : undefined),
+  });
+  await assert.rejects(api.getUser(), (error: unknown) => error instanceof YazioApiError && error.status === 400);
+  assert.deepEqual(grants(), ['refresh_token']);
+});
+
+test('without a token and without a password there is nothing to log in with', async () => {
+  const api = new YazioApi({ username: '' }, { fetch: (async () => json({})) as typeof fetch });
+  await assert.rejects(api.getUser(), /no password/);
+});
+
+test('a response that is not JSON gives an error without its body', async () => {
+  const { api } = tokenApi({
+    handler: (c) => (c.url.endsWith('/user') ? new Response('<html>BODY-SENTINEL</html>', { status: 200 }) : undefined),
+  });
+  await assert.rejects(
+    api.getUser(),
+    (error: unknown) => error instanceof YazioApiError && !error.message.includes('BODY-SENTINEL'),
+  );
+});
+
+test('a token response that is not JSON gives an error without its body', async () => {
+  const { api } = tokenApi({
+    expiresAt: 0,
+    handler: (c) => (c.url.endsWith('/oauth/token') ? new Response('TOKEN-BODY-SENTINEL', { status: 200 }) : undefined),
+  });
+  await assert.rejects(api.getUser(), (error: unknown) => error instanceof Error && !error.message.includes('SENTINEL'));
+});
