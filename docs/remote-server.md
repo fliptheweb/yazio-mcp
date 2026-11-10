@@ -32,7 +32,24 @@ The Vercel entry is not tested on Vercel. See [What is not tested](#what-is-not-
 
 ### Connect a client
 
-Give the client the address `https://<your host>/mcp`. In claude.ai, add it as a custom connector. The client registers itself, and it opens the sign-in page. The user types their Yazio email and password there.
+The address of the server for a client is `https://<your host>/mcp`. Before you add it, open `https://<your host>/healthz` in a browser. It must show `{"status":"ok"}`.
+
+In claude.ai:
+
+1. Open **Settings**, then **Connectors**.
+2. Select **Add custom connector**.
+3. Type a name, for example `Yazio`, and the address `https://<your host>/mcp`. Leave the advanced OAuth fields empty: the server registers the client by itself.
+4. Select **Add**, then **Connect** on the new connector.
+5. A sign-in page of your server opens. Type your Yazio email and password. The page shows the address that it returns to after the sign-in.
+6. The connector now shows as connected. In a chat, enable it in the tools menu, then ask for example "What did I eat today?".
+
+The mobile apps use the connectors of the account, so the connector also works there after these steps. Add it in the browser first.
+
+On a Team or Enterprise plan, an owner adds the connector for the organization, and every member sees it. Each member then selects **Connect** and signs in with their own Yazio account. Nobody sees the data of another member, because each sign-in has its own Yazio session.
+
+Other MCP clients that support remote servers with OAuth work the same way: give them the address, and sign in on the page that opens.
+
+To stop using it, disconnect or remove the connector in claude.ai. The server keeps a sign-in until its refresh token is revoked or expires, at most 30 days after the last refresh. To sign out every user at once, change `SESSION_SECRET`.
 
 ## Configuration
 
