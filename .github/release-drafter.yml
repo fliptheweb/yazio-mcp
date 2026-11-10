@@ -13,7 +13,7 @@ categories:
     when:
       label: 'breaking'
   - title: '🚀 Features'
-    semver-increment: minor
+    semver-increment: patch
     when:
       label: 'feature'
   - title: '🐛 Fixes'
