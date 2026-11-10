@@ -22,6 +22,8 @@ node -e "console.log(crypto.randomBytes(32).toString('base64url'))"
 
 The process listens on `127.0.0.1:3000` and speaks plain HTTP. Put a TLS proxy or a tunnel in front of it (Caddy, nginx, Cloudflare Tunnel), and set `TRUST_PROXY=1`. On a platform that connects to the process from outside, set `HOST=0.0.0.0`.
 
+To copy only the build to a server, keep the layout of the repository: `dist/remote.js` reads its version from `../package.json`, so copy `package.json` too. `dist/remote.js` needs no `node_modules`.
+
 `npm run dev:remote` runs the server from the TypeScript source.
 
 ### On Vercel
