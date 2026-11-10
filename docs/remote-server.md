@@ -15,7 +15,7 @@ The remote server is one more entry point next to `src/index.ts`. It calls the s
 ## Design rules
 
 - The remote server is one Web-standard `fetch` handler: `export default { fetch(request: Request): Promise<Response> }`. It routes by path: `/mcp`, the OAuth endpoints and `/.well-known/*`.
-- The handler keeps no state in memory between requests. A serverless platform can start a new instance for any request, and it stops idle instances. All sessions and tokens live in Redis.
+- The handler keeps no state in memory between requests. A serverless platform can start a new instance for any request, and it stops idle instances. All sessions and tokens live in durable storage.
 - No Docker image is necessary.
 
 ## Hosting requirements
@@ -24,13 +24,13 @@ The code must run without changes on these hosts:
 
 | Host | What the code must give |
 |---|---|
-| Vercel | `api/index.ts` and `vercel.json`. Each request must finish within 300 seconds, and the code must not write files. |
+| Vercel | `api/index.ts` and `vercel.json`. Each request must finish within 300 seconds. The local disk does not persist, so the storage must be a network service. |
 | Railway, Render, a VPS | `node dist/remote.js`, which listens on `PORT` |
 
 On every host:
 
 - All configuration comes from environment variables (see the table below). A deploy template can then fill every value, and the user edits no files.
-- The only storage is Redis. The code does not write to the local filesystem.
+- The remote libraries go in `devDependencies` only. `dependencies` in `package.json` stays empty, so `npx yazio-mcp` installs nothing.
 - The code needs no build step other than `npm ci` and `npm run build`.
 
 ## Steps
@@ -55,17 +55,15 @@ On every host:
    };
    ```
 
-   `clientFor` loads the user's Yazio token from Redis and creates a `YazioApi` with it. It must not log in to Yazio again on each request.
+   `clientFor` loads the user's Yazio token from the storage and creates a `YazioApi` with it. It must not log in to Yazio again on each request.
 
    You do not need the `mcp-handler` package from the Vercel docs. SDK v2 already gives `createMcpHandler`, `requireBearerAuth` and `oauthMetadataResponse`.
 
 2. Add the OAuth 2.1 authorization server: dynamic client registration (`/register`), the authorization page with the Yazio login form (`/authorize`), the token endpoint (`/token`), and the metadata documents under `/.well-known/`. The Yazio login is the identity provider. Do not store the Yazio password: exchange it for a Yazio token at login, and keep only that token. Vercel does not supply an authorization server, so this code is part of the remote server.
 
-3. Let `YazioHttp` (`src/api/http.ts`) start from a saved `Token` and report a renewed token through a callback, so that the server can write it back to Redis. Today `Credentials` requires `username` and `password`, and the client keeps the token in memory only.
+3. Let `YazioHttp` (`src/api/http.ts`) start from a saved `Token` and report a renewed token through a callback, so that the server can write it back to the storage. Today `Credentials` requires `username` and `password`, and the client keeps the token in memory only.
 
-4. Store the sessions in Redis: the OAuth clients, the authorization codes, the MCP access and refresh tokens, and the Yazio token for each user. Read the connection from `REDIS_URL` (`redis://` or `rediss://`) with a TCP client such as `redis`. This works on Railway, on a VPS and with any hosted Redis. Encrypt the Yazio tokens with `SESSION_SECRET`.
-
-   Before you write the storage code, run `vercel install upstash` on a test project and look at the variables it adds. Third-party guides say that it adds only REST variables (`UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`, or `KV_REST_API_URL` and `KV_REST_API_TOKEN`). If Vercel gives no TCP URL, use the Upstash REST client (`@upstash/redis`) on every host instead, with Upstash as the only supported Redis. Do not support both clients.
+4. Store the sessions in durable storage: the OAuth clients, the authorization codes, the MCP access and refresh tokens, and the Yazio token for each user. Choose one storage, for example Redis, Postgres, or a JSON file on a persistent disk. A file does not work on Vercel, because Vercel has no persistent disk. Encrypt the Yazio tokens with `SESSION_SECRET`.
 
 5. Add the Vercel entry file `api/index.ts`, which only re-exports `src/remote.ts`, and a `vercel.json` that sends every path to it:
 
@@ -86,7 +84,7 @@ On every host:
 
 | Variable | Required | Meaning |
 |---|---|---|
-| `REDIS_URL` | Yes | The Redis connection URL for sessions and tokens. |
+| The storage connection, for example `REDIS_URL`, `DATABASE_URL` or `DATA_DIR` | Yes | Where the server keeps sessions and tokens. The name depends on the storage. |
 | `SESSION_SECRET` | Yes | A random string that encrypts the stored Yazio tokens. It must stay the same between deploys. |
 | `PUBLIC_URL` | No | The HTTPS URL that clients use. The OAuth metadata and redirects use it. The default is the origin of the request. |
 | `PORT` | No | `dist/remote.js` only. The default is `3000`. |
