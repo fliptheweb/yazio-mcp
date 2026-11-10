@@ -665,7 +665,7 @@ class YazioMcpServer {
       'add_user_body_value',
       {
         title: 'Add Body Value',
-        description: 'Log a body fat or muscle percentage, a blood glucose level or a circumference. Convert to the metric unit first: Yazio stores metric whatever units the app shows. For weight use add_user_weight. Yazio may refuse these types for accounts without PRO. Returns the entry ID for delete_user_body_value.',
+        description: 'Log a body fat or muscle percentage, a blood glucose level or a circumference. Convert to the metric unit first: Yazio stores metric whatever units the app shows. For weight use add_user_weight. Returns the entry ID for delete_user_body_value.',
         inputSchema: AddUserBodyValueInputSchema,
         annotations: {
           readOnlyHint: false,
@@ -1443,7 +1443,6 @@ To correct the day's total, e.g. after a wrong entry, pass \`water_intake\` with
         recipe_portions: meal.recipe_portions.map((item) => ({ id: uuidv4(), date, daytime, recipe_id: item.recipe_id, portion_count: item.portion_count })),
       };
       await client.addConsumedItems(entries);
-      // Each item is its own diary entry: these IDs let remove_user_consumed_item undo the meal
       const ids = [...entries.products, ...entries.simple_products, ...entries.recipe_portions].map((entry) => entry.id);
 
       return {

@@ -55,7 +55,7 @@ export class YazioApi {
 
   addWeights = (entries: WeightDto[]) => this.addBodyValues('weight', entries);
 
-  /** The body is keyed by value type. Types other than weight seem to need a PRO account */
+  /** The body is keyed by value type */
   addBodyValues = (type: BodyValueType, entries: BodyValueDto[]) =>
     this.http.request('POST', '/user/bodyvalues', { body: { [type]: entries } });
 
