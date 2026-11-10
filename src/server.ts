@@ -82,6 +82,8 @@ const { version } = require('../package.json') as { version: string };
 
 const SERVER_INSTRUCTIONS = `Access to the signed-in user's Yazio nutrition and fitness data via an unofficial API.
 
+When to use: Yazio is the user's food and body diary. Use these tools whenever the user talks about what they ate or drank, calories, macros (protein, fat, carbs), water, weight, body measurements, exercise or their nutrition goals, even when they don't name Yazio. A plain "I had two eggs for breakfast" or "track my lunch" means: log it. Questions such as "how much protein today?" or "am I under my calories?" mean: read the diary and the goals first, then answer. Short or spoken requests count too; when the food, amount or meal is unclear, ask or make a reasonable estimate and say so.
+
 Conventions:
 - Dates are YYYY-MM-DD; diary and water entries also take "YYYY-MM-DD HH:mm:ss". Amounts are in base units, grams (g) or milliliters (ml).
 - daytime (meal) is one of: breakfast, lunch, dinner, snack.
@@ -112,7 +114,7 @@ class YazioMcpServer {
         name: 'yazio-mcp',
         version,
         title: 'Yazio',
-        description: "Access the signed-in user's Yazio nutrition and diet data (unofficial)",
+        description: "Log and read the signed-in user's Yazio diary: food, calories, water, weight, body values and exercise (unofficial)",
         websiteUrl: 'https://github.com/fliptheweb/yazio-mcp',
       },
       { instructions: SERVER_INSTRUCTIONS },
