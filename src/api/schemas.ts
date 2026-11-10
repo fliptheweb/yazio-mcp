@@ -181,8 +181,7 @@ export const WeightEntrySchema = z.looseObject({
 
 /**
  * The keys POST /user/bodyvalues takes, read back from entries made in the app. Yazio refuses
- * any other key as "not a valid type", without listing the valid ones. Every type but weight
- * seems to need a PRO account: without one, the same keys are refused.
+ * any other key as "not a valid type", without listing the valid ones.
  */
 export const BodyValueTypeSchema = z.enum([
   'weight',
