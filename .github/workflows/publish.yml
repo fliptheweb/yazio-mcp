@@ -5,9 +5,16 @@ name: Publish to NPM and MCP Registry
 on:
   release:
     types: [published]
+  # Points the beta dist-tag at a stable version that is already on npm
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Stable version for the beta dist-tag, like 1.2.3
+        required: true
 
 jobs:
   publish:
+    if: github.event_name == 'release'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -26,6 +33,10 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: "24.x"
+
+      # npm 11.21 is the first version that uses OIDC for npm dist-tag
+      - name: Update npm
+        run: npm install -g npm@^11.21.2
 
       - name: Install dependencies
         run: npm ci
@@ -72,7 +83,6 @@ jobs:
         run: npm publish --access public --provenance --tag "${{ github.event.release.prerelease && 'beta' || 'latest' }}"
 
       # Keeps `@beta` from staying on an older beta than the stable release.
-      # Trusted publishing may cover only `npm publish`; then run this by hand.
       - name: Point the beta dist-tag at the stable release
         if: ${{ !github.event.release.prerelease }}
         continue-on-error: true
@@ -107,3 +117,31 @@ jobs:
           max_attempts: 10
           retry_wait_seconds: 30
           timeout_minutes: 2
+
+  beta-dist-tag:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      VERSION: ${{ inputs.version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24.x"
+
+      - name: Update npm
+        run: npm install -g npm@^11.21.2
+
+      - name: Point the beta dist-tag at the stable version
+        run: |
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::$VERSION is not a stable version like 1.2.3"
+            exit 1
+          fi
+          npm dist-tag add "$(node -p 'require("./package.json").name')@$VERSION" beta
