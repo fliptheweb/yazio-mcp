@@ -161,13 +161,12 @@ Easily log meals you forgot to track in the Yazio app directly from Claude or Cu
 YAZIO_USERNAME='your_email' YAZIO_PASSWORD='your_password' npx yazio-mcp
 ```
 
-## ⚠️ Important Disclaimers
+## ❕ Disclaimers
 
 - **Credentials**: Your Yazio credentials are only used for auth on Yazio servers
 - **Use at Your Own Risk**: API changes could affect functionality
 
-> [!WARNING]
-> **Gotcha: the Yazio app caches each day's items.** It keeps the item list of a day from the first time it shows that day. Entries logged here later count in the totals, but get no row in the meal ([details](https://github.com/yazio-community/yazio-api-specification/issues/25)).
+> **Gotcha: the Yazio app may cache each day's items.** It may keep the item list of a day from the first time it shows that day. Entries logged here later count in the totals, but get no row in the meal.
 > - Log out of the app and in again to see the rows.
 > - Or edit and delete them here: `get_user_consumed_items`, then `remove_user_consumed_item`.
 > - Or log first, then open the app.
