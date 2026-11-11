@@ -166,6 +166,19 @@ YAZIO_USERNAME='your_email' YAZIO_PASSWORD='your_password' npx yazio-mcp
 - **Credentials**: Your Yazio credentials are only used for auth on Yazio servers
 - **Use at Your Own Risk**: API changes could affect functionality
 
+## 📱 Entries Not Listed in the Yazio App
+
+The Yazio phone app keeps its own copy of each day's item list, made the first time it shows that day. It does not reload that copy later. So for a day the app already showed, entries logged through this server:
+
+- count in the calories and totals right away, and show their names in the meal row,
+- but do not appear as rows in the meal, so you can't edit or delete them there.
+
+The data on Yazio's server is correct. To see the rows in the app, log out of the app and log in again. You can also edit or delete such entries through this server (`get_user_consumed_items`, then `remove_user_consumed_item`).
+
+Entries for a day the app has not shown yet appear normally. The app opens on today, so opening it at all counts as showing today: log first, then open the app.
+
+This is app behaviour that the API cannot change; see [yazio-community/yazio-api-specification#25](https://github.com/yazio-community/yazio-api-specification/issues/25).
+
 ## 📋 Requirements
 
 - Node.js 20+ (for npx)
