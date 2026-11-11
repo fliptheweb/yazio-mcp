@@ -12,11 +12,13 @@ const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g;
 /** A server on a fake Yazio. Returns what the tool answered and the diary entries that Yazio received. */
 async function callTool(name: string, args: Record<string, unknown>, routes: Record<string, unknown> = {}) {
   const posted: { products?: { id: string }[]; simple_products?: { id: string }[]; recipe_portions?: { id: string }[] }[] = [];
+  const requests: { method: string; url: string; body: any }[] = [];
   const fetchMock = async (input: string | URL | Request, init: RequestInit = {}) => {
     const url = String(input);
     if (url.endsWith('/oauth/token')) {
       return json({ token_type: 'bearer', access_token: 'access', refresh_token: 'refresh', expires_in: 3600 });
     }
+    requests.push({ method: init.method ?? 'GET', url, body: init.body ? JSON.parse(String(init.body)) : undefined });
     if (url.endsWith('/user/consumed-items') && init.method === 'POST') {
       posted.push(JSON.parse(String(init.body)));
       return new Response(null, { status: 204 });
@@ -47,7 +49,7 @@ async function callTool(name: string, args: Record<string, unknown>, routes: Rec
   await server.close();
 
   assert.equal(answer.result?.isError, undefined, JSON.stringify(answer));
-  return { text: answer.result.content[0].text as string, posted };
+  return { text: answer.result.content[0].text as string, posted, requests };
 }
 
 test('add_user_consumed_item returns the ID of the entry it created', async () => {
@@ -85,4 +87,42 @@ test('add_user_consumed_meal returns the ID of every entry it created', async ()
   assert.equal(sent.length, 4);
   // The meal ID itself is in the request, not in the answer: only the new entries are listed
   assert.deepEqual(text.match(UUID), sent);
+});
+
+test('update_user_recipe recalculates the nutrients per portion and replaces the recipe', async () => {
+  const id = '17c69708-1e7b-4e8d-92a9-a5bcd9715bbc';
+  const product = (name: string, kcalPerGram: number) => ({ name, producer: null, base_unit: 'g', nutrients: { 'energy.energy': kcalPerGram } });
+  const { requests } = await callTool(
+    'update_user_recipe',
+    {
+      id,
+      name: 'Porridge',
+      portion_count: 2,
+      ingredients: [
+        { product_id: '9e721086-becf-11e6-9c03-e0071b8a8723', amount: 100 },
+        { product_id: '8b8de2f4-e91f-4cbf-a78c-9ad14ddf96ab', amount: 200 },
+      ],
+    },
+    {
+      '/products/9e721086-becf-11e6-9c03-e0071b8a8723': product('Oats', 3.7),
+      '/products/8b8de2f4-e91f-4cbf-a78c-9ad14ddf96ab': product('Milk', 0.5),
+    }
+  );
+
+  const put = requests.find((r) => r.method === 'PUT')!;
+  assert.ok(put.url.endsWith(`/user/recipes/${id}`));
+  assert.equal(put.body.id, id);
+  // (100 g × 3.7 + 200 g × 0.5) / 2 portions
+  assert.equal(put.body.nutrients['energy.energy'], 235);
+  assert.deepEqual(put.body.servings.map((s: { name: string }) => s.name), ['Oats', 'Milk']);
+});
+
+test('get_user_products lists the user\'s products with their ids', async () => {
+  const { text } = await callTool('get_user_products', {}, {
+    '/user/products': ['9e721086-becf-11e6-9c03-e0071b8a8723'],
+    '/products/9e721086-becf-11e6-9c03-e0071b8a8723': { name: 'Granola', nutrients: { 'energy.energy': 4.5 } },
+  });
+
+  assert.match(text, /"id": "9e721086-becf-11e6-9c03-e0071b8a8723"/);
+  assert.match(text, /"name": "Granola"/);
 });

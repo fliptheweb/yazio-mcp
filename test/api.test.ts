@@ -237,7 +237,7 @@ test('date queries are sent unchanged', async () => {
       '/user/widgets/daily-summary?date=2026-11-06',
       '/user/water-intake?date=2026-11-06',
       '/user/products/suggested?date=2026-11-06&daytime=dinner',
-      '/user/goals/unmodified?date=2026-11-06',
+      '/user/goals?date=2026-11-06',
       '/user/bodyvalues/weight?start=2026-01-01&end=2026-11-06',
     ],
   );
@@ -338,4 +338,46 @@ test('body values are read by day and written keyed by type', async () => {
   assert.deepEqual(weight.body, { weight: [{ id: 'b3', date: '2026-11-06 08:00:00', value: 80 }] });
   assert.equal(remove.method, 'DELETE');
   assert.deepEqual(remove.body, ['b2']);
+});
+
+test('endpoints from the yazio-community specification', async () => {
+  const { api, apiCalls } = mockApi((c) => {
+    if (c.url.includes('/nutrients-daily')) return json([{ date: '2026-11-01', energy: 1800, carb: 200, protein: 90, fat: 60, energy_goal: 2000 }]);
+    if (c.method === 'GET' && c.url.endsWith('/user/products')) return json(['p1']);
+    if (c.url.endsWith('/user/favorites/product')) return json([]);
+    if (c.url.endsWith('/user/favorites/recipe')) return json([]);
+    return undefined;
+  });
+
+  await api.updateBodyValue('b1', 71.5);
+  await api.addActivity([{ date: '2026-11-01 00:00:00', steps: 8000, energy: 250 }]);
+  assert.equal((await api.getDailyNutrients('2026-11-01', '2026-11-07'))[0].energy_goal, 2000);
+  assert.deepEqual(await api.getUserProductIds(), ['p1']);
+  await api.deleteUserProduct('p1');
+  await api.updateUserRecipe({ id: 'r1', name: 'Soup', portion_count: 2, nutrients: {}, servings: [], instructions: [] });
+  await api.getFavoriteProducts();
+  await api.getFavoriteRecipes();
+  await api.addFavoriteProduct({ id: 'f1', product_id: 'p1', amount: 150, serving: null, serving_quantity: null });
+  await api.addFavoriteRecipe({ id: 'f2', recipe_id: 'r1', portion_count: 1 });
+  await api.removeFavoriteProduct('p1');
+  await api.removeFavoriteRecipe('f2');
+
+  assert.deepEqual(
+    apiCalls().map((c) => [c.method, c.url.replace(API_BASE_URL, ''), c.body]),
+    [
+      ['PUT', '/user/bodyvalues/b1', { value: 71.5 }],
+      ['POST', '/user/exercises', { activity: [{ date: '2026-11-01 00:00:00', steps: 8000, energy: 250 }] }],
+      ['GET', '/user/consumed-items/nutrients-daily?start=2026-11-01&end=2026-11-07', undefined],
+      ['GET', '/user/products', undefined],
+      ['DELETE', '/user/products/p1', undefined],
+      ['PUT', '/user/recipes/r1', { id: 'r1', name: 'Soup', portion_count: 2, nutrients: {}, servings: [], instructions: [] }],
+      ['GET', '/user/favorites/product', undefined],
+      ['GET', '/user/favorites/recipe', undefined],
+      ['PUT', '/user/favorites/products', { id: 'f1', product_id: 'p1', amount: 150, serving: null, serving_quantity: null }],
+      ['PUT', '/user/favorites/recipes', { id: 'f2', recipe_id: 'r1', portion_count: 1 }],
+      // Product favorites are removed by product_id, recipe favorites by the favorite's own id
+      ['DELETE', '/user/favorites/product/p1', undefined],
+      ['DELETE', '/user/favorites/f2', undefined],
+    ],
+  );
 });

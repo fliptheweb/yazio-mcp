@@ -239,6 +239,47 @@ export const AddUserExerciseInputSchema = z.object({
 export const DeleteUserExerciseInputSchema = z.object({
   id: z.uuid().describe('Exercise ID from get_user_exercises or add_user_exercise'),
 });
+export const UpdateUserRecipeInputSchema = CreateUserRecipeInputSchema.extend({
+  id: z.uuid().describe('Recipe ID from get_user_recipes or create_user_recipe'),
+});
+export const UpdateUserBodyValueInputSchema = z.object({
+  id: z.uuid().describe('Entry ID of a weight or body value, from get_user_weight, get_user_body_values or the add_* tools'),
+  value: z.number().nonnegative().describe('New value in the metric unit: kg, % (body fat, muscle), mg/dL (blood glucose) or cm (circumferences)'),
+});
+export const SetUserActivityInputSchema = z.object({
+  date: DateStringSchema.describe('Day of the activity (YYYY-MM-DD)'),
+  steps: z.number().int().nonnegative().optional().describe("The day's total step count; replaces the current value"),
+  energy: z.number().nonnegative().optional().describe("The day's total energy burned by activity, in kcal; replaces the current value"),
+}).refine((args) => args.steps !== undefined || args.energy !== undefined, {
+  message: 'Provide steps, energy or both',
+});
+export const GetUserDailyNutrientsInputSchema = z.object({
+  start: DateStringSchema.describe('First date, included'),
+  end: DateStringSchema.optional().describe('Last date, included (defaults to today)'),
+});
+export const GetUserProductsInputSchema = EmptyInputSchema;
+export const DeleteUserProductInputSchema = z.object({
+  id: ProductIdSchema.describe('ID of one of the user\'s own products, from get_user_products or create_product'),
+});
+export const GetUserFavoritesInputSchema = EmptyInputSchema;
+export const AddUserFavoriteProductInputSchema = z.object({
+  product_id: ProductIdSchema,
+  amount: z.number().positive().describe('Amount in base units (g or ml) the product is favorited with'),
+  serving: ServingTypeSchema.optional(),
+  serving_quantity: z.number().positive().optional().describe('Quantity of servings'),
+}).refine((args) => (args.serving === undefined) === (args.serving_quantity === undefined), {
+  message: 'Pass serving and serving_quantity together, or neither',
+});
+export const AddUserFavoriteRecipeInputSchema = z.object({
+  recipe_id: z.uuid().describe('Recipe ID from get_user_recipes or get_recipe'),
+  portion_count: z.number().positive().describe('Number of portions the recipe is favorited with'),
+});
+export const RemoveUserFavoriteProductInputSchema = z.object({
+  product_id: ProductIdSchema.describe('The favorited product\'s product_id'),
+});
+export const RemoveUserFavoriteRecipeInputSchema = z.object({
+  id: z.uuid().describe('The favorite\'s own id from get_user_favorites, not the recipe_id'),
+});
 export const GetDietaryPreferencesInputSchema = EmptyInputSchema;
 export const GetUserGoalsInputSchema = z.object({
   date: DateStringSchema.optional().describe('Date to get the goals for (defaults to today)')
@@ -279,3 +320,12 @@ export type AddUserBodyValueInput = z.infer<typeof AddUserBodyValueInputSchema>;
 export type DeleteUserBodyValueInput = z.infer<typeof DeleteUserBodyValueInputSchema>;
 export type AddUserExerciseInput = z.infer<typeof AddUserExerciseInputSchema>;
 export type DeleteUserExerciseInput = z.infer<typeof DeleteUserExerciseInputSchema>;
+export type UpdateUserRecipeInput = z.infer<typeof UpdateUserRecipeInputSchema>;
+export type UpdateUserBodyValueInput = z.infer<typeof UpdateUserBodyValueInputSchema>;
+export type SetUserActivityInput = z.infer<typeof SetUserActivityInputSchema>;
+export type GetUserDailyNutrientsInput = z.infer<typeof GetUserDailyNutrientsInputSchema>;
+export type DeleteUserProductInput = z.infer<typeof DeleteUserProductInputSchema>;
+export type AddUserFavoriteProductInput = z.infer<typeof AddUserFavoriteProductInputSchema>;
+export type AddUserFavoriteRecipeInput = z.infer<typeof AddUserFavoriteRecipeInputSchema>;
+export type RemoveUserFavoriteProductInput = z.infer<typeof RemoveUserFavoriteProductInputSchema>;
+export type RemoveUserFavoriteRecipeInput = z.infer<typeof RemoveUserFavoriteRecipeInputSchema>;
