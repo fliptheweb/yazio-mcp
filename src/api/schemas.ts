@@ -59,6 +59,27 @@ export const ProductNutrientsSchema = BasicNutrientsSchema.extend({
   'vitamin.b6': z.number().optional(),
   'vitamin.d': z.number().optional(),
   'vitamin.e': z.number().optional(),
+  // Seen in the recipes of https://github.com/yazio-community/yazio-api-specification
+  'mineral.arsenic': z.number().optional(),
+  'mineral.boron': z.number().optional(),
+  'mineral.chrome': z.number().optional(),
+  'mineral.fluoride': z.number().optional(),
+  'mineral.iodine': z.number().optional(),
+  'mineral.selenium': z.number().optional(),
+  'nutrient.alcohol': z.number().optional(),
+  'nutrient.cholesterol': z.number().optional(),
+  'nutrient.monounsaturated': z.number().optional(),
+  'nutrient.polyunsaturated': z.number().optional(),
+  'nutrient.salt': z.number().optional(),
+  'nutrient.saturated': z.number().optional(),
+  'nutrient.sodium': z.number().optional(),
+  'nutrient.water': z.number().optional(),
+  'vitamin.b3': z.number().optional(),
+  'vitamin.b5': z.number().optional(),
+  'vitamin.b7': z.number().optional(),
+  'vitamin.b11': z.number().optional(),
+  'vitamin.c': z.number().optional(),
+  'vitamin.k': z.number().optional(),
 });
 
 export const TokenResponseSchema = z.looseObject({
@@ -82,7 +103,7 @@ export const UserSchema = z.looseObject({
   sex: z.enum(['male', 'female', 'other']),
   first_name: z.string(),
   last_name: z.string().nullable(),
-  city: z.string(),
+  city: z.string().nullable(),
   country: z.string(),
   weight_change_per_week: z.number(),
   body_height: z.number(),
@@ -107,6 +128,8 @@ export const UserSchema = z.looseObject({
   reset_date: z.string().nullable(),
   activity_degree: z.string(),
   stripe_customer_id: z.string().nullable(),
+  language: z.string().optional(),
+  tags: z.array(z.unknown()).optional(),
 });
 
 export const UserSettingsSchema = z.looseObject({
@@ -224,6 +247,17 @@ const ExerciseSchema = z.looseObject({
 export const ExercisesSchema = z.looseObject({
   training: z.array(ExerciseSchema),
   custom_training: z.array(ExerciseSchema),
+  /** The day's steps and activity totals */
+  activity: z
+    .looseObject({
+      energy: z.number(),
+      distance: z.number(),
+      duration: z.number(),
+      source: z.string().nullable(),
+      gateway: z.string().nullable(),
+      steps: z.number(),
+    })
+    .optional(),
 });
 
 export const SuggestedProductsSchema = z.array(
@@ -338,6 +372,38 @@ export const RecipeSchema = z.looseObject({
 });
 
 export const RecipeIdsSchema = z.array(z.string());
+
+export const UserProductIdsSchema = z.array(z.string());
+
+export const DailyNutrientsSchema = z.array(
+  z.looseObject({
+    date: z.string(),
+    energy: z.number(),
+    carb: z.number(),
+    protein: z.number(),
+    fat: z.number(),
+    energy_goal: z.number(),
+  }),
+);
+
+export const FavoriteProductsSchema = z.array(
+  z.looseObject({
+    id: z.string(),
+    product_id: z.string(),
+    amount: z.number(),
+    serving: z.string().nullable(),
+    serving_quantity: z.number().nullable(),
+  }),
+);
+
+export const FavoriteRecipesSchema = z.array(
+  z.looseObject({
+    id: z.string(),
+    recipe_id: z.string(),
+    portion_count: z.number(),
+    yazio_id: z.string().nullable(),
+  }),
+);
 
 export const FeelingSchema = z.looseObject({
   note: z.string().nullable(),

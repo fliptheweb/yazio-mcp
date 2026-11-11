@@ -54,7 +54,18 @@
     { "name": "add_user_body_value", "description": "Log body fat, muscle, blood glucose or a circumference" },
     { "name": "delete_user_body_value", "description": "Delete a body value entry" },
     { "name": "add_user_exercise", "description": "Log an exercise" },
-    { "name": "delete_user_exercise", "description": "Delete an exercise entry" }
+    { "name": "delete_user_exercise", "description": "Delete an exercise entry" },
+    { "name": "get_user_daily_nutrients", "description": "Get daily energy and macro totals for a date range" },
+    { "name": "get_user_products", "description": "Get your own products" },
+    { "name": "delete_user_product", "description": "Delete one of your products" },
+    { "name": "update_user_recipe", "description": "Replace one of your recipes; nutrients are recalculated" },
+    { "name": "get_user_favorites", "description": "Get your favorite products and recipes" },
+    { "name": "add_user_favorite_product", "description": "Add a product to favorites" },
+    { "name": "add_user_favorite_recipe", "description": "Add a recipe to favorites" },
+    { "name": "remove_user_favorite_product", "description": "Remove a product from favorites" },
+    { "name": "remove_user_favorite_recipe", "description": "Remove a recipe from favorites" },
+    { "name": "update_user_body_value", "description": "Change a weight or body value entry" },
+    { "name": "set_user_activity", "description": "Log the day's steps or activity energy" }
   ],
   "prompts_generated": true,
   "compatibility": {

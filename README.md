@@ -126,6 +126,17 @@ Easily log meals you forgot to track in the Yazio app directly from Claude or Cu
 | `delete_user_body_value` | Delete a body value entry | `id` |
 | `add_user_exercise` | Log a Yazio training or a custom exercise | `date`, `name`, `duration`, `energy` |
 | `delete_user_exercise` | Delete an exercise entry | `id` |
+| `get_user_daily_nutrients` | Get daily energy and macro totals for a date range | `start`, `end` (optional) |
+| `get_user_products` | Get your own products | - |
+| `delete_user_product` | Delete one of your products | `id` |
+| `update_user_recipe` | Replace one of your recipes; nutrients are recalculated | `id`, `name`, `portion_count`, `ingredients` |
+| `get_user_favorites` | Get your favorite products and recipes | - |
+| `add_user_favorite_product` | Add a product to favorites | `product_id`, `amount` |
+| `add_user_favorite_recipe` | Add a recipe to favorites | `recipe_id`, `portion_count` |
+| `remove_user_favorite_product` | Remove a product from favorites | `product_id` |
+| `remove_user_favorite_recipe` | Remove a recipe from favorites | `id` |
+| `update_user_body_value` | Change a weight or body value entry | `id`, `value` |
+| `set_user_activity` | Log the day's steps or activity energy | `date`, `steps`, `energy` |
 
 ## Test Connection
 

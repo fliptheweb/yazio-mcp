@@ -33,6 +33,7 @@ export interface RequestOptions<T> {
   query?: Record<string, QueryValue>;
   body?: unknown;
   schema?: z.ZodType<T>;
+  headers?: Record<string, string>;
 }
 
 export interface YazioHttpOptions {
@@ -67,13 +68,13 @@ export class YazioHttp {
   async request<T = void>(method: string, path: string, options: RequestOptions<T> = {}): Promise<T> {
     const url = this.buildUrl(path, options.query);
     let token = await this.authenticate();
-    let response = await this.send(method, url, token, options.body);
+    let response = await this.send(method, url, token, options.body, options.headers);
 
     // The server can revoke a token before expires_at; renew it once and retry
     if (response.status === 401) {
       this.invalidate(token);
       token = await this.authenticate();
-      response = await this.send(method, url, token, options.body);
+      response = await this.send(method, url, token, options.body, options.headers);
     }
 
     if (!response.ok) {
@@ -148,8 +149,8 @@ export class YazioHttp {
     return { ...token, expires_at: Date.now() + Number(token.expires_in) * 1000 };
   }
 
-  private send(method: string, url: string, token: Token, body: unknown): Promise<Response> {
-    const headers: Record<string, string> = { Authorization: `Bearer ${token.access_token}` };
+  private send(method: string, url: string, token: Token, body: unknown, extraHeaders?: Record<string, string>): Promise<Response> {
+    const headers: Record<string, string> = { ...extraHeaders, Authorization: `Bearer ${token.access_token}` };
     if (body !== undefined) headers['Content-Type'] = 'application/json';
     return this.fetch(url, {
       method,

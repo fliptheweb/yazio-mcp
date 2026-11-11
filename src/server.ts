@@ -39,6 +39,17 @@ import {
   DeleteUserBodyValueInputSchema,
   AddUserExerciseInputSchema,
   DeleteUserExerciseInputSchema,
+  UpdateUserRecipeInputSchema,
+  UpdateUserBodyValueInputSchema,
+  SetUserActivityInputSchema,
+  GetUserDailyNutrientsInputSchema,
+  GetUserProductsInputSchema,
+  DeleteUserProductInputSchema,
+  GetUserFavoritesInputSchema,
+  AddUserFavoriteProductInputSchema,
+  AddUserFavoriteRecipeInputSchema,
+  RemoveUserFavoriteProductInputSchema,
+  RemoveUserFavoriteRecipeInputSchema,
   SearchProductsOutputSchema,
   GetProductOutputSchema,
   GetUserGoalsOutputSchema,
@@ -74,8 +85,17 @@ import {
   type DeleteUserBodyValueInput,
   type AddUserExerciseInput,
   type DeleteUserExerciseInput,
+  type UpdateUserRecipeInput,
+  type UpdateUserBodyValueInput,
+  type SetUserActivityInput,
+  type GetUserDailyNutrientsInput,
+  type DeleteUserProductInput,
+  type AddUserFavoriteProductInput,
+  type AddUserFavoriteRecipeInput,
+  type RemoveUserFavoriteProductInput,
+  type RemoveUserFavoriteRecipeInput,
 } from './schemas.js';
-import { YazioApi } from './api/index.js';
+import { YazioApi, type CreateUserRecipeDto } from './api/index.js';
 
 const require = createRequire(import.meta.url);
 const { version } = require('../package.json') as { version: string };
@@ -87,7 +107,7 @@ When to use: Yazio is the user's food and body diary. Use these tools whenever t
 Conventions:
 - Dates are YYYY-MM-DD; diary and water entries also take "YYYY-MM-DD HH:mm:ss". Amounts are in base units, grams (g) or milliliters (ml).
 - daytime (meal) is one of: breakfast, lunch, dinner, snack.
-- get_* and search_products only read. add_*, create_*, delete_*, set_user_note and remove_user_consumed_item change the user's data.
+- get_* and search_products only read. add_*, create_*, update_*, delete_*, remove_*, set_user_note and set_user_activity change the user's data.
 
 Logging food: search_products, then get_product for its servings and base unit, then add_user_consumed_item. For food that isn't in the database, use add_quick_entry for a one-off entry or create_product for something eaten again. For a recipe, use add_user_consumed_recipe. For a saved meal (get_user_meals), use add_user_consumed_meal.
 
@@ -95,9 +115,13 @@ Water: add_user_water_intake with add_ml adds to the day's total.
 
 Notes: get_user_note reads the day's diary note and feeling tags, set_user_note changes them.
 
-Weight and exercises: add_user_weight and add_user_exercise log them; delete_user_weight and delete_user_exercise remove them by id.
+Weight and exercises: add_user_weight and add_user_exercise log them; delete_user_weight and delete_user_exercise remove them by id. set_user_activity logs the day's steps.
 
-Other body values (body fat, muscle, blood glucose, circumferences): get_user_body_values reads a day, add_user_body_value logs one, delete_user_body_value removes one by id. Values are always metric, whatever units the app shows.
+Overviews: get_user_daily_nutrients gives the daily energy and macro totals of a date range in one call.
+
+Other body values (body fat, muscle, blood glucose, circumferences): get_user_body_values reads a day, add_user_body_value logs one, delete_user_body_value removes one by id. update_user_body_value changes a weight or body value entry. Values are always metric, whatever units the app shows.
+
+Favorites and own items: get_user_favorites, add_user_favorite_product/recipe and remove_user_favorite_product/recipe manage favorites. get_user_products and delete_user_product manage the user's own products; update_user_recipe changes a recipe.
 
 Removing a diary entry: get_user_consumed_items gives the entry's id (not its product_id) for remove_user_consumed_item.`;
 
@@ -194,7 +218,7 @@ class YazioMcpServer {
       'get_user_goals',
       {
         title: 'Get Goals',
-        description: 'Get user nutrition and fitness goals',
+        description: "Get the user's daily nutrition and fitness goals, including their own adjustments",
         inputSchema: GetUserGoalsInputSchema,
         outputSchema: GetUserGoalsOutputSchema,
         annotations: {
@@ -726,6 +750,190 @@ class YazioMcpServer {
       },
       async (args: DeleteUserExerciseInput) => {
         return await this.deleteUserExercise(args);
+      }
+    );
+
+    server.registerTool(
+      'update_user_recipe',
+      {
+        title: 'Update Recipe',
+        description: "Replace one of the user's own recipes: name, portions, ingredients and instructions. Pass the whole recipe, as for create_user_recipe; the nutrients per portion are recalculated from the products.",
+        inputSchema: UpdateUserRecipeInputSchema,
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: true,
+          idempotentHint: true,
+        },
+      },
+      async (args: UpdateUserRecipeInput) => {
+        return await this.updateUserRecipe(args);
+      }
+    );
+
+    server.registerTool(
+      'update_user_body_value',
+      {
+        title: 'Update Body Value',
+        description: 'Change the value of a weight or other body value entry by its ID. Values are metric: kg, %, mg/dL or cm.',
+        inputSchema: UpdateUserBodyValueInputSchema,
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: true,
+          idempotentHint: true,
+        },
+      },
+      async (args: UpdateUserBodyValueInput) => {
+        return await this.updateUserBodyValue(args);
+      }
+    );
+
+    server.registerTool(
+      'set_user_activity',
+      {
+        title: 'Set Activity',
+        description: "Log the day's step count and/or the energy burned by activity (kcal), as a step counter would. For a workout use add_user_exercise.",
+        inputSchema: SetUserActivityInputSchema,
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: false,
+          idempotentHint: false,
+        },
+      },
+      async (args: SetUserActivityInput) => {
+        return await this.setUserActivity(args);
+      }
+    );
+
+    server.registerTool(
+      'get_user_daily_nutrients',
+      {
+        title: 'Get Daily Nutrients',
+        description: 'Get the energy (kcal), carb, protein and fat totals and the energy goal for each day of a date range, in one request. Use it for weekly or monthly overviews.',
+        inputSchema: GetUserDailyNutrientsInputSchema,
+        annotations: {
+          readOnlyHint: true,
+          idempotentHint: true,
+        },
+      },
+      async (args: GetUserDailyNutrientsInput) => {
+        return await this.getUserDailyNutrients(args);
+      }
+    );
+
+    server.registerTool(
+      'get_user_products',
+      {
+        title: 'Get User Products',
+        description: 'Get the products the user created, with their nutrients and servings.',
+        inputSchema: GetUserProductsInputSchema,
+        annotations: {
+          readOnlyHint: true,
+          idempotentHint: true,
+        },
+      },
+      async () => {
+        return await this.getUserProducts();
+      }
+    );
+
+    server.registerTool(
+      'delete_user_product',
+      {
+        title: 'Delete Product',
+        description: "Permanently delete one of the user's own products. It can't be restored, so confirm with the user first.",
+        inputSchema: DeleteUserProductInputSchema,
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: true,
+          idempotentHint: true,
+        },
+      },
+      async (args: DeleteUserProductInput) => {
+        return await this.deleteUserProduct(args);
+      }
+    );
+
+    server.registerTool(
+      'get_user_favorites',
+      {
+        title: 'Get Favorites',
+        description: "Get the user's favorite products (with the amount and serving they were favorited with) and favorite recipes (with the portion count).",
+        inputSchema: GetUserFavoritesInputSchema,
+        annotations: {
+          readOnlyHint: true,
+          idempotentHint: true,
+        },
+      },
+      async () => {
+        return await this.getUserFavorites();
+      }
+    );
+
+    server.registerTool(
+      'add_user_favorite_product',
+      {
+        title: 'Add Favorite Product',
+        description: "Add a product to the user's favorites, with the amount (and optionally serving) it is usually eaten in.",
+        inputSchema: AddUserFavoriteProductInputSchema,
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: false,
+          idempotentHint: false,
+        },
+      },
+      async (args: AddUserFavoriteProductInput) => {
+        return await this.addUserFavoriteProduct(args);
+      }
+    );
+
+    server.registerTool(
+      'add_user_favorite_recipe',
+      {
+        title: 'Add Favorite Recipe',
+        description: "Add a recipe to the user's favorites, with the number of portions usually eaten.",
+        inputSchema: AddUserFavoriteRecipeInputSchema,
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: false,
+          idempotentHint: false,
+        },
+      },
+      async (args: AddUserFavoriteRecipeInput) => {
+        return await this.addUserFavoriteRecipe(args);
+      }
+    );
+
+    server.registerTool(
+      'remove_user_favorite_product',
+      {
+        title: 'Remove Favorite Product',
+        description: "Remove a product from the user's favorites by its product_id.",
+        inputSchema: RemoveUserFavoriteProductInputSchema,
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: true,
+          idempotentHint: true,
+        },
+      },
+      async (args: RemoveUserFavoriteProductInput) => {
+        return await this.removeUserFavoriteProduct(args);
+      }
+    );
+
+    server.registerTool(
+      'remove_user_favorite_recipe',
+      {
+        title: 'Remove Favorite Recipe',
+        description: "Remove a recipe from the user's favorites by the favorite's own id from get_user_favorites (not the recipe_id).",
+        inputSchema: RemoveUserFavoriteRecipeInputSchema,
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: true,
+          idempotentHint: true,
+        },
+      },
+      async (args: RemoveUserFavoriteRecipeInput) => {
+        return await this.removeUserFavoriteRecipe(args);
       }
     );
   }
@@ -1268,47 +1476,66 @@ To correct the day's total, e.g. after a wrong entry, pass \`water_intake\` with
     }
   }
 
+  // Nutrients per portion are calculated from the products, for creating and updating alike
+  private async buildRecipe(id: string, args: CreateUserRecipeInput): Promise<CreateUserRecipeDto> {
+    const products = await Promise.all(args.ingredients.map((item) => this.client.getProduct(item.product_id)));
+    const totals: Record<string, number> = {};
+    products.forEach((product, i) => {
+      for (const [key, value] of Object.entries(product.nutrients)) {
+        if (typeof value === 'number') totals[key] = (totals[key] ?? 0) + value * args.ingredients[i].amount;
+      }
+    });
+    return {
+      id,
+      name: args.name,
+      portion_count: args.portion_count,
+      nutrients: Object.fromEntries(Object.entries(totals).map(([key, value]) => [key, value / args.portion_count])),
+      servings: args.ingredients.map((item, i) => ({
+        product_id: item.product_id,
+        name: products[i].name,
+        producer: products[i].producer,
+        amount: item.amount,
+        base_unit: products[i].base_unit,
+        serving: item.serving ?? null,
+        serving_quantity: item.serving_quantity ?? null,
+      })),
+      instructions: args.instructions ?? [],
+    };
+  }
+
   private async createUserRecipe(args: CreateUserRecipeInput) {
-    const client = this.client;
-
     try {
-      const products = await Promise.all(args.ingredients.map((item) => client.getProduct(item.product_id)));
-      const totals: Record<string, number> = {};
-      products.forEach((product, i) => {
-        for (const [key, value] of Object.entries(product.nutrients)) {
-          if (typeof value === 'number') totals[key] = (totals[key] ?? 0) + value * args.ingredients[i].amount;
-        }
-      });
-      const nutrients = Object.fromEntries(Object.entries(totals).map(([key, value]) => [key, value / args.portion_count]));
-      const id = uuidv4();
-
-      await client.createUserRecipe({
-        id,
-        name: args.name,
-        portion_count: args.portion_count,
-        nutrients,
-        servings: args.ingredients.map((item, i) => ({
-          product_id: item.product_id,
-          name: products[i].name,
-          producer: products[i].producer,
-          amount: item.amount,
-          base_unit: products[i].base_unit,
-          serving: item.serving ?? null,
-          serving_quantity: item.serving_quantity ?? null,
-        })),
-        instructions: args.instructions ?? [],
-      });
+      const recipe = await this.buildRecipe(uuidv4(), args);
+      await this.client.createUserRecipe(recipe);
 
       return {
         content: [
           {
             type: 'text' as const,
-            text: `Successfully created recipe "${args.name}" with id: ${id}\n\nNutrients per portion:\n${JSON.stringify(nutrients, null, 2)}`,
+            text: `Successfully created recipe "${args.name}" with id: ${recipe.id}\n\nNutrients per portion:\n${JSON.stringify(recipe.nutrients, null, 2)}`,
           },
         ],
       };
     } catch (error) {
       throw new Error(`Failed to create recipe: ${error}`);
+    }
+  }
+
+  private async updateUserRecipe({ id, ...args }: UpdateUserRecipeInput) {
+    try {
+      const recipe = await this.buildRecipe(id, args);
+      await this.client.updateUserRecipe(recipe);
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Successfully updated recipe "${args.name}" with id: ${id}\n\nNutrients per portion:\n${JSON.stringify(recipe.nutrients, null, 2)}`,
+          },
+        ],
+      };
+    } catch (error) {
+      throw new Error(`Failed to update recipe: ${error}`);
     }
   }
 
@@ -1592,6 +1819,186 @@ To correct the day's total, e.g. after a wrong entry, pass \`water_intake\` with
       };
     } catch (error) {
       throw new Error(`Failed to delete exercise: ${error}`);
+    }
+  }
+
+  private async updateUserBodyValue(args: UpdateUserBodyValueInput) {
+    try {
+      await this.client.updateBodyValue(args.id, args.value);
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Successfully updated entry ${args.id} to ${args.value}`,
+          },
+        ],
+      };
+    } catch (error) {
+      throw new Error(`Failed to update body value: ${error}`);
+    }
+  }
+
+  private async setUserActivity(args: SetUserActivityInput) {
+    try {
+      await this.client.addActivity([{ date: args.date, steps: args.steps, energy: args.energy }]);
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Successfully logged activity for ${args.date}`,
+          },
+        ],
+      };
+    } catch (error) {
+      throw new Error(`Failed to set activity: ${error}`);
+    }
+  }
+
+  private async getUserDailyNutrients(args: GetUserDailyNutrientsInput) {
+    try {
+      const days = await this.client.getDailyNutrients(args.start, args.end);
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Daily nutrients from ${args.start}:\n\n${JSON.stringify(days, null, 2)}`,
+          },
+        ],
+      };
+    } catch (error) {
+      throw new Error(`Failed to get daily nutrients: ${error}`);
+    }
+  }
+
+  private async getUserProducts() {
+    try {
+      // The API only lists IDs, so load each product; a product has no id field of its own
+      const ids = await this.client.getUserProductIds();
+      const products = await Promise.all(ids.map(async (id) => ({ id, ...(await this.client.getProduct(id)) })));
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `User products (${products.length}):\n\n${JSON.stringify(products, null, 2)}`,
+          },
+        ],
+      };
+    } catch (error) {
+      throw new Error(`Failed to get user products: ${error}`);
+    }
+  }
+
+  private async deleteUserProduct(args: DeleteUserProductInput) {
+    try {
+      await this.client.deleteUserProduct(args.id);
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Successfully deleted product with ID: ${args.id}`,
+          },
+        ],
+      };
+    } catch (error) {
+      throw new Error(`Failed to delete product: ${error}`);
+    }
+  }
+
+  private async getUserFavorites() {
+    try {
+      const [products, recipes] = await Promise.all([this.client.getFavoriteProducts(), this.client.getFavoriteRecipes()]);
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Favorites:\n\n${JSON.stringify({ products, recipes }, null, 2)}`,
+          },
+        ],
+      };
+    } catch (error) {
+      throw new Error(`Failed to get favorites: ${error}`);
+    }
+  }
+
+  private async addUserFavoriteProduct(args: AddUserFavoriteProductInput) {
+    try {
+      const id = uuidv4();
+      await this.client.addFavoriteProduct({
+        id,
+        product_id: args.product_id,
+        amount: args.amount,
+        serving: args.serving ?? null,
+        serving_quantity: args.serving_quantity ?? null,
+      });
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Successfully added product ${args.product_id} to favorites with id: ${id}`,
+          },
+        ],
+      };
+    } catch (error) {
+      throw new Error(`Failed to add favorite product: ${error}`);
+    }
+  }
+
+  private async addUserFavoriteRecipe(args: AddUserFavoriteRecipeInput) {
+    try {
+      const id = uuidv4();
+      await this.client.addFavoriteRecipe({ id, recipe_id: args.recipe_id, portion_count: args.portion_count });
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Successfully added recipe ${args.recipe_id} to favorites with id: ${id}`,
+          },
+        ],
+      };
+    } catch (error) {
+      throw new Error(`Failed to add favorite recipe: ${error}`);
+    }
+  }
+
+  private async removeUserFavoriteProduct(args: RemoveUserFavoriteProductInput) {
+    try {
+      await this.client.removeFavoriteProduct(args.product_id);
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Successfully removed product ${args.product_id} from favorites`,
+          },
+        ],
+      };
+    } catch (error) {
+      throw new Error(`Failed to remove favorite product: ${error}`);
+    }
+  }
+
+  private async removeUserFavoriteRecipe(args: RemoveUserFavoriteRecipeInput) {
+    try {
+      await this.client.removeFavoriteRecipe(args.id);
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Successfully removed favorite ${args.id}`,
+          },
+        ],
+      };
+    } catch (error) {
+      throw new Error(`Failed to remove favorite recipe: ${error}`);
     }
   }
 

@@ -18,6 +18,9 @@ export type YazioProductSearchResult = z.infer<typeof S.ProductSearchResultsSche
 export type YazioProduct = z.infer<typeof S.ProductSchema>;
 export type YazioRecipe = z.infer<typeof S.RecipeSchema>;
 export type YazioFeeling = z.infer<typeof S.FeelingSchema>;
+export type YazioDailyNutrients = z.infer<typeof S.DailyNutrientsSchema>;
+export type YazioFavoriteProduct = z.infer<typeof S.FavoriteProductsSchema>[number];
+export type YazioFavoriteRecipe = z.infer<typeof S.FavoriteRecipesSchema>[number];
 export type YazioMeal = z.infer<typeof S.MealsSchema>[number];
 
 export type Daytime = z.infer<typeof S.DaytimeSchema>;
@@ -125,10 +128,33 @@ export interface ExerciseDto<Name extends string = string> {
   note?: string;
 }
 
+/** The day's activity totals, as the app sends them from a step counter */
+export interface ActivityDto {
+  date: YazioDateTime;
+  /** kcal */
+  energy?: number;
+  steps?: number;
+}
+
+export interface FavoriteProductDto {
+  id: string;
+  product_id: string;
+  amount: number;
+  serving: string | null;
+  serving_quantity: number | null;
+}
+
+export interface FavoriteRecipeDto {
+  id: string;
+  recipe_id: string;
+  portion_count: number;
+}
+
 export interface AddExercisesDto {
   /** The API rejects a name outside its own list, which is longer than TrainingName */
   training?: ExerciseDto<TrainingName | (string & {})>[];
   custom_training?: ExerciseDto[];
+  activity?: ActivityDto[];
 }
 
 /**
