@@ -136,7 +136,7 @@ Easily log meals you forgot to track in the Yazio app directly from Claude or Cu
 | `remove_user_favorite_product` | Remove a product from favorites | `product_id` |
 | `remove_user_favorite_recipe` | Remove a recipe from favorites | `id` |
 | `update_user_body_value` | Change a weight or body value entry | `id`, `value` |
-| `set_user_activity` | Log the day's steps or activity energy | `date`, `steps`, `energy` |
+| `set_user_activity` | Set the day's total steps or activity energy (replaces the day's values) | `date`, `steps`, `energy` |
 
 ## Test Connection
 

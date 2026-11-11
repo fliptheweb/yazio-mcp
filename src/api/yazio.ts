@@ -90,11 +90,11 @@ export class YazioApi {
       body: { products: [], simple_products: [], recipe_portions: [], ...items },
     });
 
-  /** Verified for products and simple products; presumably the same for recipe portions */
   /** Energy, carb, protein and fat totals and the energy goal for each day of a date range */
   getDailyNutrients = (start: string, end = today()) =>
     this.http.request('GET', '/user/consumed-items/nutrients-daily', { query: { start, end }, schema: S.DailyNutrientsSchema });
 
+  /** Verified for products and simple products; presumably the same for recipe portions */
   removeConsumedItems = (ids: string[]) => this.http.request('DELETE', '/user/consumed-items', { body: ids });
 
   getWaterIntake = (date: string) =>
@@ -106,8 +106,6 @@ export class YazioApi {
     this.http.request('GET', '/products/search', {
       query: { query, sex, countries: countries?.join(','), locales: locales?.join(',') },
       schema: S.ProductSearchResultsSchema,
-      // The API ranks results by Accept-Language
-      headers: locales?.[0] ? { 'Accept-Language': locales[0].replace('_', '-') } : undefined,
     });
 
   getProduct = (id: string) =>

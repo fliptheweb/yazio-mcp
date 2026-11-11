@@ -337,7 +337,7 @@ export const ProductSchema = z.looseObject({
   category: z.string(),
   producer: z.string().nullable(),
   nutrients: ProductNutrientsSchema,
-  updated_at: z.string(),
+  updated_at: z.string().nullable(),
   servings: z.array(z.looseObject({ serving: z.string(), amount: z.number() })),
   base_unit: z.string(),
   eans: z.array(z.string()),

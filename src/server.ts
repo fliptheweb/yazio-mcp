@@ -115,7 +115,7 @@ Water: add_user_water_intake with add_ml adds to the day's total.
 
 Notes: get_user_note reads the day's diary note and feeling tags, set_user_note changes them.
 
-Weight and exercises: add_user_weight and add_user_exercise log them; delete_user_weight and delete_user_exercise remove them by id. set_user_activity logs the day's steps.
+Weight and exercises: add_user_weight and add_user_exercise log them; delete_user_weight and delete_user_exercise remove them by id. set_user_activity sets the day's steps.
 
 Overviews: get_user_daily_nutrients gives the daily energy and macro totals of a date range in one call.
 
@@ -791,12 +791,12 @@ class YazioMcpServer {
       'set_user_activity',
       {
         title: 'Set Activity',
-        description: "Log the day's step count and/or the energy burned by activity (kcal), as a step counter would. For a workout use add_user_exercise.",
+        description: "Set the day's total step count and/or energy burned by activity (kcal), as a step counter would. It replaces the day's values; a value left out keeps its current value. For a workout use add_user_exercise.",
         inputSchema: SetUserActivityInputSchema,
         annotations: {
           readOnlyHint: false,
           destructiveHint: false,
-          idempotentHint: false,
+          idempotentHint: true,
         },
       },
       async (args: SetUserActivityInput) => {
@@ -1476,7 +1476,6 @@ To correct the day's total, e.g. after a wrong entry, pass \`water_intake\` with
     }
   }
 
-  // Nutrients per portion are calculated from the products, for creating and updating alike
   private async buildRecipe(id: string, args: CreateUserRecipeInput): Promise<CreateUserRecipeDto> {
     const products = await Promise.all(args.ingredients.map((item) => this.client.getProduct(item.product_id)));
     const totals: Record<string, number> = {};
@@ -1841,13 +1840,13 @@ To correct the day's total, e.g. after a wrong entry, pass \`water_intake\` with
 
   private async setUserActivity(args: SetUserActivityInput) {
     try {
-      await this.client.addActivity([{ date: args.date, steps: args.steps, energy: args.energy }]);
+      await this.client.addActivity([{ date: `${args.date} 00:00:00`, steps: args.steps, energy: args.energy }]);
 
       return {
         content: [
           {
             type: 'text' as const,
-            text: `Successfully logged activity for ${args.date}`,
+            text: `Successfully set activity for ${args.date}`,
           },
         ],
       };

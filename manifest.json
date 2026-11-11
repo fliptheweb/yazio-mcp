@@ -65,7 +65,7 @@
     { "name": "remove_user_favorite_product", "description": "Remove a product from favorites" },
     { "name": "remove_user_favorite_recipe", "description": "Remove a recipe from favorites" },
     { "name": "update_user_body_value", "description": "Change a weight or body value entry" },
-    { "name": "set_user_activity", "description": "Log the day's steps or activity energy" }
+    { "name": "set_user_activity", "description": "Set the day's steps or activity energy" }
   ],
   "prompts_generated": true,
   "compatibility": {

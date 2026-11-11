@@ -247,9 +247,9 @@ export const UpdateUserBodyValueInputSchema = z.object({
   value: z.number().nonnegative().describe('New value in the metric unit: kg, % (body fat, muscle), mg/dL (blood glucose) or cm (circumferences)'),
 });
 export const SetUserActivityInputSchema = z.object({
-  date: z.union([DateStringSchema, DateTimeStringSchema]).describe('Day of the activity, as YYYY-MM-DD or "YYYY-MM-DD HH:mm:ss"'),
-  steps: z.number().int().nonnegative().optional().describe("The day's step count"),
-  energy: z.number().nonnegative().optional().describe('Energy burned by the activity, in kcal'),
+  date: DateStringSchema.describe('Day of the activity (YYYY-MM-DD)'),
+  steps: z.number().int().nonnegative().optional().describe("The day's total step count; replaces the current value"),
+  energy: z.number().nonnegative().optional().describe("The day's total energy burned by activity, in kcal; replaces the current value"),
 }).refine((args) => args.steps !== undefined || args.energy !== undefined, {
   message: 'Provide steps, energy or both',
 });

@@ -340,16 +340,6 @@ test('body values are read by day and written keyed by type', async () => {
   assert.deepEqual(remove.body, ['b2']);
 });
 
-test('product search sends the first locale as Accept-Language', async () => {
-  const { api, apiCalls } = mockApi((c) => (c.url.includes('/products/search') ? json([]) : undefined));
-  await api.searchProducts({ query: 'quark', countries: ['DE'], locales: ['de_DE', 'en_US'] });
-  await api.searchProducts({ query: 'apple' });
-
-  const [localized, plain] = apiCalls();
-  assert.equal(localized.headers['Accept-Language'], 'de-DE');
-  assert.equal(plain.headers['Accept-Language'], undefined);
-});
-
 test('endpoints from the yazio-community specification', async () => {
   const { api, apiCalls } = mockApi((c) => {
     if (c.url.includes('/nutrients-daily')) return json([{ date: '2026-11-01', energy: 1800, carb: 200, protein: 90, fat: 60, energy_goal: 2000 }]);
@@ -360,7 +350,7 @@ test('endpoints from the yazio-community specification', async () => {
   });
 
   await api.updateBodyValue('b1', 71.5);
-  await api.addActivity([{ date: '2026-11-01', steps: 8000, energy: 250 }]);
+  await api.addActivity([{ date: '2026-11-01 00:00:00', steps: 8000, energy: 250 }]);
   assert.equal((await api.getDailyNutrients('2026-11-01', '2026-11-07'))[0].energy_goal, 2000);
   assert.deepEqual(await api.getUserProductIds(), ['p1']);
   await api.deleteUserProduct('p1');
@@ -376,7 +366,7 @@ test('endpoints from the yazio-community specification', async () => {
     apiCalls().map((c) => [c.method, c.url.replace(API_BASE_URL, ''), c.body]),
     [
       ['PUT', '/user/bodyvalues/b1', { value: 71.5 }],
-      ['POST', '/user/exercises', { activity: [{ date: '2026-11-01', steps: 8000, energy: 250 }] }],
+      ['POST', '/user/exercises', { activity: [{ date: '2026-11-01 00:00:00', steps: 8000, energy: 250 }] }],
       ['GET', '/user/consumed-items/nutrients-daily?start=2026-11-01&end=2026-11-07', undefined],
       ['GET', '/user/products', undefined],
       ['DELETE', '/user/products/p1', undefined],
