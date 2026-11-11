@@ -126,3 +126,43 @@ test('get_user_products lists the user\'s products with their ids', async () => 
   assert.match(text, /"id": "9e721086-becf-11e6-9c03-e0071b8a8723"/);
   assert.match(text, /"name": "Granola"/);
 });
+
+const favoritesOf = (text: string) => JSON.parse(text.slice(text.indexOf('{')));
+
+test('get_user_favorites names each favorite product and recipe', async () => {
+  const { text } = await callTool('get_user_favorites', {}, {
+    '/user/favorites/product': [
+      { id: '4aa6dd13-d417-47da-ac1b-823b873ea303', product_id: '9dd69912-becf-11e6-8839-e0071b8a8723', amount: 150, serving: 'fruit.regular', serving_quantity: 1 },
+    ],
+    '/user/favorites/recipe': [{ id: 'e06ffe5c-6fae-441d-b8e9-847d4437f576', recipe_id: '17c69708-1e7b-4e8d-92a9-a5bcd9715bbc', portion_count: 2 }],
+    '/products/9dd69912-becf-11e6-8839-e0071b8a8723': { name: 'Banana', producer: 'Farm', nutrients: { 'energy.energy': 0.9 } },
+    '/recipes/17c69708-1e7b-4e8d-92a9-a5bcd9715bbc': { name: 'Nut mix' },
+  });
+
+  const favorites = favoritesOf(text);
+  assert.match(text, /^Favorites \(1 products, 1 recipes\)/);
+  assert.equal(favorites.products[0].name, 'Banana (Farm)');
+  assert.equal(favorites.products[0].product_id, '9dd69912-becf-11e6-8839-e0071b8a8723');
+  assert.equal(favorites.products[0].amount, 150);
+  assert.equal(favorites.recipes[0].name, 'Nut mix');
+  assert.equal(favorites.recipes[0].id, 'e06ffe5c-6fae-441d-b8e9-847d4437f576');
+});
+
+test('get_user_favorites still lists a favorite whose name cannot be read', async () => {
+  const log = console.error;
+  console.error = () => {};
+  let text: string;
+  try {
+    ({ text } = await callTool('get_user_favorites', {}, {
+      '/user/favorites/product': [{ id: '4aa6dd13-d417-47da-ac1b-823b873ea303', product_id: '9dd69912-becf-11e6-8839-e0071b8a8723', amount: 100 }],
+      '/user/favorites/recipe': [],
+    }));
+  } finally {
+    console.error = log;
+  }
+
+  const favorites = favoritesOf(text);
+  assert.equal(favorites.products.length, 1);
+  assert.equal(favorites.products[0].name, null);
+  assert.equal(favorites.products[0].product_id, '9dd69912-becf-11e6-8839-e0071b8a8723');
+});
