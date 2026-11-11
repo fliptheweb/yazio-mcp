@@ -125,6 +125,26 @@ Favorites and own items: get_user_favorites, add_user_favorite_product/recipe an
 
 Removing a diary entry: get_user_consumed_items gives the entry's id (not its product_id) for remove_user_consumed_item.`;
 
+const NAME_LOOKUPS_AT_ONCE = 8;
+
+/** The name of each ID, a few lookups at a time. An ID whose lookup fails has no name: the list is still useful. */
+async function namesOf(ids: string[], lookup: (id: string) => Promise<string>): Promise<Map<string, string>> {
+  const names = new Map<string, string>();
+  const unique = [...new Set(ids)];
+  for (let start = 0; start < unique.length; start += NAME_LOOKUPS_AT_ONCE) {
+    await Promise.all(
+      unique.slice(start, start + NAME_LOOKUPS_AT_ONCE).map(async (id) => {
+        try {
+          names.set(id, await lookup(id));
+        } catch {
+          // No name for this one
+        }
+      }),
+    );
+  }
+  return names;
+}
+
 export function createServer(client: YazioApi): McpServer {
   return new YazioMcpServer(client).createServer();
 }
@@ -857,7 +877,7 @@ class YazioMcpServer {
       'get_user_favorites',
       {
         title: 'Get Favorites',
-        description: "Get the user's favorite products (with the amount and serving they were favorited with) and favorite recipes (with the portion count).",
+        description: "Get the user's favorite products (with their name and the amount and serving they were favorited with) and favorite recipes (with their name and the portion count).",
         inputSchema: GetUserFavoritesInputSchema,
         annotations: {
           readOnlyHint: true,
@@ -1911,12 +1931,22 @@ To correct the day's total, e.g. after a wrong entry, pass \`water_intake\` with
   private async getUserFavorites() {
     try {
       const [products, recipes] = await Promise.all([this.client.getFavoriteProducts(), this.client.getFavoriteRecipes()]);
+      // A favorite holds only IDs. The names make the list usable without one more call per entry.
+      const productNames = await namesOf(products.map((item) => item.product_id), async (id) => {
+        const product = await this.client.getProduct(id);
+        return product.producer ? `${product.name} (${product.producer})` : product.name;
+      });
+      const recipeNames = await namesOf(recipes.map((item) => item.recipe_id), async (id) => (await this.client.getRecipe(id)).name);
+      const favorites = {
+        products: products.map((item) => ({ name: productNames.get(item.product_id) ?? null, ...item })),
+        recipes: recipes.map((item) => ({ name: recipeNames.get(item.recipe_id) ?? null, ...item })),
+      };
 
       return {
         content: [
           {
             type: 'text' as const,
-            text: `Favorites:\n\n${JSON.stringify({ products, recipes }, null, 2)}`,
+            text: `Favorites (${products.length} products, ${recipes.length} recipes):\n\n${JSON.stringify(favorites, null, 2)}`,
           },
         ],
       };
