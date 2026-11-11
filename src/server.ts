@@ -554,7 +554,7 @@ class YazioMcpServer {
       'set_user_note',
       {
         title: 'Set Note',
-        description: "Set the user's diary note and/or feeling tags for a date. Fields you leave out keep their current value; the note text replaces the old text, so include it to append.",
+        description: "Set the user's diary note and/or feeling tags for a date. Fields you leave out keep their current value; the note text replaces the old text, so include it to append. Yazio has no delete: to clear the day, pass note: null and tags: [].",
         inputSchema: SetUserNoteInputSchema,
         annotations: {
           readOnlyHint: false,

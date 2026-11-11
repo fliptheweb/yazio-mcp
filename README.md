@@ -11,15 +11,15 @@ An MCP (Model Context Protocol) server that connects Claude/Cursor to your Yazio
 
 ## ✨ Features
 
-- 🔐 **Authentication** - Connect with your Yazio account
-- 📊 **Nutrition Analysis** - Get comprehensive diet data and insights
-- 🍎 **Food Tracking** - Search, add, and manage food entries
-- 🏃‍♂️ **Fitness Data** - Track exercises and water intake
-- 📓 **Diary Notes** - Read and write daily notes and feeling tags
-- 🥣 **Recipes and Meals** - Create, log, and delete your own recipes and saved meals
-- ⚖️ **Weight Monitoring** - Log weight and view its history and trends
-- 🎯 **Goal Management** - Access and manage nutrition goals
-- 🔍 **Product Search** - Search Yazio's extensive [food database](https://www.yazio.com/en/foods)
+- 👤 **Profile & Goals** - Read your profile, settings, dietary preferences and daily goals
+- 🔍 **Food & Product Search** - Search Yazio's [food database](https://www.yazio.com/en/foods), get suggestions, and manage your own products
+- 📝 **Food Diary** - Log food and water, read entries and daily totals, and remove entries
+- 🥣 **Recipes** - Create, read, update and delete your own recipes
+- 🍽️ **Saved Meals** - Save sets of products as meals and manage them
+- ⭐ **Favorites** - Manage your favorite products and recipes
+- ⚖️ **Weight & Body** - Log weight, body fat, muscle, blood glucose and circumferences, and view the history
+- 🏃‍♂️ **Exercise & Activity** - Log exercises and the day's steps
+- 📓 **Diary Notes** - Read, write and clear daily notes and feeling tags
 
 ## 🚀 Quick Start
 
@@ -90,53 +90,70 @@ Easily log meals you forgot to track in the Yazio app directly from Claude or Cu
 
 | Tool | Description | Key Parameters |
 |------|-------------|----------------|
+| **👤 Profile & Goals** | | |
 | `get_user` | Get user profile | - |
-| `get_user_daily_summary` | Get daily nutrition summary | `date` |
-| `get_user_consumed_items` | Get food entries for a date | `date` |
-| `get_user_weight` | Get the last weight entry up to a date | `date` (optional) |
-| `get_user_weight_history` | Get all weight entries in a date range | `start`, `end` (optional) |
-| `get_user_exercises` | Get exercise data | `date` |
-| `get_user_water_intake` | Get water intake | `date` |
-| `get_user_goals` | Get nutrition goals | `date` (optional) |
 | `get_user_settings` | Get user preferences | - |
 | `get_user_dietary_preferences` | Get dietary preferences | - |
-| `get_user_suggested_products` | Get suggested products for a meal | `date`, `daytime`, `limit` (all optional) |
+| `get_user_goals` | Get nutrition goals | `date` (optional) |
+| | | |
+| **🔍 Food & Product Search** | | |
 | `search_products` | Search food database | `query` |
 | `get_product` | Get detailed product info | `id` |
-| `get_recipe` | Get a recipe with ingredients and nutrients | `id` |
-| `get_user_recipes` | Get your own recipes | - |
-| `delete_user_recipe` | Delete one of your own recipes | `id` |
-| `add_user_consumed_item` | Add food to your log | `product_id`, `amount`, `date`, `daytime` |
-| `add_user_water_intake` | Add water intake entry (cumulative value in ml) | `date`, `water_intake` |
-| `remove_user_consumed_item` | Remove food from log | `itemId` |
+| `get_user_suggested_products` | Get suggested products for a meal | `date`, `daytime`, `limit` (all optional) |
+| `get_user_products` | Get your own products | - |
 | `create_product` | Create a custom product from label values per 100 g/ml | `name`, `category`, `energy_per_100`, `protein_per_100`, `fat_per_100`, `carb_per_100` |
+| `delete_user_product` | Delete one of your products | `id` |
+| | | |
+| **📝 Food Diary** | | |
+| `get_user_consumed_items` | Get food entries for a date | `date` |
+| `get_user_daily_summary` | Get daily nutrition summary | `date` |
+| `get_user_daily_nutrients` | Get daily energy and macro totals for a date range | `start`, `end` (optional) |
+| `get_user_water_intake` | Get water intake | `date` |
+| `add_user_consumed_item` | Add food to your log | `product_id`, `amount`, `date`, `daytime` |
 | `add_quick_entry` | Log a one-off entry with total nutrition, without a product ("quick add") | `name`, `date`, `daytime`, `energy` |
 | `add_user_consumed_recipe` | Log portions of a recipe | `recipe_id`, `portion_count`, `date`, `daytime` |
+| `add_user_consumed_meal` | Log all items of a saved meal | `meal_id`, `date`, `daytime` |
+| `add_user_water_intake` | Add water intake entry (cumulative value in ml) | `date`, `water_intake` |
+| `remove_user_consumed_item` | Remove food from log | `itemId` |
+| | | |
+| **🥣 Recipes** | | |
+| `get_user_recipes` | Get your own recipes | - |
+| `get_recipe` | Get a recipe with ingredients and nutrients | `id` |
 | `create_user_recipe` | Create a recipe from products; nutrients per portion are calculated | `name`, `portion_count`, `ingredients` |
-| `get_user_note` | Get the diary note and feeling tags for a date | `date` |
-| `set_user_note` | Set the diary note and/or feeling tags for a date | `date`, `note`, `tags` |
+| `update_user_recipe` | Replace one of your recipes; nutrients are recalculated | `id`, `name`, `portion_count`, `ingredients` |
+| `delete_user_recipe` | Delete one of your own recipes | `id` |
+| | | |
+| **🍽️ Saved Meals** | | |
 | `get_user_meals` | Get your saved meals | - |
 | `create_user_meal` | Save a set of products as a meal | `name`, `products` |
 | `delete_user_meal` | Delete a saved meal | `id` |
-| `add_user_consumed_meal` | Log all items of a saved meal | `meal_id`, `date`, `daytime` |
-| `add_user_weight` | Log a weight measurement in kg | `date`, `weight` |
-| `delete_user_weight` | Delete a weight entry | `id` |
-| `get_user_body_values` | Get every body value of a day | `date` (optional) |
-| `add_user_body_value` | Log body fat, muscle, blood glucose or a circumference, in metric units | `type`, `date`, `value` |
-| `delete_user_body_value` | Delete a body value entry | `id` |
-| `add_user_exercise` | Log a Yazio training or a custom exercise | `date`, `name`, `duration`, `energy` |
-| `delete_user_exercise` | Delete an exercise entry | `id` |
-| `get_user_daily_nutrients` | Get daily energy and macro totals for a date range | `start`, `end` (optional) |
-| `get_user_products` | Get your own products | - |
-| `delete_user_product` | Delete one of your products | `id` |
-| `update_user_recipe` | Replace one of your recipes; nutrients are recalculated | `id`, `name`, `portion_count`, `ingredients` |
+| | | |
+| **⭐ Favorites** | | |
 | `get_user_favorites` | Get your favorite products and recipes | - |
 | `add_user_favorite_product` | Add a product to favorites | `product_id`, `amount` |
 | `add_user_favorite_recipe` | Add a recipe to favorites | `recipe_id`, `portion_count` |
 | `remove_user_favorite_product` | Remove a product from favorites | `product_id` |
 | `remove_user_favorite_recipe` | Remove a recipe from favorites | `id` |
+| | | |
+| **⚖️ Weight & Body** | | |
+| `get_user_weight` | Get the last weight entry up to a date | `date` (optional) |
+| `get_user_weight_history` | Get all weight entries in a date range | `start`, `end` (optional) |
+| `get_user_body_values` | Get every body value of a day | `date` (optional) |
+| `add_user_weight` | Log a weight measurement in kg | `date`, `weight` |
+| `add_user_body_value` | Log body fat, muscle, blood glucose or a circumference, in metric units | `type`, `date`, `value` |
 | `update_user_body_value` | Change a weight or body value entry | `id`, `value` |
+| `delete_user_weight` | Delete a weight entry | `id` |
+| `delete_user_body_value` | Delete a body value entry | `id` |
+| | | |
+| **🏃‍♂️ Exercise & Activity** | | |
+| `get_user_exercises` | Get exercise data | `date` |
+| `add_user_exercise` | Log a Yazio training or a custom exercise | `date`, `name`, `duration`, `energy` |
 | `set_user_activity` | Set the day's total steps or activity energy (replaces the day's values) | `date`, `steps`, `energy` |
+| `delete_user_exercise` | Delete an exercise entry | `id` |
+| | | |
+| **📓 Diary Notes** | | |
+| `get_user_note` | Get the diary note and feeling tags for a date | `date` |
+| `set_user_note` | Set the diary note and/or feeling tags for a date; `note: null` and `tags: []` clear the day | `date`, `note`, `tags` |
 
 ## Test Connection
 
