@@ -13,7 +13,8 @@ const MAX_ERROR_BODY_LENGTH = 1000;
 
 export interface Credentials {
   username: string;
-  password: string;
+  /** Not needed when the client starts from a saved token, see YazioHttpOptions.token */
+  password?: string;
   clientId?: string;
   clientSecret?: string;
 }
@@ -37,6 +38,19 @@ export interface RequestOptions<T> {
 
 export interface YazioHttpOptions {
   fetch?: typeof fetch;
+  /** A token saved earlier. The client starts from it, so it does not have to log in. */
+  token?: Token;
+  /** Called with every token the client gets from Yazio, so that the caller can save it */
+  onToken?: (token: Token) => void | Promise<void>;
+  /**
+   * Called when a response does not have the expected shape. The default writes the
+   * difference to the error log. A server that must not log response keys replaces it.
+   */
+  onUnexpectedShape?: (method: string, path: string, error: z.ZodError) => void;
+}
+
+function logUnexpectedShape(method: string, path: string, error: z.ZodError): void {
+  console.error(`⚠️ ${method} ${path} returned an unexpected response shape:\n${z.prettifyError(error)}`);
 }
 
 export class YazioApiError extends Error {
@@ -58,10 +72,15 @@ export class YazioHttp {
   private token: Token | null = null;
   private pendingToken: Promise<Token> | null = null;
   private readonly credentials: Credentials;
+  private readonly onToken?: (token: Token) => void | Promise<void>;
+  private readonly onUnexpectedShape: (method: string, path: string, error: z.ZodError) => void;
 
   constructor(credentials: Credentials, options: YazioHttpOptions = {}) {
     this.credentials = credentials;
     this.fetch = options.fetch ?? globalThis.fetch;
+    this.token = options.token ?? null;
+    this.onToken = options.onToken;
+    this.onUnexpectedShape = options.onUnexpectedShape ?? logUnexpectedShape;
   }
 
   async request<T = void>(method: string, path: string, options: RequestOptions<T> = {}): Promise<T> {
@@ -83,11 +102,17 @@ export class YazioHttp {
     if (!options.schema) return undefined as T;
 
     const text = await response.text();
-    const data: unknown = text ? JSON.parse(text) : undefined;
+    let data: unknown;
+    try {
+      data = text ? JSON.parse(text) : undefined;
+    } catch {
+      // Don't echo the body: it is not what the API promised, so its content is unknown
+      throw new YazioApiError(method, path, response.status, 'Response is not JSON', '');
+    }
     const result = options.schema.safeParse(data);
     if (result.success) return result.data;
 
-    console.error(`⚠️ ${method} ${path} returned an unexpected response shape:\n${z.prettifyError(result.error)}`);
+    this.onUnexpectedShape(method, path, result.error);
     return data as T;
   }
 
@@ -109,19 +134,29 @@ export class YazioHttp {
 
   private async renewToken(): Promise<Token> {
     const refreshToken = this.token?.refresh_token;
-    const refreshed = refreshToken
-      ? await this.requestToken({ grant_type: 'refresh_token', refresh_token: refreshToken }).catch(() => null)
-      : null;
-    if (refreshed) {
-      this.token = refreshed;
-      return refreshed;
+    let refreshError: unknown = new Error('No Yazio token to renew and no password to log in with');
+    if (refreshToken) {
+      try {
+        return await this.keep(await this.requestToken({ grant_type: 'refresh_token', refresh_token: refreshToken }));
+      } catch (error) {
+        refreshError = error;
+      }
     }
-    this.token = await this.requestToken({
-      grant_type: 'password',
-      username: this.credentials.username,
-      password: this.credentials.password,
-    });
-    return this.token;
+    const { username, password } = this.credentials;
+    // Without a password the refresh token was the only way: its error tells the caller why it failed
+    if (password === undefined) throw refreshError;
+    return this.keep(await this.requestToken({ grant_type: 'password', username, password }));
+  }
+
+  private async keep(token: Token): Promise<Token> {
+    this.token = token;
+    try {
+      await this.onToken?.(token);
+    } catch (error) {
+      // The token itself is good, so the request goes on. Only the name: a message could quote the token.
+      console.error(`⚠️ Could not save the renewed Yazio token: ${error instanceof Error ? error.name : typeof error}`);
+    }
+    return token;
   }
 
   private async requestToken(grant: Record<string, string>): Promise<Token> {
@@ -138,11 +173,15 @@ export class YazioHttp {
       // Don't echo the body: it can repeat the submitted credentials
       throw new YazioApiError('POST', '/oauth/token', response.status, response.statusText, '');
     }
-    const data: unknown = await response.json();
-    const result = TokenResponseSchema.safeParse(data);
-    if (!result.success) {
-      console.error(`⚠️ POST /oauth/token returned an unexpected response shape:\n${z.prettifyError(result.error)}`);
+    let data: unknown;
+    try {
+      data = await response.json();
+    } catch {
+      // Not the parser's message: it can quote the body
+      throw new Error('POST /oauth/token returned a response that is not JSON');
     }
+    const result = TokenResponseSchema.safeParse(data);
+    if (!result.success) this.onUnexpectedShape('POST', '/oauth/token', result.error);
     const token = (result.success ? result.data : data) as Omit<Token, 'expires_at'>;
     // Without a numeric expires_in the token counts as expired, so the next call logs in again
     return { ...token, expires_at: Date.now() + Number(token.expires_in) * 1000 };
