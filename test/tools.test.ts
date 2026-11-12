@@ -65,6 +65,27 @@ test('add_user_consumed_item returns the ID of the entry it created', async () =
   assert.deepEqual(text.match(UUID), sent);
 });
 
+test('add_user_consumed_item sends a null serving when none is given, or the app hides the entry', async () => {
+  const { posted } = await callTool('add_user_consumed_item', {
+    product_id: '9dd69912-becf-11e6-8839-e0071b8a8723',
+    date: '2026-01-15 08:30:00',
+    daytime: 'breakfast',
+    amount: 150,
+  });
+
+  assert.deepEqual(posted[0].products, [
+    {
+      id: posted[0].products![0].id,
+      product_id: '9dd69912-becf-11e6-8839-e0071b8a8723',
+      date: '2026-01-15 08:30:00',
+      daytime: 'breakfast',
+      amount: 150,
+      serving: null,
+      serving_quantity: null,
+    },
+  ]);
+});
+
 test('add_user_consumed_meal returns the ID of every entry it created', async () => {
   const meal = {
     id: 'e06ffe5c-6fae-441d-b8e9-847d4437f576',
@@ -85,6 +106,10 @@ test('add_user_consumed_meal returns the ID of every entry it created', async ()
   const body = posted[0];
   const sent = [...body.products!, ...body.simple_products!, ...body.recipe_portions!].map((entry) => entry.id);
   assert.equal(sent.length, 4);
+  assert.deepEqual(
+    body.products!.map((entry: any) => [entry.serving, entry.serving_quantity]),
+    [['mug.small', 1], [null, null]]
+  );
   // The meal ID itself is in the request, not in the answer: only the new entries are listed
   assert.deepEqual(text.match(UUID), sent);
 });

@@ -1385,7 +1385,7 @@ To correct the day's total, e.g. after a wrong entry, pass \`water_intake\` with
       const product =
         serving !== undefined && serving_quantity !== undefined
           ? { ...item, id, serving, serving_quantity }
-          : { ...item, id };
+          : { ...item, id, serving: null, serving_quantity: null };
       await client.addConsumedItems({ products: [product] });
 
       return {
@@ -1674,7 +1674,7 @@ To correct the day's total, e.g. after a wrong entry, pass \`water_intake\` with
         products: meal.products.map((item) =>
           item.serving !== null && item.serving_quantity !== null
             ? { id: uuidv4(), date, daytime, product_id: item.product_id, amount: item.amount, serving: item.serving, serving_quantity: item.serving_quantity }
-            : { id: uuidv4(), date, daytime, product_id: item.product_id, amount: item.amount },
+            : { id: uuidv4(), date, daytime, product_id: item.product_id, amount: item.amount, serving: null, serving_quantity: null },
         ),
         simple_products: meal.simple_products.map((item) => ({ id: uuidv4(), date, daytime, name: item.name, nutrients: item.nutrients })),
         recipe_portions: meal.recipe_portions.map((item) => ({ id: uuidv4(), date, daytime, recipe_id: item.recipe_id, portion_count: item.portion_count })),
