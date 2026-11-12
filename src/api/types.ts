@@ -42,7 +42,7 @@ interface ConsumedProductBase {
 
 export type ConsumedProductDto =
   | (ConsumedProductBase & { serving: string; serving_quantity: number })
-  | (ConsumedProductBase & { serving?: undefined; serving_quantity?: undefined });
+  | (ConsumedProductBase & { serving: null; serving_quantity: null });
 
 // Inferred: products and simple products are sent with the fields GET /user/consumed-items returns
 export interface ConsumedRecipePortionDto {
