@@ -304,7 +304,7 @@ export const SetUserGoalsInputSchema = z.object({
 export const GetUserConsumedItemsLatestInputSchema = z.object({
   limit: z.number().int().min(1).max(500).default(50).describe('How many of the latest items to get (defaults to 50)'),
 });
-export const GetUserFastingCountdownsInputSchema = EmptyInputSchema;
+export const GetUserFastingsInputSchema = EmptyInputSchema;
 export const GetUserStreakInputSchema = EmptyInputSchema;
 
 export type Daytime = z.infer<typeof DaytimeSchema>;

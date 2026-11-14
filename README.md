@@ -97,7 +97,7 @@ Easily log meals you forgot to track in the Yazio app directly from Claude or Cu
 | `get_user_goals` | Get nutrition goals | `date` (optional) |
 | `set_user_goals` | Change some of your daily goals from a date on | `goals`, `date` (optional) |
 | `get_user_streak` | Get your tracking streak by day | - |
-| `get_user_fasting_countdowns` | Get your fasting timer and completed fasts | - |
+| `get_user_fastings` | Get your fasting timer and completed fasts | - |
 | | | |
 | **🔍 Food & Product Search** | | |
 | `search_products` | Search food database | `query` |

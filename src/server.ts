@@ -24,7 +24,7 @@ import {
   GetUserGoalsInputSchema,
   SetUserGoalsInputSchema,
   GetUserConsumedItemsLatestInputSchema,
-  GetUserFastingCountdownsInputSchema,
+  GetUserFastingsInputSchema,
   GetUserStreakInputSchema,
   CreateProductInputSchema,
   AddQuickEntryInputSchema,
@@ -300,18 +300,18 @@ class YazioMcpServer {
     );
 
     server.registerTool(
-      'get_user_fasting_countdowns',
+      'get_user_fastings',
       {
-        title: 'Get Fasting Countdowns',
+        title: 'Get Fastings',
         description: "Get the user's intermittent fasting: the active countdown (the fasting timer) and the completed fasting periods",
-        inputSchema: GetUserFastingCountdownsInputSchema,
+        inputSchema: GetUserFastingsInputSchema,
         annotations: {
           readOnlyHint: true,
           idempotentHint: true,
         },
       },
       async () => {
-        return await this.getUserFastingCountdowns();
+        return await this.getUserFastings();
       }
     );
 
@@ -2253,7 +2253,7 @@ To correct the day's total, e.g. after a wrong entry, pass \`water_intake\` with
     }
   }
 
-  private async getUserFastingCountdowns() {
+  private async getUserFastings() {
     try {
       const [countdowns, history] = await Promise.all([this.client.getFastingCountdowns(), this.client.getFastingHistory()]);
       const active = countdowns === null ? 'No fasting countdown is active.' : `Fasting countdowns:\n\n${JSON.stringify(countdowns, null, 2)}`;
@@ -2263,7 +2263,7 @@ To correct the day's total, e.g. after a wrong entry, pass \`water_intake\` with
         content: [{ type: 'text' as const, text: `${active}\n\n${completed}` }],
       };
     } catch (error) {
-      throw new Error(`Failed to get fasting countdowns: ${error}`);
+      throw new Error(`Failed to get fastings: ${error}`);
     }
   }
 

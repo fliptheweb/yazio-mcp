@@ -286,8 +286,8 @@ test('set_user_goals sends only the goals given, with the date', async () => {
   assert.deepEqual(patch.body, { goals: { 'energy.energy': 2000, 'nutrient.protein': 150 }, date: '2026-01-15' });
 });
 
-test('get_user_fasting_countdowns reads no countdown and no history as text', async () => {
-  const { text } = await quietly(() => callTool('get_user_fasting_countdowns', {}, {
+test('get_user_fastings reads no countdown and no history as text', async () => {
+  const { text } = await quietly(() => callTool('get_user_fastings', {}, {
       '/user/fasting-countdowns': new Response('', { status: 404, headers: { 'Content-Type': 'text/html' } }),
       '/user/fasting-countdowns/history': [],
     }));
