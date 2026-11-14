@@ -33,7 +33,9 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "rm -rf dist && tsc --emitDeclarationOnly && esbuild src/index.ts --bundle --platform=node --format=esm --packages=bundle --outfile=dist/index.js && esbuild src/api/index.ts src/server.ts --bundle --splitting --platform=node --format=esm --packages=external --outbase=src --outdir=dist --chunk-names=chunks/[name]-[hash]",
+    "build": "rm -rf dist && tsc --emitDeclarationOnly && npm run build:cli && npm run build:lib",
+    "build:cli": "esbuild src/index.ts --bundle --platform=node --format=esm --packages=bundle --outfile=dist/index.js",
+    "build:lib": "esbuild src/api/index.ts src/server.ts --bundle --splitting --platform=node --format=esm --packages=external --outbase=src --outdir=dist --chunk-names=chunks/[name]-[hash]",
     "pack:mcpb": "node scripts/pack-mcpb.cjs",
     "build:mcpb": "npm run build && npm run pack:mcpb",
     "build:mcpb:unpacked": "npm run build && node scripts/pack-mcpb.cjs --unpacked",
