@@ -6,7 +6,7 @@ export const API_URL = 'https://yzapi.yazio.com';
 // Each version is the API of one app generation: newer ones add endpoints and fields, some also added to older ones.
 export const DEFAULT_API_VERSION = 'v15';
 // From this version on, most endpoints answer 403 version_blocked unless the user agent names an app build they still support
-export const FIRST_USER_AGENT_GATED_VERSION = 20;
+export const MIN_USER_AGENT_GATED_VERSION = 20;
 
 // From https://github.com/juriadams/yazio/blob/main/src/utils/constants.ts
 export const DEFAULT_CLIENT_ID = '1_4hiybetvfksgw40o0sog4s884kwc840wwso8go4k8c04goo4c';
@@ -43,7 +43,7 @@ export interface RequestOptions<T> {
 
 export interface YazioHttpOptions {
   fetch?: typeof fetch;
-  /** Sent only to API versions that check it, from FIRST_USER_AGENT_GATED_VERSION on */
+  /** Sent only to API versions that check it, from MIN_USER_AGENT_GATED_VERSION on */
   userAgent?: string;
 }
 
@@ -77,7 +77,7 @@ export class YazioHttp {
   async request<T = void>(method: string, path: string, options: RequestOptions<T> = {}): Promise<T> {
     const version = options.version ?? DEFAULT_API_VERSION;
     const url = this.buildUrl(version, path, options.query);
-    const userAgent = Number(version.slice(1)) >= FIRST_USER_AGENT_GATED_VERSION ? this.userAgent : undefined;
+    const userAgent = Number(version.slice(1)) >= MIN_USER_AGENT_GATED_VERSION ? this.userAgent : undefined;
     const send = (token: Token) => this.send(method, url, token, options.body, userAgent);
     let token = await this.authenticate();
     let response = await send(token);
