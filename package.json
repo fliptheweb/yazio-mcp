@@ -13,9 +13,13 @@
     "url": "https://github.com/fliptheweb/yazio-mcp/issues"
   },
   "homepage": "https://github.com/fliptheweb/yazio-mcp#readme",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
   "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/api/index.d.ts",
+      "default": "./dist/api/index.js"
+    }
+  },
   "bin": {
     "yazio-mcp": "dist/index.js"
   },
@@ -25,7 +29,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "rm -rf dist && tsc --emitDeclarationOnly && esbuild src/index.ts --bundle --platform=node --format=esm --packages=bundle --outfile=dist/index.js",
+    "build": "rm -rf dist && tsc --emitDeclarationOnly && esbuild src/index.ts --bundle --platform=node --format=esm --packages=bundle --outfile=dist/index.js && esbuild src/api/index.ts --bundle --platform=node --format=esm --packages=external --outfile=dist/api/index.js",
     "pack:mcpb": "node scripts/pack-mcpb.cjs",
     "build:mcpb": "npm run build && npm run pack:mcpb",
     "build:mcpb:unpacked": "npm run build && node scripts/pack-mcpb.cjs --unpacked",
@@ -61,7 +65,9 @@
     "prettier": "^3.6.2",
     "tsx": "^4.0.0",
     "typescript": "^7.0.2",
-    "uuid": "^14.0.3",
+    "uuid": "^14.0.3"
+  },
+  "dependencies": {
     "zod": "^4.2.1"
   }
 }
