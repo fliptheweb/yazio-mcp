@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { YazioApi, YazioApiError, API_URL, DEFAULT_API_VERSION, FIRST_USER_AGENT_VERSION, DEFAULT_CLIENT_ID, DEFAULT_CLIENT_SECRET } from '../src/api/index.js';
+import { YazioApi, YazioApiError, API_URL, DEFAULT_API_VERSION, FIRST_USER_AGENT_GATED_VERSION, DEFAULT_CLIENT_ID, DEFAULT_CLIENT_SECRET } from '../src/api/index.js';
 
 const API_BASE_URL = `${API_URL}/${DEFAULT_API_VERSION}`;
 
@@ -450,7 +450,7 @@ test('the user agent goes only to the API versions that check it', async () => {
 
   await api.getWallet();
   await api.http.request('GET', '/user/streak', { version: 'v19' });
-  await api.http.request('GET', '/user/streak', { version: `v${FIRST_USER_AGENT_VERSION}` });
+  await api.http.request('GET', '/user/streak', { version: `v${FIRST_USER_AGENT_GATED_VERSION}` });
 
   assert.deepEqual(calls, [
     { url: 'v15/user/wallet', userAgent: undefined },

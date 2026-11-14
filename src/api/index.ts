@@ -1,4 +1,4 @@
 export { YazioApi, today } from './yazio.js';
-export { YazioHttp, YazioApiError, API_URL, DEFAULT_API_VERSION, FIRST_USER_AGENT_VERSION, DEFAULT_CLIENT_ID, DEFAULT_CLIENT_SECRET, type Credentials, type Token } from './http.js';
+export { YazioHttp, YazioApiError, API_URL, DEFAULT_API_VERSION, FIRST_USER_AGENT_GATED_VERSION, DEFAULT_CLIENT_ID, DEFAULT_CLIENT_SECRET, type Credentials, type Token } from './http.js';
 export type * from './types.js';
 export * as schemas from './schemas.js';
