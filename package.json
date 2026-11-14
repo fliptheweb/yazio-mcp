@@ -13,9 +13,17 @@
     "url": "https://github.com/fliptheweb/yazio-mcp/issues"
   },
   "homepage": "https://github.com/fliptheweb/yazio-mcp#readme",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
   "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/api/index.d.ts",
+      "default": "./dist/api/index.js"
+    },
+    "./server": {
+      "types": "./dist/server.d.ts",
+      "default": "./dist/server.js"
+    }
+  },
   "bin": {
     "yazio-mcp": "dist/index.js"
   },
@@ -25,7 +33,9 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "rm -rf dist && tsc --emitDeclarationOnly && esbuild src/index.ts --bundle --platform=node --format=esm --packages=bundle --outfile=dist/index.js",
+    "build": "rm -rf dist && tsc --emitDeclarationOnly && npm run build:mcp && npm run build:lib",
+    "build:mcp": "esbuild src/index.ts --bundle --platform=node --format=esm --packages=bundle --outfile=dist/index.js",
+    "build:lib": "esbuild src/api/index.ts src/server.ts --bundle --splitting --platform=node --format=esm --packages=external --outbase=src --outdir=dist --chunk-names=chunks/[name]-[hash]",
     "pack:mcpb": "node scripts/pack-mcpb.cjs",
     "build:mcpb": "npm run build && npm run pack:mcpb",
     "build:mcpb:unpacked": "npm run build && node scripts/pack-mcpb.cjs --unpacked",
@@ -60,8 +70,18 @@
     "oxlint": "^1.93.0",
     "prettier": "^3.6.2",
     "tsx": "^4.0.0",
-    "typescript": "^7.0.2",
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
     "uuid": "^14.0.3",
     "zod": "^4.2.1"
+  },
+  "peerDependencies": {
+    "@modelcontextprotocol/server": "^2.4.0"
+  },
+  "peerDependenciesMeta": {
+    "@modelcontextprotocol/server": {
+      "optional": true
+    }
   }
 }

@@ -165,6 +165,22 @@ Easily log meals you forgot to track in the Yazio app directly from Claude or Cu
 YAZIO_USERNAME='your_email' YAZIO_PASSWORD='your_password' npx yazio-mcp
 ```
 
+## 📦 Use the API Client
+
+The package also exports the Yazio API client that the server uses:
+
+```bash
+npm install yazio-mcp
+```
+
+```ts
+import { YazioApi } from 'yazio-mcp';
+
+const yazio = new YazioApi({ username: 'your_email@email.com', password: 'your_password' });
+const goals = await yazio.getGoals();
+const entries = await yazio.getConsumedItems('2026-01-15');
+```
+
 ## ❕ Disclaimers
 
 - **Credentials**: Your Yazio credentials are only used for auth on Yazio servers
