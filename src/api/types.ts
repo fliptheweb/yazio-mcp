@@ -41,6 +41,7 @@ interface ConsumedProductBase {
   amount: number;
 }
 
+// Without an explicit null serving the entry counts in the totals, but the app does not list it on the meal page
 export type ConsumedProductDto =
   | (ConsumedProductBase & { serving: string; serving_quantity: number })
   | (ConsumedProductBase & { serving: null; serving_quantity: null });

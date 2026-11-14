@@ -209,7 +209,7 @@ export class YazioApi {
   claimClaimable = (uuid: string) =>
     this.http.request('POST', `/user/claimables/${encodeURIComponent(uuid)}/claim`);
 
-  /** Credits the rewards of the chest that the meal earned, without a chest to claim */
+  /** Credits the rewards of the chest that the meal earned, without a chest to claim; v15 answers 400 without mealtime */
   autoclaimClaimables = (daytime: Daytime, userDate = today()) =>
     this.http.request('POST', '/user/claimables/autoclaim', { body: { user_date: userDate, mealtime: daytime } });
 

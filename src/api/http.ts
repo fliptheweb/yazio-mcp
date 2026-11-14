@@ -3,8 +3,10 @@ import * as z from 'zod';
 import { TokenResponseSchema } from './schemas.js';
 
 export const API_URL = 'https://yzapi.yazio.com';
+// Each version is the API of one app generation: newer ones add endpoints and fields, some also added to older ones
 export const DEFAULT_API_VERSION = 'v15';
-// Newer API versions answer 403 version_blocked unless the user agent names an app build they still support
+// Newer versions answer 403 version_blocked, except on the token exchange, unless the user agent names an app
+// build they still support. A wall of 403s on the v22 calls means YAZIO_USER_AGENT and this need a newer build.
 export const DEFAULT_USER_AGENT = 'YAZIO/26.41.2 (com.yazio.android; build:610090905; Android 36) Ktor';
 
 // From https://github.com/juriadams/yazio/blob/main/src/utils/constants.ts
