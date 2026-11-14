@@ -2,10 +2,10 @@
 import * as z from 'zod';
 import { TokenResponseSchema } from './schemas.js';
 
-export const API_BASE_URL = 'https://yzapi.yazio.com/v15';
-export const APP_API_BASE_URL = 'https://yzapi.yazio.com/v22';
-// v22 answers 403 version_blocked unless the user agent names a supported app build
-export const DEFAULT_APP_USER_AGENT = 'YAZIO/26.41.2 (com.yazio.android; build:610090905; Android 36) Ktor';
+export const API_URL = 'https://yzapi.yazio.com';
+export const DEFAULT_API_VERSION = 'v15';
+// Newer API versions answer 403 version_blocked unless the user agent names an app build they still support
+export const DEFAULT_USER_AGENT = 'YAZIO/26.41.2 (com.yazio.android; build:610090905; Android 36) Ktor';
 
 // From https://github.com/juriadams/yazio/blob/main/src/utils/constants.ts
 export const DEFAULT_CLIENT_ID = '1_4hiybetvfksgw40o0sog4s884kwc840wwso8go4k8c04goo4c';
@@ -36,13 +36,13 @@ export interface RequestOptions<T> {
   query?: Record<string, QueryValue>;
   body?: unknown;
   schema?: z.ZodType<T>;
-  /** Send to the API version of the current app, for data that v15 leaves out */
-  appApi?: boolean;
+  /** For an endpoint that the default version lacks or answers with less data, e.g. 'v22'; sends the user agent */
+  version?: string;
 }
 
 export interface YazioHttpOptions {
   fetch?: typeof fetch;
-  appUserAgent?: string;
+  userAgent?: string;
 }
 
 export class YazioApiError extends Error {
@@ -64,17 +64,17 @@ export class YazioHttp {
   private token: Token | null = null;
   private pendingToken: Promise<Token> | null = null;
   private readonly credentials: Credentials;
-  private readonly appUserAgent: string;
+  private readonly userAgent: string;
 
   constructor(credentials: Credentials, options: YazioHttpOptions = {}) {
     this.credentials = credentials;
     this.fetch = options.fetch ?? globalThis.fetch;
-    this.appUserAgent = options.appUserAgent ?? DEFAULT_APP_USER_AGENT;
+    this.userAgent = options.userAgent ?? DEFAULT_USER_AGENT;
   }
 
   async request<T = void>(method: string, path: string, options: RequestOptions<T> = {}): Promise<T> {
-    const url = this.buildUrl(options.appApi ? APP_API_BASE_URL : API_BASE_URL, path, options.query);
-    const send = (token: Token) => this.send(method, url, token, options.body, options.appApi);
+    const url = this.buildUrl(options.version ?? DEFAULT_API_VERSION, path, options.query);
+    const send = (token: Token) => this.send(method, url, token, options.body, options.version !== undefined);
     let token = await this.authenticate();
     let response = await send(token);
 
@@ -134,7 +134,7 @@ export class YazioHttp {
   }
 
   private async requestToken(grant: Record<string, string>): Promise<Token> {
-    const response = await this.fetch(`${API_BASE_URL}/oauth/token`, {
+    const response = await this.fetch(`${API_URL}/${DEFAULT_API_VERSION}/oauth/token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -157,10 +157,11 @@ export class YazioHttp {
     return { ...token, expires_at: Date.now() + Number(token.expires_in) * 1000 };
   }
 
-  private send(method: string, url: string, token: Token, body: unknown, appApi = false): Promise<Response> {
+  private send(method: string, url: string, token: Token, body: unknown, withUserAgent: boolean): Promise<Response> {
     const headers: Record<string, string> = { Authorization: `Bearer ${token.access_token}` };
     if (body !== undefined) headers['Content-Type'] = 'application/json';
-    if (appApi) headers['User-Agent'] = this.appUserAgent;
+    // v15 does not check the client version, so it must not fail when the app build in the user agent is retired
+    if (withUserAgent) headers['User-Agent'] = this.userAgent;
     return this.fetch(url, {
       method,
       headers,
@@ -168,8 +169,8 @@ export class YazioHttp {
     });
   }
 
-  private buildUrl(baseUrl: string, path: string, query?: Record<string, QueryValue>): string {
-    const url = new URL(`${baseUrl}${path}`);
+  private buildUrl(version: string, path: string, query?: Record<string, QueryValue>): string {
+    const url = new URL(`${API_URL}/${version}${path}`);
     for (const [key, value] of Object.entries(query ?? {})) {
       if (value !== undefined) url.searchParams.set(key, String(value));
     }

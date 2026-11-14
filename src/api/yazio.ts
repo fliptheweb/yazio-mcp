@@ -1,5 +1,5 @@
 // Endpoints are based on https://github.com/juriadams/yazio by Juri Adams and its contributors.
-import { YazioApiError, YazioHttp, type Credentials, type RequestOptions, type YazioHttpOptions } from './http.js';
+import { YazioApiError, YazioHttp, type Credentials, type YazioHttpOptions } from './http.js';
 import * as S from './schemas.js';
 import type {
   AddConsumedItemsDto,
@@ -33,9 +33,6 @@ export class YazioApi {
   constructor(credentials: Credentials, options?: YazioHttpOptions) {
     this.http = new YazioHttp(credentials, options);
   }
-
-  private appRequest = <T = void>(method: string, path: string, options: RequestOptions<T> = {}) =>
-    this.http.request(method, path, { ...options, appApi: true });
 
   getUser = () => this.http.request('GET', '/user', { schema: S.UserSchema });
 
@@ -186,14 +183,14 @@ export class YazioApi {
     });
 
   /** The tracking streak by day; v15 leaves out the counts */
-  getStreak = () => this.appRequest('GET', '/user/streak', { schema: S.StreakSchema });
+  getStreak = () => this.http.request('GET', '/user/streak', { version: 'v22', schema: S.StreakSchema });
 
   /**
    * Registers a day of the tracking streak, or replaces it. Logging food does not do it: the app
    * posts this after logging. The server stores the counts as sent; the app continues them from the day before.
    */
   addStreakDay = (date: string, day: StreakDayDto) =>
-    this.appRequest('POST', `/user/streak/${encodeURIComponent(date)}`, { body: day });
+    this.http.request('POST', `/user/streak/${encodeURIComponent(date)}`, { version: 'v22', body: day });
 
   /** Coin balances */
   getWallet = () => this.http.request('GET', '/user/wallet', { schema: S.WalletSchema });

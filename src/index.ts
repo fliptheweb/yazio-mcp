@@ -20,7 +20,7 @@ const client = new YazioApi(
     clientId: process.env.YAZIO_CLIENT_ID || undefined,
     clientSecret: process.env.YAZIO_CLIENT_SECRET || undefined,
   },
-  { appUserAgent: process.env.YAZIO_APP_USER_AGENT || undefined },
+  { userAgent: process.env.YAZIO_USER_AGENT || undefined },
 );
 
 client.getUser().then(
