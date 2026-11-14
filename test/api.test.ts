@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { YazioApi, YazioApiError, API_URL, DEFAULT_API_VERSION, DEFAULT_CLIENT_ID, DEFAULT_CLIENT_SECRET } from '../src/api/index.js';
+import { YazioApi, YazioApiError, API_URL, DEFAULT_API_VERSION, MIN_USER_AGENT_GATED_VERSION, DEFAULT_CLIENT_ID, DEFAULT_CLIENT_SECRET } from '../src/api/index.js';
 
 const API_BASE_URL = `${API_URL}/${DEFAULT_API_VERSION}`;
 
@@ -437,4 +437,24 @@ test('no active fasting countdown reads as null, other errors still throw', asyn
 
   const failing = mockApi((c) => (c.url.endsWith('/user/fasting-countdowns') ? new Response('', { status: 500 }) : undefined));
   await assert.rejects(failing.api.getFastingCountdowns(), YazioApiError);
+});
+
+test('the user agent goes only to the API versions that check it', async () => {
+  const calls: { url: string; userAgent?: string }[] = [];
+  const fetchMock = async (input: string | URL | Request, init: RequestInit = {}) => {
+    if (String(input).endsWith('/oauth/token')) return tokenResponse(1);
+    calls.push({ url: String(input).replace(`${API_URL}/`, ''), userAgent: (init.headers as Record<string, string>)['User-Agent'] });
+    return json({});
+  };
+  const api = new YazioApi({ username: 'u', password: 'p' }, { fetch: fetchMock as typeof fetch, userAgent: 'YAZIO/27.0.0' });
+
+  await api.getWallet();
+  await api.http.request('GET', '/user/streak', { version: 'v19' });
+  await api.http.request('GET', '/user/streak', { version: `v${MIN_USER_AGENT_GATED_VERSION}` });
+
+  assert.deepEqual(calls, [
+    { url: 'v15/user/wallet', userAgent: undefined },
+    { url: 'v19/user/streak', userAgent: undefined },
+    { url: 'v20/user/streak', userAgent: 'YAZIO/27.0.0' },
+  ]);
 });

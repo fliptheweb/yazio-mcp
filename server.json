@@ -42,6 +42,13 @@
           "format": "string",
           "isSecret": true,
           "name": "YAZIO_CLIENT_SECRET"
+        },
+        {
+          "description": "User agent of a Yazio app build, e.g. YAZIO/26.41.2 (com.yazio.android; build:610090905; Android 36) Ktor. Sent only to the API versions that check it (v20 and later); no current call needs it (optional)",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false,
+          "name": "YAZIO_USER_AGENT"
         }
       ]
     }

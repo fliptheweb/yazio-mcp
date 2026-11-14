@@ -13,12 +13,15 @@ if (!username || !password) {
   process.exit(1);
 }
 
-const client = new YazioApi({
-  username,
-  password,
-  clientId: process.env.YAZIO_CLIENT_ID || undefined,
-  clientSecret: process.env.YAZIO_CLIENT_SECRET || undefined,
-});
+const client = new YazioApi(
+  {
+    username,
+    password,
+    clientId: process.env.YAZIO_CLIENT_ID || undefined,
+    clientSecret: process.env.YAZIO_CLIENT_SECRET || undefined,
+  },
+  { userAgent: process.env.YAZIO_USER_AGENT || undefined },
+);
 
 client.getUser().then(
   () => console.error('✅ Successfully authenticated with Yazio using environment variables'),
