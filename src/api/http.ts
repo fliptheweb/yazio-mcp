@@ -4,8 +4,9 @@ import { TokenResponseSchema } from './schemas.js';
 
 export const API_URL = 'https://yzapi.yazio.com';
 // Each version is the API of one app generation: newer ones add endpoints and fields, some also added to older ones.
-// From v20 on, most endpoints answer 403 version_blocked unless the user agent names an app build they still support.
 export const DEFAULT_API_VERSION = 'v15';
+// From this version on, most endpoints answer 403 version_blocked unless the user agent names an app build they still support
+export const FIRST_USER_AGENT_VERSION = 20;
 
 // From https://github.com/juriadams/yazio/blob/main/src/utils/constants.ts
 export const DEFAULT_CLIENT_ID = '1_4hiybetvfksgw40o0sog4s884kwc840wwso8go4k8c04goo4c';
@@ -42,6 +43,8 @@ export interface RequestOptions<T> {
 
 export interface YazioHttpOptions {
   fetch?: typeof fetch;
+  /** Sent only to API versions that check it, from FIRST_USER_AGENT_VERSION on */
+  userAgent?: string;
 }
 
 export class YazioApiError extends Error {
@@ -63,15 +66,19 @@ export class YazioHttp {
   private token: Token | null = null;
   private pendingToken: Promise<Token> | null = null;
   private readonly credentials: Credentials;
+  private readonly userAgent?: string;
 
   constructor(credentials: Credentials, options: YazioHttpOptions = {}) {
     this.credentials = credentials;
     this.fetch = options.fetch ?? globalThis.fetch;
+    this.userAgent = options.userAgent;
   }
 
   async request<T = void>(method: string, path: string, options: RequestOptions<T> = {}): Promise<T> {
-    const url = this.buildUrl(options.version ?? DEFAULT_API_VERSION, path, options.query);
-    const send = (token: Token) => this.send(method, url, token, options.body);
+    const version = options.version ?? DEFAULT_API_VERSION;
+    const url = this.buildUrl(version, path, options.query);
+    const userAgent = Number(version.slice(1)) >= FIRST_USER_AGENT_VERSION ? this.userAgent : undefined;
+    const send = (token: Token) => this.send(method, url, token, options.body, userAgent);
     let token = await this.authenticate();
     let response = await send(token);
 
@@ -154,9 +161,10 @@ export class YazioHttp {
     return { ...token, expires_at: Date.now() + Number(token.expires_in) * 1000 };
   }
 
-  private send(method: string, url: string, token: Token, body: unknown): Promise<Response> {
+  private send(method: string, url: string, token: Token, body: unknown, userAgent?: string): Promise<Response> {
     const headers: Record<string, string> = { Authorization: `Bearer ${token.access_token}` };
     if (body !== undefined) headers['Content-Type'] = 'application/json';
+    if (userAgent) headers['User-Agent'] = userAgent;
     return this.fetch(url, {
       method,
       headers,
