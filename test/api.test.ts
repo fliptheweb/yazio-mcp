@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { YazioApi, YazioApiError, API_URL, DEFAULT_API_VERSION, DEFAULT_USER_AGENT, DEFAULT_CLIENT_ID, DEFAULT_CLIENT_SECRET } from '../src/api/index.js';
+import { YazioApi, YazioApiError, API_URL, DEFAULT_API_VERSION, DEFAULT_CLIENT_ID, DEFAULT_CLIENT_SECRET } from '../src/api/index.js';
 
 const API_BASE_URL = `${API_URL}/${DEFAULT_API_VERSION}`;
 
@@ -384,7 +384,7 @@ test('endpoints from the yazio-community specification', async () => {
   );
 });
 
-test('streak, coin and other endpoints from the v22 fork use their paths', async () => {
+test('streak, coin and other endpoints from the weeebdev fork use their paths', async () => {
   const { api, apiCalls } = mockApi((c) => (c.method === 'GET' ? json({}) : undefined));
 
   const consoleError = console.error;
@@ -412,8 +412,8 @@ test('streak, coin and other endpoints from the v22 fork use their paths', async
   assert.deepEqual(
     apiCalls().map((c) => [c.method, c.url.replace(`${API_URL}/`, ''), c.body]),
     [
-      ['GET', 'v22/user/streak', undefined],
-      ['POST', 'v22/user/streak/2026-11-06', { daytimes: ['breakfast'], streak_count: 3, freeze_count: 0 }],
+      ['GET', 'v16/user/streak', undefined],
+      ['POST', 'v16/user/streak/2026-11-06', { daytimes: ['breakfast'], streak_count: 3, freeze_count: 0 }],
       ['GET', 'v15/user/wallet', undefined],
       ['GET', 'v15/user/claimables', undefined],
       ['POST', 'v15/user/claimables', { uuid: 'c0ffee00-0000-4000-8000-000000000000', collectable_type: 'TRACKING_MORNING_CHEST_V1' }],
@@ -431,40 +431,10 @@ test('streak, coin and other endpoints from the v22 fork use their paths', async
   );
 });
 
-test('only a request that names its API version sends the user agent', async () => {
-  const { api, calls } = mockApi((c) => (c.method === 'GET' && !c.url.endsWith('/oauth/token') ? json({}) : undefined));
-
-  await api.getStreak();
-  await api.getWallet();
-
-  assert.deepEqual(
-    calls.map((c) => [c.url.replace(`${API_URL}/`, ''), c.headers['User-Agent']]),
-    [
-      ['v15/oauth/token', undefined],
-      ['v22/user/streak', DEFAULT_USER_AGENT],
-      ['v15/user/wallet', undefined],
-    ],
-  );
-});
-
 test('no active fasting countdown reads as null, other errors still throw', async () => {
   const notFound = mockApi((c) => (c.url.endsWith('/user/fasting-countdowns') ? new Response('', { status: 404 }) : undefined));
   assert.equal(await notFound.api.getFastingCountdowns(), null);
 
   const failing = mockApi((c) => (c.url.endsWith('/user/fasting-countdowns') ? new Response('', { status: 500 }) : undefined));
   await assert.rejects(failing.api.getFastingCountdowns(), YazioApiError);
-});
-
-test('the user agent can be set', async () => {
-  const calls: Record<string, string>[] = [];
-  const fetchMock = async (input: string | URL | Request, init: RequestInit = {}) => {
-    if (String(input).endsWith('/oauth/token')) return tokenResponse(1);
-    calls.push(init.headers as Record<string, string>);
-    return json({});
-  };
-  const api = new YazioApi({ username: 'u', password: 'p' }, { fetch: fetchMock as typeof fetch, userAgent: 'YAZIO/27.0.0' });
-
-  await api.getStreak();
-
-  assert.equal(calls[0]['User-Agent'], 'YAZIO/27.0.0');
 });

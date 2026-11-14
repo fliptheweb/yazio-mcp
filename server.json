@@ -42,13 +42,6 @@
           "format": "string",
           "isSecret": true,
           "name": "YAZIO_CLIENT_SECRET"
-        },
-        {
-          "description": "User agent of a Yazio app build that the API still supports, sent on the calls to newer API versions, which block other clients (optional, a built-in default is used)",
-          "isRequired": false,
-          "format": "string",
-          "isSecret": false,
-          "name": "YAZIO_USER_AGENT"
         }
       ]
     }

@@ -187,14 +187,14 @@ export class YazioApi {
     this.http.request('GET', '/user/fasting-countdowns/history', { schema: S.FastingHistorySchema });
 
   /** The tracking streak by day; v15 leaves out the counts */
-  getStreak = () => this.http.request('GET', '/user/streak', { version: 'v22', schema: S.StreakSchema });
+  getStreak = () => this.http.request('GET', '/user/streak', { version: 'v16', schema: S.StreakSchema });
 
   /**
    * Registers a day of the tracking streak, or replaces it. Logging food does not do it: the app
    * posts this after logging. The server stores the counts as sent; the app continues them from the day before.
    */
   addStreakDay = (date: string, day: StreakDayDto) =>
-    this.http.request('POST', `/user/streak/${encodeURIComponent(date)}`, { version: 'v22', body: day });
+    this.http.request('POST', `/user/streak/${encodeURIComponent(date)}`, { version: 'v16', body: day });
 
   /** Coin balances */
   getWallet = () => this.http.request('GET', '/user/wallet', { schema: S.WalletSchema });

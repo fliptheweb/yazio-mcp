@@ -3,11 +3,9 @@ import * as z from 'zod';
 import { TokenResponseSchema } from './schemas.js';
 
 export const API_URL = 'https://yzapi.yazio.com';
-// Each version is the API of one app generation: newer ones add endpoints and fields, some also added to older ones
+// Each version is the API of one app generation: newer ones add endpoints and fields, some also added to older ones.
+// From v20 on, most endpoints answer 403 version_blocked unless the user agent names an app build they still support.
 export const DEFAULT_API_VERSION = 'v15';
-// Newer versions answer 403 version_blocked, except on the token exchange, unless the user agent names an app
-// build they still support. A wall of 403s on the v22 calls means YAZIO_USER_AGENT and this need a newer build.
-export const DEFAULT_USER_AGENT = 'YAZIO/26.41.2 (com.yazio.android; build:610090905; Android 36) Ktor';
 
 // From https://github.com/juriadams/yazio/blob/main/src/utils/constants.ts
 export const DEFAULT_CLIENT_ID = '1_4hiybetvfksgw40o0sog4s884kwc840wwso8go4k8c04goo4c';
@@ -38,13 +36,12 @@ export interface RequestOptions<T> {
   query?: Record<string, QueryValue>;
   body?: unknown;
   schema?: z.ZodType<T>;
-  /** For an endpoint that the default version lacks or answers with less data, e.g. 'v22'; sends the user agent */
+  /** For an endpoint that the default version lacks or answers with less data, e.g. 'v16' */
   version?: string;
 }
 
 export interface YazioHttpOptions {
   fetch?: typeof fetch;
-  userAgent?: string;
 }
 
 export class YazioApiError extends Error {
@@ -66,17 +63,15 @@ export class YazioHttp {
   private token: Token | null = null;
   private pendingToken: Promise<Token> | null = null;
   private readonly credentials: Credentials;
-  private readonly userAgent: string;
 
   constructor(credentials: Credentials, options: YazioHttpOptions = {}) {
     this.credentials = credentials;
     this.fetch = options.fetch ?? globalThis.fetch;
-    this.userAgent = options.userAgent ?? DEFAULT_USER_AGENT;
   }
 
   async request<T = void>(method: string, path: string, options: RequestOptions<T> = {}): Promise<T> {
     const url = this.buildUrl(options.version ?? DEFAULT_API_VERSION, path, options.query);
-    const send = (token: Token) => this.send(method, url, token, options.body, options.version !== undefined);
+    const send = (token: Token) => this.send(method, url, token, options.body);
     let token = await this.authenticate();
     let response = await send(token);
 
@@ -159,11 +154,9 @@ export class YazioHttp {
     return { ...token, expires_at: Date.now() + Number(token.expires_in) * 1000 };
   }
 
-  private send(method: string, url: string, token: Token, body: unknown, withUserAgent: boolean): Promise<Response> {
+  private send(method: string, url: string, token: Token, body: unknown): Promise<Response> {
     const headers: Record<string, string> = { Authorization: `Bearer ${token.access_token}` };
     if (body !== undefined) headers['Content-Type'] = 'application/json';
-    // v15 does not check the client version, so it must not fail when the app build in the user agent is retired
-    if (withUserAgent) headers['User-Agent'] = this.userAgent;
     return this.fetch(url, {
       method,
       headers,
