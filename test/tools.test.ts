@@ -239,17 +239,38 @@ test('get_user_consumed_items names each product and recipe portion and adds the
   assert.equal(requests.filter((r) => r.url.includes('/products/9dd69912')).length, 1);
 });
 
-test('get_user_consumed_items_latest names the products it lists', async () => {
-  const { text } = await quietly(() =>
+test('get_user_consumed_items_latest names the products in the list and asks for the limit', async () => {
+  const product = {
+    id: 'c1b66657-00de-40ea-bee0-399919b4b993',
+    date: '2026-02-09 00:02:43',
+    daytime: 'dinner',
+    type: 'product',
+    product_id: '9dd69912-becf-11e6-8839-e0071b8a8723',
+    amount: 100,
+    serving: null,
+    serving_quantity: null,
+  };
+  const simple = {
+    id: 'c7d11334-f8d6-4da1-813d-57d9cc818532',
+    date: '2026-02-09 00:01:00',
+    daytime: 'dinner',
+    type: 'simple_product',
+    name: 'Pancakes',
+    nutrients: { 'energy.energy': 368 },
+  };
+  const { text, requests } = await quietly(() =>
     callTool('get_user_consumed_items_latest', {}, {
-      '/user/consumed-items/latest': { products: [{ product_id: '9dd69912-becf-11e6-8839-e0071b8a8723', amount: 100 }] },
+      '/user/consumed-items/latest?limit=50': [product, simple],
       '/products/9dd69912-becf-11e6-8839-e0071b8a8723': { name: 'Banana', producer: null, nutrients: { 'energy.energy': 0.89 } },
     })
   );
 
-  const items = JSON.parse(text.slice(text.indexOf('{')));
-  assert.equal(items.products[0].name, 'Banana');
-  assert.equal(items.products[0].nutrients['energy.energy'], 89);
+  assert.ok(requests.some((r) => r.url.endsWith('/user/consumed-items/latest?limit=50')));
+  const items = JSON.parse(text.slice(text.indexOf('[')));
+  assert.equal(items.length, 2);
+  assert.equal(items[0].name, 'Banana');
+  assert.equal(items[0].nutrients['energy.energy'], 89);
+  assert.deepEqual(items[1], simple);
 });
 
 test('set_user_goals sends only the goals given, with the date', async () => {

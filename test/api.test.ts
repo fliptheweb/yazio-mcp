@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { YazioApi, YazioApiError, API_BASE_URL, DEFAULT_CLIENT_ID, DEFAULT_CLIENT_SECRET } from '../src/api/index.js';
+import { YazioApi, YazioApiError, API_BASE_URL, APP_API_BASE_URL, DEFAULT_APP_USER_AGENT, DEFAULT_CLIENT_ID, DEFAULT_CLIENT_SECRET } from '../src/api/index.js';
 
 interface Call {
   method: string;
@@ -394,12 +394,12 @@ test('streak, coin and other endpoints from the v22 fork use their paths', async
     await api.getClaimables();
     await api.createClaimable('c0ffee00-0000-4000-8000-000000000000', 'TRACKING_MORNING_CHEST_V1');
     await api.claimClaimable('c0ffee00-0000-4000-8000-000000000000');
-    await api.autoclaimClaimables('2026-11-06', 'lunch');
+    await api.autoclaimClaimables('lunch', '2026-11-06');
     await api.getShopItems();
     await api.getSubscription();
     await api.getMealImages('2026-11-06');
     await api.getFastingCountdowns();
-    await api.getLatestConsumedItems();
+    await api.getLatestConsumedItems(10);
     await api.updateGoals({ water: 2500 }, '2026-11-06');
     await api.updateUser({ first_name: 'Ann' });
   } finally {
@@ -407,22 +407,59 @@ test('streak, coin and other endpoints from the v22 fork use their paths', async
   }
 
   assert.deepEqual(
-    apiCalls().map((c) => [c.method, c.url.replace(API_BASE_URL, ''), c.body]),
+    apiCalls().map((c) => [c.method, c.url.replace(API_BASE_URL, 'v15').replace(APP_API_BASE_URL, 'v22'), c.body]),
     [
-      ['GET', '/user/streak', undefined],
-      ['POST', '/user/streak/2026-11-06', { daytimes: ['breakfast'], streak_count: 3, freeze_count: 0 }],
-      ['GET', '/user/wallet', undefined],
-      ['GET', '/user/claimables', undefined],
-      ['POST', '/user/claimables', { uuid: 'c0ffee00-0000-4000-8000-000000000000', collectable_type: 'TRACKING_MORNING_CHEST_V1' }],
-      ['POST', '/user/claimables/c0ffee00-0000-4000-8000-000000000000/claim', undefined],
-      ['POST', '/user/claimables/autoclaim', { user_date: '2026-11-06', type: 'lunch' }],
-      ['GET', '/user/shop/items', undefined],
-      ['GET', '/user/subscription', undefined],
-      ['GET', '/user/meal-images/2026-11-06', undefined],
-      ['GET', '/user/fasting-countdowns', undefined],
-      ['GET', '/user/consumed-items/latest', undefined],
-      ['PATCH', '/user/goals', { goals: { water: 2500 }, date: '2026-11-06' }],
-      ['PATCH', '/user', { first_name: 'Ann' }],
+      ['GET', 'v22/user/streak', undefined],
+      ['POST', 'v22/user/streak/2026-11-06', { daytimes: ['breakfast'], streak_count: 3, freeze_count: 0 }],
+      ['GET', 'v15/user/wallet', undefined],
+      ['GET', 'v15/user/claimables', undefined],
+      ['POST', 'v15/user/claimables', { uuid: 'c0ffee00-0000-4000-8000-000000000000', collectable_type: 'TRACKING_MORNING_CHEST_V1' }],
+      ['POST', 'v15/user/claimables/c0ffee00-0000-4000-8000-000000000000/claim', undefined],
+      ['POST', 'v15/user/claimables/autoclaim', { user_date: '2026-11-06', mealtime: 'lunch' }],
+      ['GET', 'v15/user/shop/items', undefined],
+      ['GET', 'v15/user/subscription', undefined],
+      ['GET', 'v15/user/meal-images/2026-11-06', undefined],
+      ['GET', 'v15/user/fasting-countdowns', undefined],
+      ['GET', 'v15/user/consumed-items/latest?limit=10', undefined],
+      ['PATCH', 'v15/user/goals', { goals: { water: 2500 }, date: '2026-11-06' }],
+      ['PATCH', 'v15/user', { first_name: 'Ann' }],
     ],
   );
+});
+
+test('only requests for the app API send the app user agent', async () => {
+  const { api, apiCalls } = mockApi((c) => (c.method === 'GET' ? json({}) : undefined));
+
+  await api.getStreak();
+  await api.getWallet();
+
+  assert.deepEqual(
+    apiCalls().map((c) => [c.url, c.headers['User-Agent']]),
+    [
+      [`${APP_API_BASE_URL}/user/streak`, DEFAULT_APP_USER_AGENT],
+      [`${API_BASE_URL}/user/wallet`, undefined],
+    ],
+  );
+});
+
+test('no active fasting countdown reads as null, other errors still throw', async () => {
+  const notFound = mockApi((c) => (c.url.endsWith('/user/fasting-countdowns') ? new Response('', { status: 404 }) : undefined));
+  assert.equal(await notFound.api.getFastingCountdowns(), null);
+
+  const failing = mockApi((c) => (c.url.endsWith('/user/fasting-countdowns') ? new Response('', { status: 500 }) : undefined));
+  await assert.rejects(failing.api.getFastingCountdowns(), YazioApiError);
+});
+
+test('the app user agent can be set', async () => {
+  const calls: Record<string, string>[] = [];
+  const fetchMock = async (input: string | URL | Request, init: RequestInit = {}) => {
+    if (String(input).endsWith('/oauth/token')) return tokenResponse(1);
+    calls.push(init.headers as Record<string, string>);
+    return json({});
+  };
+  const api = new YazioApi({ username: 'u', password: 'p' }, { fetch: fetchMock as typeof fetch, appUserAgent: 'YAZIO/27.0.0' });
+
+  await api.getStreak();
+
+  assert.equal(calls[0]['User-Agent'], 'YAZIO/27.0.0');
 });

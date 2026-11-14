@@ -437,19 +437,21 @@ export const MealsSchema = z.array(
   }),
 );
 
-// The endpoints below come from https://github.com/weeebdev/yazio-mcp, which calls them on v22.
-// Their shapes there are not verified on v15 yet, so the schemas are loose.
+// The endpoints below come from https://github.com/weeebdev/yazio-mcp.
 
-/** Not verified yet; presumably consumed items like GET /user/consumed-items */
-export const LatestConsumedItemsSchema = z.unknown();
+/** One list, newest first, each entry with its type */
+export const LatestConsumedItemsSchema = z.array(
+  z.union([ConsumedProductSchema, ConsumedRecipePortionSchema, ConsumedSimpleProductSchema]),
+);
 
+// Seen only as a 404 so far: no countdown was active
 export const FastingCountdownsSchema = z.unknown();
 
-/** Per day the user tracked: { "YYYY-MM-DD": { daytimes, streak_count, freeze_count } } */
+/** Per day the user tracked: { "YYYY-MM-DD": { daytimes, streak_count, freeze_count, origin_of_recovery } } */
 export const StreakSchema = z.record(
   z.string(),
   z.looseObject({
-    daytimes: z.array(z.string()).optional(),
+    daytimes: z.array(DaytimeSchema),
     streak_count: z.number(),
     freeze_count: z.number(),
   }),
@@ -476,6 +478,8 @@ export const ShopItemsSchema = z.looseObject({
   items: z.array(z.looseObject({})),
 });
 
-export const SubscriptionSchema = z.unknown();
+export const SubscriptionSchema = z.array(
+  z.looseObject({ type: z.string(), status: z.string(), start: z.string(), end: z.string() }),
+);
 
 export const MealImagesSchema = z.unknown();

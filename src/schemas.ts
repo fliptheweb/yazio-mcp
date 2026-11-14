@@ -301,7 +301,9 @@ export const SetUserGoalsInputSchema = z.object({
     .describe('The goals to change; goals you leave out keep their value'),
   date: DateStringSchema.optional().describe('Date the goals apply from (defaults to today)'),
 });
-export const GetUserConsumedItemsLatestInputSchema = EmptyInputSchema;
+export const GetUserConsumedItemsLatestInputSchema = z.object({
+  limit: z.number().int().min(1).max(500).default(50).describe('How many of the latest items to get (defaults to 50)'),
+});
 export const GetUserFastingCountdownsInputSchema = EmptyInputSchema;
 export const GetUserStreakInputSchema = EmptyInputSchema;
 
@@ -325,6 +327,7 @@ export type AddWaterIntakeInput = z.infer<typeof AddWaterIntakeInputSchema>;
 export type GetDietaryPreferencesInput = z.infer<typeof GetDietaryPreferencesInputSchema>;
 export type GetUserGoalsInput = z.infer<typeof GetUserGoalsInputSchema>;
 export type SetUserGoalsInput = z.infer<typeof SetUserGoalsInputSchema>;
+export type GetUserConsumedItemsLatestInput = z.infer<typeof GetUserConsumedItemsLatestInputSchema>;
 export type CreateProductInput = z.infer<typeof CreateProductInputSchema>;
 export type AddQuickEntryInput = z.infer<typeof AddQuickEntryInputSchema>;
 export type AddConsumedRecipeInput = z.infer<typeof AddConsumedRecipeInputSchema>;

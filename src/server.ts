@@ -68,6 +68,7 @@ import {
   type GetUserExercisesInput,
   type GetUserGoalsInput,
   type SetUserGoalsInput,
+  type GetUserConsumedItemsLatestInput,
   type GetUserWeightInput,
   type GetUserWeightHistoryInput,
   type GetUserSuggestedProductsInput,
@@ -157,8 +158,7 @@ function basicNutrients(perUnit: Record<string, unknown>, amount: number): Recor
   return nutrients;
 }
 
-type ConsumedProductLike = { product_id?: unknown; amount?: unknown };
-type ConsumedRecipePortionLike = { recipe_id?: unknown; portion_count?: unknown };
+type ConsumedEntryLike = { product_id?: unknown; amount?: unknown; recipe_id?: unknown; portion_count?: unknown };
 
 export function createServer(client: YazioApi): McpServer {
   return new YazioMcpServer(client).createServer();
@@ -277,8 +277,8 @@ class YazioMcpServer {
           idempotentHint: true,
         },
       },
-      async () => {
-        return await this.getUserConsumedItemsLatest();
+      async (args: GetUserConsumedItemsLatestInput) => {
+        return await this.getUserConsumedItemsLatest(args);
       }
     );
 
@@ -1196,7 +1196,9 @@ To correct the day's total, e.g. after a wrong entry, pass \`water_intake\` with
     const client = this.client;
 
     try {
-      const foodEntries = await this.withNames(await client.getConsumedItems(args.date));
+      const items = await client.getConsumedItems(args.date);
+      const [products, recipe_portions] = await Promise.all([this.withNames(items.products), this.withNames(items.recipe_portions)]);
+      const foodEntries = { ...items, products, recipe_portions };
 
       return {
         content: [
@@ -2182,46 +2184,43 @@ To correct the day's total, e.g. after a wrong entry, pass \`water_intake\` with
   /**
    * Adds the name and the energy and macros of the eaten amount to each consumed product and recipe portion,
    * so an entry reads as food rather than a bare product_id. An entry whose product or recipe cannot be read
-   * gets name: null. Accepts any shape and leaves what it doesn't know as it is.
+   * gets name: null. Other entries, and anything that is not a list, stay as they are.
    */
-  private async withNames<T>(items: T): Promise<T> {
-    if (!items || typeof items !== 'object') return items;
-    const { products, recipe_portions } = items as { products?: unknown; recipe_portions?: unknown };
-    const productItems = Array.isArray(products) ? (products as ConsumedProductLike[]) : [];
-    const portionItems = Array.isArray(recipe_portions) ? (recipe_portions as ConsumedRecipePortionLike[]) : [];
+  private async withNames<T>(entries: T): Promise<T> {
+    if (!Array.isArray(entries)) return entries;
+    const items = entries as ConsumedEntryLike[];
     const idsOf = (values: unknown[]) => [...new Set(values.filter((id): id is string => typeof id === 'string'))];
 
-    const productIds = idsOf(productItems.map((item) => item.product_id));
-    const recipeIds = idsOf(portionItems.map((item) => item.recipe_id));
-    const loadedProducts = await inBatches(productIds, (id) => this.client.getProduct(id).catch(() => null));
-    const loadedRecipes = await inBatches(recipeIds, (id) => this.client.getRecipe(id).catch(() => null));
+    const productIds = idsOf(items.map((item) => item.product_id));
+    const recipeIds = idsOf(items.map((item) => item.recipe_id));
+    const [loadedProducts, loadedRecipes] = await Promise.all([
+      inBatches(productIds, (id) => this.client.getProduct(id).catch(() => null)),
+      inBatches(recipeIds, (id) => this.client.getRecipe(id).catch(() => null)),
+    ]);
     const productById = new Map<unknown, YazioProduct | null>(productIds.map((id, i) => [id, loadedProducts[i]]));
     const recipeById = new Map<unknown, YazioRecipe | null>(recipeIds.map((id, i) => [id, loadedRecipes[i]]));
 
-    const named: Record<string, unknown> = { ...(items as Record<string, unknown>) };
-    if (Array.isArray(products)) {
-      named.products = productItems.map((item) => {
+    return items.map((item) => {
+      if (typeof item.product_id === 'string') {
         const product = productById.get(item.product_id);
         if (!product) return { name: null, ...item };
         const nutrients = typeof item.amount === 'number' ? basicNutrients(product.nutrients, item.amount) : undefined;
         return { name: productName(product), ...item, nutrients };
-      });
-    }
-    if (Array.isArray(recipe_portions)) {
-      named.recipe_portions = portionItems.map((item) => {
+      }
+      if (typeof item.recipe_id === 'string') {
         const recipe = recipeById.get(item.recipe_id);
         if (!recipe) return { name: null, ...item };
         // A recipe's nutrients are per portion
         const nutrients = typeof item.portion_count === 'number' ? basicNutrients(recipe.nutrients, item.portion_count) : undefined;
         return { name: recipe.name, ...item, nutrients };
-      });
-    }
-    return named as T;
+      }
+      return item;
+    }) as T;
   }
 
-  private async getUserConsumedItemsLatest() {
+  private async getUserConsumedItemsLatest(args: GetUserConsumedItemsLatestInput) {
     try {
-      const items = await this.withNames(await this.client.getLatestConsumedItems());
+      const items = await this.withNames(await this.client.getLatestConsumedItems(args.limit));
 
       return {
         content: [
@@ -2262,7 +2261,7 @@ To correct the day's total, e.g. after a wrong entry, pass \`water_intake\` with
         content: [
           {
             type: 'text' as const,
-            text: `Fasting countdowns:\n\n${JSON.stringify(countdowns, null, 2)}`,
+            text: countdowns === null ? 'No fasting countdown is active.' : `Fasting countdowns:\n\n${JSON.stringify(countdowns, null, 2)}`,
           },
         ],
       };
