@@ -191,3 +191,75 @@ test('get_user_favorites still lists a favorite whose name cannot be read', asyn
   assert.equal(favorites.products[0].name, null);
   assert.equal(favorites.products[0].product_id, '9dd69912-becf-11e6-8839-e0071b8a8723');
 });
+
+/** Runs fn with the schema warnings of partial mock responses silenced */
+async function quietly<T>(fn: () => Promise<T>): Promise<T> {
+  const log = console.error;
+  console.error = () => {};
+  try {
+    return await fn();
+  } finally {
+    console.error = log;
+  }
+}
+
+test('get_user_consumed_items names each product and recipe portion and adds the nutrients of the eaten amount', async () => {
+  const { text, requests } = await quietly(() =>
+    callTool('get_user_consumed_items', { date: '2026-01-15' }, {
+      '/user/consumed-items?date=2026-01-15': {
+        products: [
+          { id: 'a1', date: '2026-01-15 08:30:00', daytime: 'breakfast', type: 'product', product_id: '9dd69912-becf-11e6-8839-e0071b8a8723', amount: 150, serving: null, serving_quantity: null },
+          { id: 'a2', date: '2026-01-15 16:00:00', daytime: 'snack', type: 'product', product_id: '9dd69912-becf-11e6-8839-e0071b8a8723', amount: 100, serving: null, serving_quantity: null },
+          { id: 'a3', date: '2026-01-15 12:00:00', daytime: 'lunch', type: 'product', product_id: 'f0a0d6b2-0000-4000-8000-000000000000', amount: 50, serving: null, serving_quantity: null },
+        ],
+        recipe_portions: [{ id: 'r1', date: '2026-01-15 19:00:00', daytime: 'dinner', recipe_id: '17c69708-1e7b-4e8d-92a9-a5bcd9715bbc', portion_count: 2 }],
+        simple_products: [{ id: 's1', date: '2026-01-15 10:00:00', daytime: 'snack', name: 'Cookie', nutrients: { 'energy.energy': 120 } }],
+      },
+      '/products/9dd69912-becf-11e6-8839-e0071b8a8723': {
+        name: 'Banana',
+        producer: 'Farm',
+        nutrients: { 'energy.energy': 0.89, 'nutrient.carb': 0.228, 'nutrient.protein': 0.011, 'nutrient.fat': 0.003, 'vitamin.c': 0.0001 },
+      },
+      '/recipes/17c69708-1e7b-4e8d-92a9-a5bcd9715bbc': { name: 'Nut mix', nutrients: { 'energy.energy': 300, 'nutrient.protein': 10 } },
+    })
+  );
+
+  const items = JSON.parse(text.slice(text.indexOf('{')));
+  assert.equal(items.products[0].name, 'Banana (Farm)');
+  assert.equal(items.products[0].id, 'a1');
+  assert.deepEqual(items.products[0].nutrients, { 'energy.energy': 133.5, 'nutrient.carb': 34.2, 'nutrient.protein': 1.7, 'nutrient.fat': 0.5 });
+  assert.equal(items.products[1].nutrients['energy.energy'], 89);
+  // A product that cannot be read stays listed
+  assert.equal(items.products[2].name, null);
+  assert.equal(items.products[2].product_id, 'f0a0d6b2-0000-4000-8000-000000000000');
+  assert.equal(items.recipe_portions[0].name, 'Nut mix');
+  assert.deepEqual(items.recipe_portions[0].nutrients, { 'energy.energy': 600, 'nutrient.protein': 20 });
+  assert.deepEqual(items.simple_products[0], { id: 's1', date: '2026-01-15 10:00:00', daytime: 'snack', name: 'Cookie', nutrients: { 'energy.energy': 120 } });
+  // Each product is loaded once
+  assert.equal(requests.filter((r) => r.url.includes('/products/9dd69912')).length, 1);
+});
+
+test('get_user_consumed_items_latest names the products it lists', async () => {
+  const { text } = await quietly(() =>
+    callTool('get_user_consumed_items_latest', {}, {
+      '/user/consumed-items/latest': { products: [{ product_id: '9dd69912-becf-11e6-8839-e0071b8a8723', amount: 100 }] },
+      '/products/9dd69912-becf-11e6-8839-e0071b8a8723': { name: 'Banana', producer: null, nutrients: { 'energy.energy': 0.89 } },
+    })
+  );
+
+  const items = JSON.parse(text.slice(text.indexOf('{')));
+  assert.equal(items.products[0].name, 'Banana');
+  assert.equal(items.products[0].nutrients['energy.energy'], 89);
+});
+
+test('set_user_goals sends only the goals given, with the date', async () => {
+  const { requests } = await quietly(() =>
+    callTool('set_user_goals', { goals: { 'energy.energy': 2000, 'nutrient.protein': 150 }, date: '2026-01-15' }, {
+      '/user/goals?date=2026-01-15': { 'energy.energy': 2000 },
+    })
+  );
+
+  const patch = requests.find((r) => r.method === 'PATCH');
+  assert.ok(patch?.url.endsWith('/user/goals'));
+  assert.deepEqual(patch.body, { goals: { 'energy.energy': 2000, 'nutrient.protein': 150 }, date: '2026-01-15' });
+});

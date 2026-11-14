@@ -436,3 +436,46 @@ export const MealsSchema = z.array(
     recipe_portions: z.array(MealRecipePortionSchema),
   }),
 );
+
+// The endpoints below come from https://github.com/weeebdev/yazio-mcp, which calls them on v22.
+// Their shapes there are not verified on v15 yet, so the schemas are loose.
+
+/** Not verified yet; presumably consumed items like GET /user/consumed-items */
+export const LatestConsumedItemsSchema = z.unknown();
+
+export const FastingCountdownsSchema = z.unknown();
+
+/** Per day the user tracked: { "YYYY-MM-DD": { daytimes, streak_count, freeze_count } } */
+export const StreakSchema = z.record(
+  z.string(),
+  z.looseObject({
+    daytimes: z.array(z.string()).optional(),
+    streak_count: z.number(),
+    freeze_count: z.number(),
+  }),
+);
+
+/** Coin balances, e.g. { currencies: [{ currency: "DIAMOND", quantity: 20 }] } */
+export const WalletSchema = z.looseObject({
+  currencies: z.array(z.looseObject({ currency: z.string(), quantity: z.number() })),
+});
+
+/** Reward chests; claiming one credits its rewards (e.g. DIAMOND coins) to the wallet */
+export const ClaimablesSchema = z.looseObject({
+  claimables: z.array(
+    z.looseObject({
+      uuid: z.string(),
+      type: z.string().optional(),
+      claimed: z.unknown().optional(),
+    }),
+  ),
+});
+
+/** What coins can buy, e.g. { items: [{ shop_item_type: "STREAK_FREEZE_V1", currency_type: "DIAMOND", currency_quantity }] } */
+export const ShopItemsSchema = z.looseObject({
+  items: z.array(z.looseObject({})),
+});
+
+export const SubscriptionSchema = z.unknown();
+
+export const MealImagesSchema = z.unknown();

@@ -13,7 +13,9 @@ import type {
   Daytime,
   FavoriteProductDto,
   FavoriteRecipeDto,
+  GoalsDto,
   ProductSearchOptions,
+  StreakDayDto,
   WaterIntakeEntry,
   WeightDto,
   YazioFeeling,
@@ -41,6 +43,10 @@ export class YazioApi {
 
   getGoals = (date = today()) =>
     this.http.request('GET', '/user/goals', { query: { date }, schema: S.GoalsSchema });
+
+  /** Changes the goals passed, from the date on; not verified on v15 yet */
+  updateGoals = (goals: GoalsDto, date = today()) =>
+    this.http.request('PATCH', '/user/goals', { body: { goals, date } });
 
   getDailySummary = (date: string) =>
     this.http.request('GET', '/user/widgets/daily-summary', { query: { date }, schema: S.DailySummarySchema });
@@ -84,6 +90,10 @@ export class YazioApi {
 
   getConsumedItems = (date: string) =>
     this.http.request('GET', '/user/consumed-items', { query: { date }, schema: S.ConsumedItemsSchema });
+
+  /** The recently logged items; not verified on v15 yet */
+  getLatestConsumedItems = () =>
+    this.http.request('GET', '/user/consumed-items/latest', { schema: S.LatestConsumedItemsSchema });
 
   addConsumedItems = (items: AddConsumedItemsDto) =>
     this.http.request('POST', '/user/consumed-items', {
@@ -161,4 +171,52 @@ export class YazioApi {
   createMeal = (meal: CreateMealDto) => this.http.request('POST', '/user/meals', { body: meal });
 
   deleteMeal = (id: string) => this.http.request('DELETE', `/user/meals/${encodeURIComponent(id)}`);
+
+  // The endpoints below come from https://github.com/weeebdev/yazio-mcp, which calls them on v22;
+  // they are not verified on v15 yet.
+
+  getFastingCountdowns = () =>
+    this.http.request('GET', '/user/fasting-countdowns', { schema: S.FastingCountdownsSchema });
+
+  /** The tracking streak by day */
+  getStreak = () => this.http.request('GET', '/user/streak', { schema: S.StreakSchema });
+
+  /**
+   * Registers a day of the tracking streak. Logging food does not do it: the app posts this
+   * after logging, with the day's daytimes and the counts continued from the day before.
+   */
+  addStreakDay = (date: string, day: StreakDayDto) =>
+    this.http.request('POST', `/user/streak/${encodeURIComponent(date)}`, { body: day });
+
+  /** Coin balances */
+  getWallet = () => this.http.request('GET', '/user/wallet', { schema: S.WalletSchema });
+
+  /** Reward chests */
+  getClaimables = () => this.http.request('GET', '/user/claimables', { schema: S.ClaimablesSchema });
+
+  /**
+   * Creates a reward chest, e.g. TRACKING_MORNING_CHEST_V1 or TRACKING_EVENING_CHEST_V1;
+   * one per type and day, a second one is answered with 409
+   */
+  createClaimable = (uuid: string, collectableType: string) =>
+    this.http.request('POST', '/user/claimables', { body: { uuid, collectable_type: collectableType } });
+
+  /** Credits the chest's rewards to the wallet */
+  claimClaimable = (uuid: string) =>
+    this.http.request('POST', `/user/claimables/${encodeURIComponent(uuid)}/claim`);
+
+  /** daytime: the meal that earned the chest */
+  autoclaimClaimables = (userDate = today(), daytime?: Daytime) =>
+    this.http.request('POST', '/user/claimables/autoclaim', { body: { user_date: userDate, type: daytime } });
+
+  /** What coins can buy, e.g. a streak freeze */
+  getShopItems = () => this.http.request('GET', '/user/shop/items', { schema: S.ShopItemsSchema });
+
+  getSubscription = () => this.http.request('GET', '/user/subscription', { schema: S.SubscriptionSchema });
+
+  getMealImages = (date: string) =>
+    this.http.request('GET', `/user/meal-images/${encodeURIComponent(date)}`, { schema: S.MealImagesSchema });
+
+  /** Changes the profile fields passed, e.g. { first_name } */
+  updateUser = (fields: Record<string, unknown>) => this.http.request('PATCH', '/user', { body: fields });
 }

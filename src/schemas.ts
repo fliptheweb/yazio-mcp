@@ -284,6 +284,26 @@ export const GetDietaryPreferencesInputSchema = EmptyInputSchema;
 export const GetUserGoalsInputSchema = z.object({
   date: DateStringSchema.optional().describe('Date to get the goals for (defaults to today)')
 });
+export const SetUserGoalsInputSchema = z.object({
+  goals: z
+    .object({
+      'energy.energy': z.number().positive().optional().describe('Energy in kcal per day'),
+      'nutrient.protein': z.number().nonnegative().optional().describe('Protein in g per day'),
+      'nutrient.fat': z.number().nonnegative().optional().describe('Fat in g per day'),
+      'nutrient.carb': z.number().nonnegative().optional().describe('Carbs in g per day'),
+      'activity.step': z.number().int().nonnegative().optional().describe('Steps per day'),
+      'bodyvalue.weight': z.number().positive().optional().describe('Target weight in kg'),
+      water: z.number().nonnegative().optional().describe('Water in ml per day'),
+    })
+    .refine((goals) => Object.values(goals).some((value) => value !== undefined), {
+      message: 'Pass at least one goal',
+    })
+    .describe('The goals to change; goals you leave out keep their value'),
+  date: DateStringSchema.optional().describe('Date the goals apply from (defaults to today)'),
+});
+export const GetUserConsumedItemsLatestInputSchema = EmptyInputSchema;
+export const GetUserFastingCountdownsInputSchema = EmptyInputSchema;
+export const GetUserStreakInputSchema = EmptyInputSchema;
 
 export type Daytime = z.infer<typeof DaytimeSchema>;
 export type GetFoodEntriesInput = z.infer<typeof GetFoodEntriesInputSchema>;
@@ -304,6 +324,7 @@ export type RemoveConsumedItemInput = z.infer<typeof RemoveConsumedItemInputSche
 export type AddWaterIntakeInput = z.infer<typeof AddWaterIntakeInputSchema>;
 export type GetDietaryPreferencesInput = z.infer<typeof GetDietaryPreferencesInputSchema>;
 export type GetUserGoalsInput = z.infer<typeof GetUserGoalsInputSchema>;
+export type SetUserGoalsInput = z.infer<typeof SetUserGoalsInputSchema>;
 export type CreateProductInput = z.infer<typeof CreateProductInputSchema>;
 export type AddQuickEntryInput = z.infer<typeof AddQuickEntryInputSchema>;
 export type AddConsumedRecipeInput = z.infer<typeof AddConsumedRecipeInputSchema>;

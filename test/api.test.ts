@@ -381,3 +381,48 @@ test('endpoints from the yazio-community specification', async () => {
     ],
   );
 });
+
+test('streak, coin and other endpoints from the v22 fork use their paths', async () => {
+  const { api, apiCalls } = mockApi((c) => (c.method === 'GET' ? json({}) : undefined));
+
+  const consoleError = console.error;
+  console.error = () => {};
+  try {
+    await api.getStreak();
+    await api.addStreakDay('2026-11-06', { daytimes: ['breakfast'], streak_count: 3, freeze_count: 0 });
+    await api.getWallet();
+    await api.getClaimables();
+    await api.createClaimable('c0ffee00-0000-4000-8000-000000000000', 'TRACKING_MORNING_CHEST_V1');
+    await api.claimClaimable('c0ffee00-0000-4000-8000-000000000000');
+    await api.autoclaimClaimables('2026-11-06', 'lunch');
+    await api.getShopItems();
+    await api.getSubscription();
+    await api.getMealImages('2026-11-06');
+    await api.getFastingCountdowns();
+    await api.getLatestConsumedItems();
+    await api.updateGoals({ water: 2500 }, '2026-11-06');
+    await api.updateUser({ first_name: 'Ann' });
+  } finally {
+    console.error = consoleError;
+  }
+
+  assert.deepEqual(
+    apiCalls().map((c) => [c.method, c.url.replace(API_BASE_URL, ''), c.body]),
+    [
+      ['GET', '/user/streak', undefined],
+      ['POST', '/user/streak/2026-11-06', { daytimes: ['breakfast'], streak_count: 3, freeze_count: 0 }],
+      ['GET', '/user/wallet', undefined],
+      ['GET', '/user/claimables', undefined],
+      ['POST', '/user/claimables', { uuid: 'c0ffee00-0000-4000-8000-000000000000', collectable_type: 'TRACKING_MORNING_CHEST_V1' }],
+      ['POST', '/user/claimables/c0ffee00-0000-4000-8000-000000000000/claim', undefined],
+      ['POST', '/user/claimables/autoclaim', { user_date: '2026-11-06', type: 'lunch' }],
+      ['GET', '/user/shop/items', undefined],
+      ['GET', '/user/subscription', undefined],
+      ['GET', '/user/meal-images/2026-11-06', undefined],
+      ['GET', '/user/fasting-countdowns', undefined],
+      ['GET', '/user/consumed-items/latest', undefined],
+      ['PATCH', '/user/goals', { goals: { water: 2500 }, date: '2026-11-06' }],
+      ['PATCH', '/user', { first_name: 'Ann' }],
+    ],
+  );
+});
