@@ -182,6 +182,10 @@ export class YazioApi {
       throw error;
     });
 
+  /** The completed fasting periods */
+  getFastingHistory = () =>
+    this.http.request('GET', '/user/fasting-countdowns/history', { schema: S.FastingHistorySchema });
+
   /** The tracking streak by day; v15 leaves out the counts */
   getStreak = () => this.http.request('GET', '/user/streak', { version: 'v22', schema: S.StreakSchema });
 

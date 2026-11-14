@@ -25,7 +25,7 @@
     { "name": "get_user_goals", "description": "Get nutrition goals" },
     { "name": "set_user_goals", "description": "Change some of your daily goals" },
     { "name": "get_user_streak", "description": "Get your tracking streak by day" },
-    { "name": "get_user_fasting_countdowns", "description": "Get your fasting timer" },
+    { "name": "get_user_fasting_countdowns", "description": "Get your fasting timer and completed fasts" },
     { "name": "search_products", "description": "Search food database" },
     { "name": "get_product", "description": "Get detailed product info" },
     { "name": "get_user_suggested_products", "description": "Get suggested products for a meal" },

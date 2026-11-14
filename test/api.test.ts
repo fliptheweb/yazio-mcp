@@ -401,6 +401,7 @@ test('streak, coin and other endpoints from the v22 fork use their paths', async
     await api.getSubscription();
     await api.getMealImages('2026-11-06');
     await api.getFastingCountdowns();
+    await api.getFastingHistory();
     await api.getLatestConsumedItems(10);
     await api.updateGoals({ water: 2500 }, '2026-11-06');
     await api.updateUser({ first_name: 'Ann' });
@@ -422,6 +423,7 @@ test('streak, coin and other endpoints from the v22 fork use their paths', async
       ['GET', 'v15/user/subscription', undefined],
       ['GET', 'v15/user/meal-images/2026-11-06', undefined],
       ['GET', 'v15/user/fasting-countdowns', undefined],
+      ['GET', 'v15/user/fasting-countdowns/history', undefined],
       ['GET', 'v15/user/consumed-items/latest?limit=10', undefined],
       ['PATCH', 'v15/user/goals', { goals: { water: 2500 }, date: '2026-11-06' }],
       ['PATCH', 'v15/user', { first_name: 'Ann' }],

@@ -447,6 +447,9 @@ export const LatestConsumedItemsSchema = z.array(
 // Seen only as a 404 so far: no countdown was active
 export const FastingCountdownsSchema = z.unknown();
 
+// Seen only empty so far: no fasting period was completed
+export const FastingHistorySchema = z.array(z.unknown());
+
 /** Per day the user tracked: { "YYYY-MM-DD": { daytimes, streak_count, freeze_count, origin_of_recovery } } */
 export const StreakSchema = z.record(
   z.string(),

@@ -24,7 +24,8 @@ async function callTool(name: string, args: Record<string, unknown>, routes: Rec
       return new Response(null, { status: 204 });
     }
     const path = Object.keys(routes).find((route) => url.endsWith(route));
-    return path ? json(routes[path]) : new Response(null, { status: 204 });
+    if (!path) return new Response(null, { status: 204 });
+    return routes[path] instanceof Response ? routes[path] : json(routes[path]);
   };
   const server = createServer(
     new YazioApi({ username: 'user@example.com', password: 'secret' }, { fetch: fetchMock as typeof fetch })
@@ -283,4 +284,13 @@ test('set_user_goals sends only the goals given, with the date', async () => {
   const patch = requests.find((r) => r.method === 'PATCH');
   assert.ok(patch?.url.endsWith('/user/goals'));
   assert.deepEqual(patch.body, { goals: { 'energy.energy': 2000, 'nutrient.protein': 150 }, date: '2026-01-15' });
+});
+
+test('get_user_fasting_countdowns reads no countdown and no history as text', async () => {
+  const { text } = await quietly(() => callTool('get_user_fasting_countdowns', {}, {
+      '/user/fasting-countdowns': new Response('', { status: 404, headers: { 'Content-Type': 'text/html' } }),
+      '/user/fasting-countdowns/history': [],
+    }));
+
+  assert.equal(text, 'No fasting countdown is active.\n\nNo completed fasting periods.');
 });

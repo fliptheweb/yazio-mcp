@@ -303,7 +303,7 @@ class YazioMcpServer {
       'get_user_fasting_countdowns',
       {
         title: 'Get Fasting Countdowns',
-        description: "Get the user's intermittent fasting countdowns (the fasting timer)",
+        description: "Get the user's intermittent fasting: the active countdown (the fasting timer) and the completed fasting periods",
         inputSchema: GetUserFastingCountdownsInputSchema,
         annotations: {
           readOnlyHint: true,
@@ -2255,15 +2255,12 @@ To correct the day's total, e.g. after a wrong entry, pass \`water_intake\` with
 
   private async getUserFastingCountdowns() {
     try {
-      const countdowns = await this.client.getFastingCountdowns();
+      const [countdowns, history] = await Promise.all([this.client.getFastingCountdowns(), this.client.getFastingHistory()]);
+      const active = countdowns === null ? 'No fasting countdown is active.' : `Fasting countdowns:\n\n${JSON.stringify(countdowns, null, 2)}`;
+      const completed = history.length === 0 ? 'No completed fasting periods.' : `Completed fasting periods:\n\n${JSON.stringify(history, null, 2)}`;
 
       return {
-        content: [
-          {
-            type: 'text' as const,
-            text: countdowns === null ? 'No fasting countdown is active.' : `Fasting countdowns:\n\n${JSON.stringify(countdowns, null, 2)}`,
-          },
-        ],
+        content: [{ type: 'text' as const, text: `${active}\n\n${completed}` }],
       };
     } catch (error) {
       throw new Error(`Failed to get fasting countdowns: ${error}`);
