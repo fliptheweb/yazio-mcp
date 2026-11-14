@@ -2,7 +2,10 @@
 import * as z from 'zod';
 import { TokenResponseSchema } from './schemas.js';
 
-export const API_BASE_URL = 'https://yzapi.yazio.com/v15';
+export const API_URL = 'https://yzapi.yazio.com';
+// Each version is the API of one app generation: newer ones add endpoints and fields, some also added to older ones.
+// From v20 on, most endpoints answer 403 version_blocked unless the user agent names an app build they still support.
+export const DEFAULT_API_VERSION = 'v15';
 
 // From https://github.com/juriadams/yazio/blob/main/src/utils/constants.ts
 export const DEFAULT_CLIENT_ID = '1_4hiybetvfksgw40o0sog4s884kwc840wwso8go4k8c04goo4c';
@@ -33,6 +36,8 @@ export interface RequestOptions<T> {
   query?: Record<string, QueryValue>;
   body?: unknown;
   schema?: z.ZodType<T>;
+  /** For an endpoint that the default version lacks or answers with less data, e.g. 'v16' */
+  version?: string;
 }
 
 export interface YazioHttpOptions {
@@ -65,15 +70,16 @@ export class YazioHttp {
   }
 
   async request<T = void>(method: string, path: string, options: RequestOptions<T> = {}): Promise<T> {
-    const url = this.buildUrl(path, options.query);
+    const url = this.buildUrl(options.version ?? DEFAULT_API_VERSION, path, options.query);
+    const send = (token: Token) => this.send(method, url, token, options.body);
     let token = await this.authenticate();
-    let response = await this.send(method, url, token, options.body);
+    let response = await send(token);
 
     // The server can revoke a token before expires_at; renew it once and retry
     if (response.status === 401) {
       this.invalidate(token);
       token = await this.authenticate();
-      response = await this.send(method, url, token, options.body);
+      response = await send(token);
     }
 
     if (!response.ok) {
@@ -125,7 +131,7 @@ export class YazioHttp {
   }
 
   private async requestToken(grant: Record<string, string>): Promise<Token> {
-    const response = await this.fetch(`${API_BASE_URL}/oauth/token`, {
+    const response = await this.fetch(`${API_URL}/${DEFAULT_API_VERSION}/oauth/token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -158,8 +164,8 @@ export class YazioHttp {
     });
   }
 
-  private buildUrl(path: string, query?: Record<string, QueryValue>): string {
-    const url = new URL(`${API_BASE_URL}${path}`);
+  private buildUrl(version: string, path: string, query?: Record<string, QueryValue>): string {
+    const url = new URL(`${API_URL}/${version}${path}`);
     for (const [key, value] of Object.entries(query ?? {})) {
       if (value !== undefined) url.searchParams.set(key, String(value));
     }

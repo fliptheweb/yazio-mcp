@@ -436,3 +436,53 @@ export const MealsSchema = z.array(
     recipe_portions: z.array(MealRecipePortionSchema),
   }),
 );
+
+// The endpoints below come from https://github.com/weeebdev/yazio-mcp.
+
+/** One list, newest first, each entry with its type */
+export const LatestConsumedItemsSchema = z.array(
+  z.union([ConsumedProductSchema, ConsumedRecipePortionSchema, ConsumedSimpleProductSchema]),
+);
+
+// Seen only as a 404 so far: no countdown was active
+export const FastingCountdownsSchema = z.unknown();
+
+// Seen only empty so far: no fasting period was completed
+export const FastingHistorySchema = z.array(z.unknown());
+
+/** Per day the user tracked: { "YYYY-MM-DD": { daytimes, streak_count, freeze_count, origin_of_recovery } } */
+export const StreakSchema = z.record(
+  z.string(),
+  z.looseObject({
+    daytimes: z.array(DaytimeSchema),
+    streak_count: z.number(),
+    freeze_count: z.number(),
+  }),
+);
+
+/** Coin balances, e.g. { currencies: [{ currency: "DIAMOND", quantity: 20 }] } */
+export const WalletSchema = z.looseObject({
+  currencies: z.array(z.looseObject({ currency: z.string(), quantity: z.number() })),
+});
+
+/** Reward chests; claiming one credits its rewards (e.g. DIAMOND coins) to the wallet */
+export const ClaimablesSchema = z.looseObject({
+  claimables: z.array(
+    z.looseObject({
+      uuid: z.string(),
+      type: z.string().optional(),
+      claimed: z.unknown().optional(),
+    }),
+  ),
+});
+
+/** What coins can buy, e.g. { items: [{ shop_item_type: "STREAK_FREEZE_V1", currency_type: "DIAMOND", currency_quantity }] } */
+export const ShopItemsSchema = z.looseObject({
+  items: z.array(z.looseObject({})),
+});
+
+export const SubscriptionSchema = z.array(
+  z.looseObject({ type: z.string(), status: z.string(), start: z.string(), end: z.string() }),
+);
+
+export const MealImagesSchema = z.unknown();

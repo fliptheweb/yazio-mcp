@@ -1,6 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { YazioApi, YazioApiError, API_BASE_URL, DEFAULT_CLIENT_ID, DEFAULT_CLIENT_SECRET } from '../src/api/index.js';
+import { YazioApi, YazioApiError, API_URL, DEFAULT_API_VERSION, DEFAULT_CLIENT_ID, DEFAULT_CLIENT_SECRET } from '../src/api/index.js';
+
+const API_BASE_URL = `${API_URL}/${DEFAULT_API_VERSION}`;
 
 interface Call {
   method: string;
@@ -380,4 +382,59 @@ test('endpoints from the yazio-community specification', async () => {
       ['DELETE', '/user/favorites/f2', undefined],
     ],
   );
+});
+
+test('streak, coin and other endpoints from the weeebdev fork use their paths', async () => {
+  const { api, apiCalls } = mockApi((c) => (c.method === 'GET' ? json({}) : undefined));
+
+  const consoleError = console.error;
+  console.error = () => {};
+  try {
+    await api.getStreak();
+    await api.addStreakDay('2026-11-06', { daytimes: ['breakfast'], streak_count: 3, freeze_count: 0 });
+    await api.getWallet();
+    await api.getClaimables();
+    await api.createClaimable('c0ffee00-0000-4000-8000-000000000000', 'TRACKING_MORNING_CHEST_V1');
+    await api.claimClaimable('c0ffee00-0000-4000-8000-000000000000');
+    await api.autoclaimClaimables('lunch', '2026-11-06');
+    await api.getShopItems();
+    await api.getSubscription();
+    await api.getMealImages('2026-11-06');
+    await api.getFastingCountdowns();
+    await api.getFastingHistory();
+    await api.getLatestConsumedItems(10);
+    await api.updateGoals({ water: 2500 }, '2026-11-06');
+    await api.updateUser({ first_name: 'Ann' });
+  } finally {
+    console.error = consoleError;
+  }
+
+  assert.deepEqual(
+    apiCalls().map((c) => [c.method, c.url.replace(`${API_URL}/`, ''), c.body]),
+    [
+      ['GET', 'v16/user/streak', undefined],
+      ['POST', 'v16/user/streak/2026-11-06', { daytimes: ['breakfast'], streak_count: 3, freeze_count: 0 }],
+      ['GET', 'v15/user/wallet', undefined],
+      ['GET', 'v15/user/claimables', undefined],
+      ['POST', 'v15/user/claimables', { uuid: 'c0ffee00-0000-4000-8000-000000000000', collectable_type: 'TRACKING_MORNING_CHEST_V1' }],
+      ['POST', 'v15/user/claimables/c0ffee00-0000-4000-8000-000000000000/claim', undefined],
+      ['POST', 'v15/user/claimables/autoclaim', { user_date: '2026-11-06', mealtime: 'lunch' }],
+      ['GET', 'v15/user/shop/items', undefined],
+      ['GET', 'v15/user/subscription', undefined],
+      ['GET', 'v15/user/meal-images/2026-11-06', undefined],
+      ['GET', 'v15/user/fasting-countdowns', undefined],
+      ['GET', 'v15/user/fasting-countdowns/history', undefined],
+      ['GET', 'v15/user/consumed-items/latest?limit=10', undefined],
+      ['PATCH', 'v15/user/goals', { goals: { water: 2500 }, date: '2026-11-06' }],
+      ['PATCH', 'v15/user', { first_name: 'Ann' }],
+    ],
+  );
+});
+
+test('no active fasting countdown reads as null, other errors still throw', async () => {
+  const notFound = mockApi((c) => (c.url.endsWith('/user/fasting-countdowns') ? new Response('', { status: 404 }) : undefined));
+  assert.equal(await notFound.api.getFastingCountdowns(), null);
+
+  const failing = mockApi((c) => (c.url.endsWith('/user/fasting-countdowns') ? new Response('', { status: 500 }) : undefined));
+  await assert.rejects(failing.api.getFastingCountdowns(), YazioApiError);
 });

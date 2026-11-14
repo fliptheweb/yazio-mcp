@@ -22,6 +22,7 @@ export type YazioDailyNutrients = z.infer<typeof S.DailyNutrientsSchema>;
 export type YazioFavoriteProduct = z.infer<typeof S.FavoriteProductsSchema>[number];
 export type YazioFavoriteRecipe = z.infer<typeof S.FavoriteRecipesSchema>[number];
 export type YazioMeal = z.infer<typeof S.MealsSchema>[number];
+export type YazioStreak = z.infer<typeof S.StreakSchema>;
 
 export type Daytime = z.infer<typeof S.DaytimeSchema>;
 export type TrainingName = z.infer<typeof S.TrainingNameSchema>;
@@ -40,6 +41,7 @@ interface ConsumedProductBase {
   amount: number;
 }
 
+// Without an explicit null serving the entry counts in the totals, but the app does not list it on the meal page
 export type ConsumedProductDto =
   | (ConsumedProductBase & { serving: string; serving_quantity: number })
   | (ConsumedProductBase & { serving: null; serving_quantity: null });
@@ -174,4 +176,14 @@ export interface ProductSearchOptions {
   sex?: 'male' | 'female';
   countries?: string[];
   locales?: string[];
+}
+
+/** Goals by type, as in GET /user/goals; only the ones passed change */
+export type GoalsDto = Partial<Record<keyof z.infer<typeof S.GoalsSchema>, number>>;
+
+/** A day of the tracking streak, as the app posts it after logging food */
+export interface StreakDayDto {
+  daytimes: Daytime[];
+  streak_count: number;
+  freeze_count: number;
 }

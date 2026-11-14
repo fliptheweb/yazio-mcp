@@ -95,6 +95,9 @@ Easily log meals you forgot to track in the Yazio app directly from Claude or Cu
 | `get_user_settings` | Get user preferences | - |
 | `get_user_dietary_preferences` | Get dietary preferences | - |
 | `get_user_goals` | Get nutrition goals | `date` (optional) |
+| `set_user_goals` | Change some of your daily goals from a date on | `goals`, `date` (optional) |
+| `get_user_streak` | Get your tracking streak by day | - |
+| `get_user_fastings` | Get your fasting timer and completed fasts | - |
 | | | |
 | **🔍 Food & Product Search** | | |
 | `search_products` | Search food database | `query` |
@@ -105,7 +108,8 @@ Easily log meals you forgot to track in the Yazio app directly from Claude or Cu
 | `delete_user_product` | Delete one of your products | `id` |
 | | | |
 | **📝 Food Diary** | | |
-| `get_user_consumed_items` | Get food entries for a date | `date` |
+| `get_user_consumed_items` | Get food entries for a date, with names and nutrients | `date` |
+| `get_user_consumed_items_latest` | Get recently logged items | - |
 | `get_user_daily_summary` | Get daily nutrition summary | `date` |
 | `get_user_daily_nutrients` | Get daily energy and macro totals for a date range | `start`, `end` (optional) |
 | `get_user_water_intake` | Get water intake | `date` |

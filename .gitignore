@@ -84,6 +84,6 @@ yazio-mcp.zip
 mcpb-build/
 
 # AI files
-.claude/
+.claude/settings.local.json
 .mcpregistry_github_token
 .mcpregistry_registry_token

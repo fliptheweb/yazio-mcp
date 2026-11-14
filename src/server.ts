@@ -22,6 +22,10 @@ import {
   AddWaterIntakeInputSchema,
   GetDietaryPreferencesInputSchema,
   GetUserGoalsInputSchema,
+  SetUserGoalsInputSchema,
+  GetUserConsumedItemsLatestInputSchema,
+  GetUserFastingsInputSchema,
+  GetUserStreakInputSchema,
   CreateProductInputSchema,
   AddQuickEntryInputSchema,
   AddConsumedRecipeInputSchema,
@@ -63,6 +67,8 @@ import {
   type DeleteUserRecipeInput,
   type GetUserExercisesInput,
   type GetUserGoalsInput,
+  type SetUserGoalsInput,
+  type GetUserConsumedItemsLatestInput,
   type GetUserWeightInput,
   type GetUserWeightHistoryInput,
   type GetUserSuggestedProductsInput,
@@ -95,7 +101,7 @@ import {
   type RemoveUserFavoriteProductInput,
   type RemoveUserFavoriteRecipeInput,
 } from './schemas.js';
-import { YazioApi, type CreateUserRecipeDto } from './api/index.js';
+import { YazioApi, type CreateUserRecipeDto, type YazioProduct, type YazioRecipe } from './api/index.js';
 
 const require = createRequire(import.meta.url);
 const { version } = require('../package.json') as { version: string };
@@ -107,7 +113,7 @@ When to use: Yazio is the user's food and body diary. Use these tools whenever t
 Conventions:
 - Dates are YYYY-MM-DD; diary and water entries also take "YYYY-MM-DD HH:mm:ss". Amounts are in base units, grams (g) or milliliters (ml).
 - daytime (meal) is one of: breakfast, lunch, dinner, snack.
-- get_* and search_products only read. add_*, create_*, update_*, delete_*, remove_*, set_user_note and set_user_activity change the user's data.
+- get_* and search_products only read. add_*, create_*, update_*, delete_*, remove_* and set_* change the user's data.
 
 Logging food: search_products, then get_product for its servings and base unit, then add_user_consumed_item. For food that isn't in the database, use add_quick_entry for a one-off entry or create_product for something eaten again. For a recipe, use add_user_consumed_recipe. For a saved meal (get_user_meals), use add_user_consumed_meal.
 
@@ -118,6 +124,8 @@ Notes: get_user_note reads the day's diary note and feeling tags, set_user_note 
 Weight and exercises: add_user_weight and add_user_exercise log them; delete_user_weight and delete_user_exercise remove them by id. set_user_activity sets the day's steps.
 
 Overviews: get_user_daily_nutrients gives the daily energy and macro totals of a date range in one call.
+
+Goals: get_user_goals reads the daily goals, set_user_goals changes some of them from a date on.
 
 Other body values (body fat, muscle, blood glucose, circumferences): get_user_body_values reads a day, add_user_body_value logs one, delete_user_body_value removes one by id. update_user_body_value changes a weight or body value entry. Values are always metric, whatever units the app shows.
 
@@ -135,6 +143,22 @@ async function inBatches<T>(ids: string[], load: (id: string) => Promise<T>): Pr
   }
   return results;
 }
+
+const productName = (product: YazioProduct) => (product.producer ? `${product.name} (${product.producer})` : product.name);
+
+const BASIC_NUTRIENTS = ['energy.energy', 'nutrient.carb', 'nutrient.protein', 'nutrient.fat'] as const;
+
+/** The energy and macros of an amount, from nutrients per unit of it */
+function basicNutrients(perUnit: Record<string, unknown>, amount: number): Record<string, number> {
+  const nutrients: Record<string, number> = {};
+  for (const key of BASIC_NUTRIENTS) {
+    const value = perUnit[key];
+    if (typeof value === 'number') nutrients[key] = Math.round(value * amount * 10) / 10;
+  }
+  return nutrients;
+}
+
+type ConsumedEntryLike = { product_id?: unknown; amount?: unknown; recipe_id?: unknown; portion_count?: unknown };
 
 export function createServer(client: YazioApi): McpServer {
   return new YazioMcpServer(client).createServer();
@@ -181,7 +205,7 @@ class YazioMcpServer {
       'get_user_consumed_items',
       {
         title: 'Get Consumed Items',
-        description: 'Get food entries for a specific date',
+        description: 'Get food entries for a specific date. Products and recipe portions come with their name and the energy (kcal), carbs, protein and fat (g) of the eaten amount in nutrients; quick entries (simple_products) have their own name and nutrients.',
         inputSchema: GetFoodEntriesInputSchema,
         annotations: {
           readOnlyHint: true,
@@ -239,6 +263,71 @@ class YazioMcpServer {
       },
       async (args: GetUserGoalsInput) => {
         return await this.getUserGoals(args);
+      }
+    );
+
+    server.registerTool(
+      'get_user_consumed_items_latest',
+      {
+        title: 'Get Recently Consumed Items',
+        description: 'Get the items the user logged most recently, with their names, e.g. to log the same food again',
+        inputSchema: GetUserConsumedItemsLatestInputSchema,
+        annotations: {
+          readOnlyHint: true,
+          idempotentHint: true,
+        },
+      },
+      async (args: GetUserConsumedItemsLatestInput) => {
+        return await this.getUserConsumedItemsLatest(args);
+      }
+    );
+
+    server.registerTool(
+      'set_user_goals',
+      {
+        title: 'Set Goals',
+        description: "Change some of the user's daily goals (energy, macros, steps, target weight, water) from a date on. Goals you leave out keep their value.",
+        inputSchema: SetUserGoalsInputSchema,
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: true,
+          idempotentHint: true,
+        },
+      },
+      async (args: SetUserGoalsInput) => {
+        return await this.setUserGoals(args);
+      }
+    );
+
+    server.registerTool(
+      'get_user_fastings',
+      {
+        title: 'Get Fastings',
+        description: "Get the user's intermittent fasting: the active countdown (the fasting timer) and the completed fasting periods",
+        inputSchema: GetUserFastingsInputSchema,
+        annotations: {
+          readOnlyHint: true,
+          idempotentHint: true,
+        },
+      },
+      async () => {
+        return await this.getUserFastings();
+      }
+    );
+
+    server.registerTool(
+      'get_user_streak',
+      {
+        title: 'Get Streak',
+        description: "Get the user's tracking streak: for each tracked day, the meals tracked and the streak count",
+        inputSchema: GetUserStreakInputSchema,
+        annotations: {
+          readOnlyHint: true,
+          idempotentHint: true,
+        },
+      },
+      async () => {
+        return await this.getUserStreak();
       }
     );
 
@@ -1107,7 +1196,9 @@ To correct the day's total, e.g. after a wrong entry, pass \`water_intake\` with
     const client = this.client;
 
     try {
-      const foodEntries = await client.getConsumedItems(args.date);
+      const items = await client.getConsumedItems(args.date);
+      const [products, recipe_portions] = await Promise.all([this.withNames(items.products), this.withNames(items.recipe_portions)]);
+      const foodEntries = { ...items, products, recipe_portions };
 
       return {
         content: [
@@ -1925,7 +2016,7 @@ To correct the day's total, e.g. after a wrong entry, pass \`water_intake\` with
       const productNames = await inBatches(products.map((item) => item.product_id), (id) =>
         this.client
           .getProduct(id)
-          .then((product) => (product.producer ? `${product.name} (${product.producer})` : product.name))
+          .then(productName)
           .catch(() => null),
       );
       const recipeNames = await inBatches(recipes.map((item) => item.recipe_id), (id) =>
@@ -2087,6 +2178,109 @@ To correct the day's total, e.g. after a wrong entry, pass \`water_intake\` with
       };
     } catch (error) {
       throw new Error(`Failed to get dietary preferences: ${error}`);
+    }
+  }
+
+  /**
+   * Adds the name and the energy and macros of the eaten amount to each consumed product and recipe portion,
+   * so an entry reads as food rather than a bare product_id. An entry whose product or recipe cannot be read
+   * gets name: null. Other entries, and anything that is not a list, stay as they are.
+   */
+  private async withNames<T>(entries: T): Promise<T> {
+    if (!Array.isArray(entries)) return entries;
+    const items = entries as ConsumedEntryLike[];
+    const idsOf = (values: unknown[]) => [...new Set(values.filter((id): id is string => typeof id === 'string'))];
+
+    const productIds = idsOf(items.map((item) => item.product_id));
+    const recipeIds = idsOf(items.map((item) => item.recipe_id));
+    const [loadedProducts, loadedRecipes] = await Promise.all([
+      inBatches(productIds, (id) => this.client.getProduct(id).catch(() => null)),
+      inBatches(recipeIds, (id) => this.client.getRecipe(id).catch(() => null)),
+    ]);
+    const productById = new Map<unknown, YazioProduct | null>(productIds.map((id, i) => [id, loadedProducts[i]]));
+    const recipeById = new Map<unknown, YazioRecipe | null>(recipeIds.map((id, i) => [id, loadedRecipes[i]]));
+
+    return items.map((item) => {
+      if (typeof item.product_id === 'string') {
+        const product = productById.get(item.product_id);
+        if (!product) return { name: null, ...item };
+        const nutrients = typeof item.amount === 'number' ? basicNutrients(product.nutrients, item.amount) : undefined;
+        return { name: productName(product), ...item, nutrients };
+      }
+      if (typeof item.recipe_id === 'string') {
+        const recipe = recipeById.get(item.recipe_id);
+        if (!recipe) return { name: null, ...item };
+        // A recipe's nutrients are per portion
+        const nutrients = typeof item.portion_count === 'number' ? basicNutrients(recipe.nutrients, item.portion_count) : undefined;
+        return { name: recipe.name, ...item, nutrients };
+      }
+      return item;
+    }) as T;
+  }
+
+  private async getUserConsumedItemsLatest(args: GetUserConsumedItemsLatestInput) {
+    try {
+      const items = await this.withNames(await this.client.getLatestConsumedItems(args.limit));
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Recently consumed items:\n\n${JSON.stringify(items, null, 2)}`,
+          },
+        ],
+      };
+    } catch (error) {
+      throw new Error(`Failed to get recently consumed items: ${error}`);
+    }
+  }
+
+  private async setUserGoals(args: SetUserGoalsInput) {
+    try {
+      await this.client.updateGoals(args.goals, args.date);
+      const goals = await this.client.getGoals(args.date);
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Successfully updated goals. Goals now:\n\n${JSON.stringify(goals, null, 2)}`,
+          },
+        ],
+      };
+    } catch (error) {
+      throw new Error(`Failed to set goals: ${error}`);
+    }
+  }
+
+  private async getUserFastings() {
+    try {
+      const [countdowns, history] = await Promise.all([this.client.getFastingCountdowns(), this.client.getFastingHistory()]);
+      const active = countdowns === null ? 'No fasting countdown is active.' : `Fasting countdowns:\n\n${JSON.stringify(countdowns, null, 2)}`;
+      const completed = history.length === 0 ? 'No completed fasting periods.' : `Completed fasting periods:\n\n${JSON.stringify(history, null, 2)}`;
+
+      return {
+        content: [{ type: 'text' as const, text: `${active}\n\n${completed}` }],
+      };
+    } catch (error) {
+      throw new Error(`Failed to get fastings: ${error}`);
+    }
+  }
+
+  private async getUserStreak() {
+    try {
+      const streak = await this.client.getStreak();
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Tracking streak by day:\n\n${JSON.stringify(streak, null, 2)}`,
+          },
+        ],
+      };
+    } catch (error) {
+      throw new Error(`Failed to get streak: ${error}`);
     }
   }
 
