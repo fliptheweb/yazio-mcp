@@ -382,6 +382,7 @@ test('settings: every value comes from the environment', () => {
     PORT: '8080',
     YAZIO_CLIENT_ID: 'id',
     YAZIO_CLIENT_SECRET: 'secret',
+    YAZIO_USER_AGENT: 'YAZIO/27.0.0',
   });
   assert.equal(settings.redisUrl, 'rediss://default:pw@redis.example:6380');
   assert.equal(settings.dataDir, undefined);
@@ -390,6 +391,8 @@ test('settings: every value comes from the environment', () => {
   assert.equal(settings.host, '0.0.0.0');
   assert.equal(settings.port, 8080);
   assert.deepEqual(settings.yazioClient, { clientId: 'id', clientSecret: 'secret' });
+  assert.equal(settings.yazioUserAgent, 'YAZIO/27.0.0');
+  assert.equal(settingsFromEnv(GOOD).yazioUserAgent, undefined);
   assert.equal(settingsFromEnv({ ...GOOD, TRUST_PROXY: 'true' }).trustProxy, true);
   for (const value of ['0', 'false', 'yes', '']) {
     assert.equal(settingsFromEnv({ ...GOOD, TRUST_PROXY: value }).trustProxy, false, value);

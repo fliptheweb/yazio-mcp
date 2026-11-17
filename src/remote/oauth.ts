@@ -97,6 +97,8 @@ export interface AuthorizationServerOptions {
   sealer: Sealer;
   signIn: SignIn;
   yazioClient?: YazioClientId;
+  /** Sent only to the Yazio API versions that check it, as with YAZIO_USER_AGENT in the stdio server */
+  yazioUserAgent?: string;
   fetch?: typeof fetch;
   now?: () => number;
   /** Waits between two looks at a renewal that another request runs */
@@ -985,6 +987,7 @@ export class AuthorizationServer {
         // No refresh token and no expiry: this client must not renew on its own
         token: { ...current, refresh_token: '', expires_at: Infinity },
         fetch: fetchWithRenewal,
+        userAgent: this.options.yazioUserAgent,
         onUnexpectedShape: quietShapeLog,
       }
     );

@@ -16,6 +16,7 @@ export interface Settings {
   host: string;
   port: number;
   yazioClient: YazioClientId;
+  yazioUserAgent?: string;
 }
 
 type Env = Record<string, string | undefined>;
@@ -83,6 +84,7 @@ export function settingsFromEnv(env: Env = process.env): Settings {
       clientId: env.YAZIO_CLIENT_ID || undefined,
       clientSecret: env.YAZIO_CLIENT_SECRET || undefined,
     },
+    yazioUserAgent: env.YAZIO_USER_AGENT || undefined,
   };
 }
 
@@ -97,5 +99,6 @@ export function configFromEnv(env: Env = process.env): RemoteConfig {
     publicUrl: settings.publicUrl,
     trustProxy: settings.trustProxy,
     yazioClient: settings.yazioClient,
+    yazioUserAgent: settings.yazioUserAgent,
   };
 }

@@ -66,7 +66,7 @@ All configuration comes from environment variables.
 | `TRUST_PROXY` | No | `1` or `true`. Set it when a proxy in front of the server ends TLS. See [Behind a proxy](#behind-a-proxy). |
 | `HOST` | No | `dist/remote.js` only. The listen address. The default is `127.0.0.1`. |
 | `PORT` | No | `dist/remote.js` only. The default is `3000`. |
-| `YAZIO_CLIENT_ID`, `YAZIO_CLIENT_SECRET` | No | The same optional overrides as the stdio server. |
+| `YAZIO_CLIENT_ID`, `YAZIO_CLIENT_SECRET`, `YAZIO_USER_AGENT` | No | The same optional overrides as the stdio server. |
 
 Set only one of `REDIS_URL` and `DATA_DIR`. The server does not start with both, and it does not start with none.
 

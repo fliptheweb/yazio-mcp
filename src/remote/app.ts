@@ -35,6 +35,7 @@ export interface RemoteConfig {
   /** Whether a proxy in front of this server sets `X-Forwarded-For` and `X-Forwarded-Proto` */
   trustProxy?: boolean;
   yazioClient?: YazioClientId;
+  yazioUserAgent?: string;
   /** Tests replace these */
   signIn?: SignIn;
   fetch?: typeof fetch;
@@ -246,6 +247,7 @@ export function createRemoteApp(config: RemoteConfig): RemoteApp {
     sealer,
     signIn: config.signIn ?? yazioSignIn(config.yazioClient, config.fetch),
     yazioClient: config.yazioClient,
+    yazioUserAgent: config.yazioUserAgent,
     fetch: config.fetch,
     now,
     sleep: config.sleep,
