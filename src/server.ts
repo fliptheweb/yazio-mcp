@@ -1,6 +1,6 @@
 import { createRequire } from 'node:module';
 import { McpServer } from '@modelcontextprotocol/server';
-import { v4 as uuidv4 } from "uuid";
+import { randomUUID } from "node:crypto";
 
 import {
   GetFoodEntriesInputSchema,
@@ -1472,7 +1472,7 @@ To correct the day's total, e.g. after a wrong entry, pass \`water_intake\` with
 
     try {
       const { serving, serving_quantity, ...item } = args;
-      const id = uuidv4();
+      const id = randomUUID();
       const product =
         serving !== undefined && serving_quantity !== undefined
           ? { ...item, id, serving, serving_quantity }
@@ -1505,7 +1505,7 @@ To correct the day's total, e.g. after a wrong entry, pass \`water_intake\` with
         'nutrient.carb': args.carb_per_100,
       };
       const nutrients = Object.fromEntries(Object.entries(per100).map(([key, value]) => [key, value / 100]));
-      const id = uuidv4();
+      const id = randomUUID();
 
       await client.createProduct({
         id,
@@ -1539,7 +1539,7 @@ To correct the day's total, e.g. after a wrong entry, pass \`water_intake\` with
       if (args.protein !== undefined) nutrients['nutrient.protein'] = args.protein;
       if (args.fat !== undefined) nutrients['nutrient.fat'] = args.fat;
       if (args.carb !== undefined) nutrients['nutrient.carb'] = args.carb;
-      const id = uuidv4();
+      const id = randomUUID();
 
       await client.addConsumedItems({
         simple_products: [{ id, date: args.date, daytime: args.daytime, name: args.name, nutrients }],
@@ -1562,7 +1562,7 @@ To correct the day's total, e.g. after a wrong entry, pass \`water_intake\` with
     const client = this.client;
 
     try {
-      const id = uuidv4();
+      const id = randomUUID();
       await client.addConsumedItems({ recipe_portions: [{ ...args, id }] });
 
       return {
@@ -1606,7 +1606,7 @@ To correct the day's total, e.g. after a wrong entry, pass \`water_intake\` with
 
   private async createUserRecipe(args: CreateUserRecipeInput) {
     try {
-      const recipe = await this.buildRecipe(uuidv4(), args);
+      const recipe = await this.buildRecipe(randomUUID(), args);
       await this.client.createUserRecipe(recipe);
 
       return {
@@ -1707,7 +1707,7 @@ To correct the day's total, e.g. after a wrong entry, pass \`water_intake\` with
     const client = this.client;
 
     try {
-      const id = uuidv4();
+      const id = randomUUID();
       await client.createMeal({
         id,
         name: args.name,
@@ -1764,11 +1764,11 @@ To correct the day's total, e.g. after a wrong entry, pass \`water_intake\` with
       const entries = {
         products: meal.products.map((item) =>
           item.serving !== null && item.serving_quantity !== null
-            ? { id: uuidv4(), date, daytime, product_id: item.product_id, amount: item.amount, serving: item.serving, serving_quantity: item.serving_quantity }
-            : { id: uuidv4(), date, daytime, product_id: item.product_id, amount: item.amount, serving: null, serving_quantity: null },
+            ? { id: randomUUID(), date, daytime, product_id: item.product_id, amount: item.amount, serving: item.serving, serving_quantity: item.serving_quantity }
+            : { id: randomUUID(), date, daytime, product_id: item.product_id, amount: item.amount, serving: null, serving_quantity: null },
         ),
-        simple_products: meal.simple_products.map((item) => ({ id: uuidv4(), date, daytime, name: item.name, nutrients: item.nutrients })),
-        recipe_portions: meal.recipe_portions.map((item) => ({ id: uuidv4(), date, daytime, recipe_id: item.recipe_id, portion_count: item.portion_count })),
+        simple_products: meal.simple_products.map((item) => ({ id: randomUUID(), date, daytime, name: item.name, nutrients: item.nutrients })),
+        recipe_portions: meal.recipe_portions.map((item) => ({ id: randomUUID(), date, daytime, recipe_id: item.recipe_id, portion_count: item.portion_count })),
       };
       await client.addConsumedItems(entries);
       const ids = [...entries.products, ...entries.simple_products, ...entries.recipe_portions].map((entry) => entry.id);
@@ -1790,7 +1790,7 @@ To correct the day's total, e.g. after a wrong entry, pass \`water_intake\` with
     const client = this.client;
 
     try {
-      const id = uuidv4();
+      const id = randomUUID();
       await client.addWeights([{ id, date: args.date, value: args.weight }]);
 
       return {
@@ -1848,7 +1848,7 @@ To correct the day's total, e.g. after a wrong entry, pass \`water_intake\` with
     const client = this.client;
 
     try {
-      const id = uuidv4();
+      const id = randomUUID();
       await client.addBodyValues(args.type, [{ id, date: args.date, value: args.value }]);
 
       return {
@@ -1887,7 +1887,7 @@ To correct the day's total, e.g. after a wrong entry, pass \`water_intake\` with
     const client = this.client;
 
     try {
-      const id = uuidv4();
+      const id = randomUUID();
       const { custom, ...exercise } = args;
       await client.addExercises({ [custom ? 'custom_training' : 'training']: [{ ...exercise, id }] });
 
@@ -2042,7 +2042,7 @@ To correct the day's total, e.g. after a wrong entry, pass \`water_intake\` with
 
   private async addUserFavoriteProduct(args: AddUserFavoriteProductInput) {
     try {
-      const id = uuidv4();
+      const id = randomUUID();
       await this.client.addFavoriteProduct({
         id,
         product_id: args.product_id,
@@ -2066,7 +2066,7 @@ To correct the day's total, e.g. after a wrong entry, pass \`water_intake\` with
 
   private async addUserFavoriteRecipe(args: AddUserFavoriteRecipeInput) {
     try {
-      const id = uuidv4();
+      const id = randomUUID();
       await this.client.addFavoriteRecipe({ id, recipe_id: args.recipe_id, portion_count: args.portion_count });
 
       return {
