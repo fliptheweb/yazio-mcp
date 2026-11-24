@@ -22,7 +22,11 @@ if (!fs.existsSync(path.join(distDir, 'index.js'))) {
 // Dependencies are bundled into dist/index.js, so no node_modules are vendored here.
 fs.rmSync(buildDir, { recursive: true, force: true });
 fs.mkdirSync(path.join(buildDir, 'server'), { recursive: true });
-fs.cpSync(distDir, path.join(buildDir, 'server'), { recursive: true });
+// The remote server (dist/remote.js) is not part of the desktop extension.
+fs.cpSync(distDir, path.join(buildDir, 'server'), {
+  recursive: true,
+  filter: (source) => !path.relative(distDir, source).startsWith('remote'),
+});
 for (const file of ['manifest.json', 'package.json']) {
   fs.copyFileSync(path.join(root, file), path.join(buildDir, file));
 }

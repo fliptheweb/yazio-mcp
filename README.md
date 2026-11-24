@@ -66,6 +66,10 @@ There are a few ways to add the server:
 - **Project config** — add JSON to `.cursor/mcp.json` in your project root
 - **Global config** — add JSON to `~/.cursor/mcp.json` (applies to all projects)
 
+### claude.ai and mobile apps (remote server)
+
+The setups above run the server on your own computer. To use Yazio from claude.ai in a browser or from a mobile app, host the remote server yourself behind HTTPS. Each user signs in with their own Yazio account. See [docs/remote-server.md](docs/remote-server.md).
+
 
 ## 💡 Use Cases
 
